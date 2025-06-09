@@ -1,5 +1,6 @@
-import 'package:beresheet_app/screen/homepage.dart';
+import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/services/user_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

@@ -1,4 +1,4 @@
-import 'package:beresheet_app/screen/events_management_screen.dart';
+import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 

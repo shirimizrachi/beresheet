@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beresheet_app/provider/cart_provider.dart';
 import 'package:beresheet_app/widget/addtocartbutton.dart';
-import 'package:beresheet_app/screen/checkoutpage.dart';
+import 'package:beresheet_app/screen/app/checkoutpage.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});

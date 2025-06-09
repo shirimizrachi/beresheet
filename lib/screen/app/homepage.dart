@@ -1,13 +1,13 @@
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
-import 'package:beresheet_app/screen/registeredevents.dart';
-import 'package:beresheet_app/screen/profilepage.dart';
-import 'package:beresheet_app/screen/events_management_screen.dart';
+import 'package:beresheet_app/screen/app/events/registeredevents.dart';
+import 'package:beresheet_app/screen/app/profilepage.dart';
+import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -79,17 +79,17 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'בראשית',
-                      style: TextStyle(
+                    Text(
+                      AppStrings.appName,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
-                    const Text(
-                      'קהילת מגורים',
-                      style: TextStyle(
+                    Text(
+                      AppStrings.communitySubtitle,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
                       ),
@@ -103,7 +103,7 @@ class _HomePageState extends State<HomePage> {
               child: ListView(
                 children: [
                   ListTile(
-                    title: const Text("Profile", style: AppTextStyles.bodyMedium),
+                    title: Text(AppStrings.profile, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.person, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
@@ -112,14 +112,14 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   ListTile(
-                    title: const Text("My Registered Events", style: AppTextStyles.bodyMedium),
+                    title: Text(AppStrings.myRegisteredEvents, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.event_available, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisteredEventsScreen()));
                     },
                   ),
                   ListTile(
-                    title: const Text("Manage Events", style: AppTextStyles.bodyMedium),
+                    title: Text(AppStrings.manageEvents, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.event_note, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   ListTile(
-                    title: const Text("Log Out", style: AppTextStyles.bodyMedium),
+                    title: Text(AppStrings.logOut, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.logout, color: AppColors.primary),
                     onTap: () {
                       AuthRepo.logoutApp(context);
@@ -146,9 +146,9 @@ class _HomePageState extends State<HomePage> {
       ),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text(
-          "בראשית - קהילת מגורים",
-          style: TextStyle(
+        title: Text(
+          AppStrings.appTitle,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -204,14 +204,14 @@ class _HomePageState extends State<HomePage> {
                 )
               : RefreshIndicator(
                   onRefresh: _refreshEvents,
-                  child: const SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: SizedBox(
                       height: 400,
                       child: Center(
                         child: Text(
-                          "No events found",
-                          style: TextStyle(color: Colors.black),
+                          AppStrings.noEventsFound,
+                          style: const TextStyle(color: Colors.black),
                         ),
                       ),
                     ),

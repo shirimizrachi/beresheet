@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:beresheet_app/screen/homepage.dart';
-import 'package:beresheet_app/screen/loginscreen.dart';
-import 'package:beresheet_app/screen/otpscreen.dart';
-import 'package:beresheet_app/screen/profilepage.dart';
+import 'package:beresheet_app/screen/app/homepage.dart';
+import 'package:beresheet_app/screen/app/loginscreen.dart';
+import 'package:beresheet_app/screen/app/otpscreen.dart';
+import 'package:beresheet_app/screen/app/profilepage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 

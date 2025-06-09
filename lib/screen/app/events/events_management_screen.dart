@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
-import 'package:beresheet_app/screen/event_form_screen.dart';
+import 'package:beresheet_app/screen/app/events/event_form_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +37,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'Failed to load events: $e';
+        errorMessage = '${'events.failed_to_load_events'.tr}: $e';
         isLoading = false;
       });
     }
@@ -47,17 +48,17 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Event'),
-          content: const Text('Are you sure you want to delete this event? This action cannot be undone.'),
+          title: Text('events.delete_event'.tr),
+          content: Text('events.delete_event_confirmation'.tr),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text('common.cancel'.tr),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              child: Text('common.delete'.tr),
             ),
           ],
         );
@@ -68,16 +69,16 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       final success = await EventService.deleteEvent(eventId);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Event deleted successfully'),
+          SnackBar(
+            content: Text('events.event_deleted'.tr),
             backgroundColor: Colors.green,
           ),
         );
         loadEvents(); // Refresh the list
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete event'),
+          SnackBar(
+            content: Text('events.failed_to_delete_event'.tr),
             backgroundColor: Colors.red,
           ),
         );
@@ -143,7 +144,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
                         onPressed: loadEvents,
-                        child: const Text('Retry'),
+                        child: Text('events.retry'.tr),
                       ),
                     ],
                   ),
@@ -160,12 +161,12 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                           ),
                           const SizedBox(height: AppSpacing.md),
                           Text(
-                            'No events found',
+                            'events.no_events_found'.tr,
                             style: AppTextStyles.heading4.copyWith(color: Colors.grey[600]),
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Text(
-                            'Tap the + button to create your first event',
+                            'events.create_first_event'.tr,
                             style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey[500]),
                           ),
                         ],
@@ -238,19 +239,19 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                   }
                                 },
                                 itemBuilder: (BuildContext context) => [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'edit',
                                     child: ListTile(
-                                      leading: Icon(Icons.edit),
-                                      title: Text('Edit'),
+                                      leading: const Icon(Icons.edit),
+                                      title: Text('common.edit'.tr),
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'delete',
                                     child: ListTile(
-                                      leading: Icon(Icons.delete, color: Colors.red),
-                                      title: Text('Delete', style: TextStyle(color: Colors.red)),
+                                      leading: const Icon(Icons.delete, color: Colors.red),
+                                      title: Text('common.delete'.tr, style: const TextStyle(color: Colors.red)),
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                   ),

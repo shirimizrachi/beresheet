@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
-import 'package:beresheet_app/screen/eventdetail.dart';
+import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:flutter/material.dart';
 
 class RegisteredEventsScreen extends StatefulWidget {
@@ -43,16 +44,16 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unregister from Event'),
-        content: Text('Are you sure you want to unregister from "${event.name}"?'),
+        title: Text('events.unregister_from_event'.tr),
+        content: Text('${'events.unregister_confirmation'.tr} "${event.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text('common.cancel'.tr),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Unregister'),
+            child: Text('events.unregister'.tr),
           ),
         ],
       ),
@@ -75,8 +76,8 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to unregister. Please try again.'),
+            SnackBar(
+              content: Text('events.failed_to_unregister'.tr),
               backgroundColor: Colors.red,
             ),
           );

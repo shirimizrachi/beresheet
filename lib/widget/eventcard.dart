@@ -1,5 +1,5 @@
 import 'package:beresheet_app/model/event.dart';
-import 'package:beresheet_app/screen/eventdetail.dart';
+import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';

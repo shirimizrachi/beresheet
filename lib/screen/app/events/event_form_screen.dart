@@ -1,5 +1,6 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -128,7 +129,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       if (savedEvent != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.event == null ? 'Event created successfully' : 'Event updated successfully'),
+            content: Text(widget.event == null ? 'events.event_created'.tr : 'events.event_updated'.tr),
             backgroundColor: Colors.green,
           ),
         );
@@ -157,7 +158,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: Text(
-          widget.event == null ? 'Create Event' : 'Edit Event',
+          widget.event == null ? 'events.create_event'.tr : 'events.edit_event'.tr,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -172,7 +173,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           TextButton(
             onPressed: _isLoading ? null : _saveEvent,
             child: Text(
-              'SAVE',
+              'common.save'.tr.toUpperCase(),
               style: AppTextStyles.buttonText.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -193,13 +194,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Event Name
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Event Name',
-                        hintText: 'Enter event name',
+                      decoration: InputDecoration(
+                        labelText: 'events.event_name'.tr,
+                        hintText: 'events.enter_event_name'.tr,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter event name';
+                          return 'events.please_enter_event_name'.tr;
                         }
                         return null;
                       },
@@ -209,8 +210,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Event Type
                     DropdownButtonFormField<String>(
                       value: _selectedType,
-                      decoration: const InputDecoration(
-                        labelText: 'Event Type',
+                      decoration: InputDecoration(
+                        labelText: 'events.event_type'.tr,
                       ),
                       items: _eventTypes.map((type) {
                         return DropdownMenuItem(
@@ -239,14 +240,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Description
                     TextFormField(
                       controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'Enter event description',
+                      decoration: InputDecoration(
+                        labelText: 'events.description'.tr,
+                        hintText: 'events.enter_event_description'.tr,
                       ),
                       maxLines: 3,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter event description';
+                          return 'events.please_enter_event_description'.tr;
                         }
                         return null;
                       },
@@ -267,7 +268,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             const Icon(Icons.calendar_today, color: AppColors.primary),
                             const SizedBox(width: AppSpacing.sm),
                             Text(
-                              'Date & Time: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                              '${'events.date_time'.tr}: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
                               style: AppTextStyles.bodyMedium,
                             ),
                           ],
@@ -279,13 +280,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Location
                     TextFormField(
                       controller: _locationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Location',
-                        hintText: 'Enter event location',
+                      decoration: InputDecoration(
+                        labelText: 'events.location'.tr,
+                        hintText: 'events.enter_event_location'.tr,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter event location';
+                          return 'events.please_enter_event_location'.tr;
                         }
                         return null;
                       },
@@ -295,18 +296,18 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Max Participants
                     TextFormField(
                       controller: _maxParticipantsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Maximum Participants',
-                        hintText: 'Enter maximum number of participants',
+                      decoration: InputDecoration(
+                        labelText: 'events.maximum_participants'.tr,
+                        hintText: 'events.enter_maximum_participants'.tr,
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter maximum participants';
+                          return 'events.please_enter_maximum_participants'.tr;
                         }
                         final number = int.tryParse(value);
                         if (number == null || number <= 0) {
-                          return 'Please enter a valid positive number';
+                          return 'events.please_enter_valid_positive_number'.tr;
                         }
                         return null;
                       },
@@ -317,22 +318,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     if (widget.event != null) ...[
                       TextFormField(
                         controller: _currentParticipantsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Current Participants',
-                          hintText: 'Enter current number of participants',
+                        decoration: InputDecoration(
+                          labelText: 'events.current_participants_label'.tr,
+                          hintText: 'events.enter_current_participants'.tr,
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter current participants';
+                            return 'events.please_enter_current_participants'.tr;
                           }
                           final number = int.tryParse(value);
                           if (number == null || number < 0) {
-                            return 'Please enter a valid non-negative number';
+                            return 'events.please_enter_valid_non_negative_number'.tr;
                           }
                           final maxParticipants = int.tryParse(_maxParticipantsController.text) ?? 0;
                           if (number > maxParticipants) {
-                            return 'Current participants cannot exceed maximum participants';
+                            return 'events.current_participants_cannot_exceed'.tr;
                           }
                           return null;
                         },
@@ -343,13 +344,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Image URL
                     TextFormField(
                       controller: _imageUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Image URL',
-                        hintText: 'Enter image URL',
+                      decoration: InputDecoration(
+                        labelText: 'events.image_url'.tr,
+                        hintText: 'events.enter_image_url'.tr,
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter image URL';
+                          return 'events.please_enter_image_url'.tr;
                         }
                         return null;
                       },
@@ -359,7 +360,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     // Preview Image
                     if (_imageUrlController.text.isNotEmpty) ...[
                       Text(
-                        'Image Preview:',
+                        '${'events.image_preview'.tr}:',
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -374,12 +375,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             return Container(
                               height: 200,
                               color: Colors.grey[300],
-                              child: const Column(
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.broken_image, size: 48, color: Colors.grey),
-                                  SizedBox(height: AppSpacing.sm),
-                                  Text('Invalid image URL'),
+                                  const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text('events.invalid_image_url'.tr),
                                 ],
                               ),
                             );
@@ -408,7 +409,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                 ),
                               )
                             : Text(
-                                widget.event == null ? 'CREATE EVENT' : 'UPDATE EVENT',
+                                widget.event == null ? 'events.create_event_button'.tr : 'events.update_event_button'.tr,
                                 style: AppTextStyles.buttonText,
                               ),
                       ),

@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:beresheet_app/model/product.dart';
-import 'package:beresheet_app/screen/productdetail.dart';
+import 'package:beresheet_app/screen/app/productdetail.dart';
 import 'package:beresheet_app/widget/addtocartbutton.dart';
 import 'package:flutter/material.dart';
 

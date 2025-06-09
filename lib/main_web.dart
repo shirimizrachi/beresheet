@@ -1,5 +1,5 @@
-import 'package:beresheet_app/screen/web_homepage.dart';
-import 'package:beresheet_app/screen/web_management_panel.dart';
+import 'package:beresheet_app/screen/web/web_homepage.dart';
+import 'package:beresheet_app/screen/web/web_management_panel.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

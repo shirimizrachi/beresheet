@@ -6,23 +6,35 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EventService {
-  static const String baseUrl = 'http://localhost:8000/api'; // Updated to use /api prefix
+  // Use different URLs for web vs mobile platforms
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000/api'; // Web can use localhost
+    } else {
+      return 'http://10.0.2.2:8000/api'; // Android emulator uses 10.0.2.2
+    }
+  }
 
   // Load all events from API
   static Future<List<Event>> loadEvents() async {
     try {
+      print('EventService: Attempting to load events from $baseUrl/events');
       final response = await http.get(
         Uri.parse('$baseUrl/events'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print('EventService: Response status code: ${response.statusCode}');
+      print('EventService: Response body length: ${response.body.length}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print('EventService: Parsed ${data.length} events from API');
         
         // Get registered events to mark them as registered
         final List<String> registeredEventIds = await getRegisteredEventIds();
         
-        return data.map((eventJson) {
+        final List<Event> events = data.map((eventJson) {
           Event event = Event.fromJson(eventJson);
           // Mark as registered if it's in the local registered list
           if (registeredEventIds.contains(event.id)) {
@@ -30,13 +42,17 @@ class EventService {
           }
           return event;
         }).toList();
+        
+        print('EventService: Successfully loaded ${events.length} events');
+        return events;
       } else {
+        print('EventService: Failed to load events with status: ${response.statusCode}');
         throw Exception('Failed to load events: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error loading events from API: $e');
-      // Fallback to local JSON if API is not available
-      return _loadEventsFromAssets();
+      print('EventService: Error loading events from API: $e');
+      // Return empty list if API is not available - no fallback to assets
+      return [];
     }
   }
 
@@ -194,9 +210,8 @@ class EventService {
       }
     } catch (e) {
       print('Error loading events by type from API: $e');
-      // Fallback to local filtering
-      final List<Event> allEvents = await loadEvents();
-      return allEvents.where((event) => event.type.toLowerCase() == type.toLowerCase()).toList();
+      // Return empty list if API is not available
+      return [];
     }
   }
 
@@ -216,10 +231,8 @@ class EventService {
       }
     } catch (e) {
       print('Error loading upcoming events from API: $e');
-      // Fallback to local filtering
-      final List<Event> allEvents = await loadEvents();
-      final DateTime now = DateTime.now();
-      return allEvents.where((event) => event.dateTime.isAfter(now)).toList();
+      // Return empty list if API is not available
+      return [];
     }
   }
 

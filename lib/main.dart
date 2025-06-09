@@ -1,8 +1,10 @@
-import 'package:beresheet_app/screen/homepage.dart';
-import 'package:beresheet_app/screen/loginscreen.dart';
-import 'package:beresheet_app/screen/profilepage.dart';
+import 'package:beresheet_app/screen/app/homepage.dart';
+import 'package:beresheet_app/screen/app/loginscreen.dart';
+import 'package:beresheet_app/screen/app/profilepage.dart';
 import 'package:beresheet_app/services/user_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/config/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +15,9 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize localization service
+  await LocalizationService.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -24,8 +29,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'בראשית - קהילת מגורים',
+      title: LocalizationService.getString('app_title', fallback: 'Beresheet'),
       theme: AppTheme.theme,
+      locale: AppConfig.appLocale,
+      builder: (context, child) {
+        return Directionality(
+          textDirection: AppConfig.textDirection,
+          child: child ?? const SizedBox(),
+        );
+      },
       home: Scaffold(
         body: FutureBuilder(
           future: _getUserStatus(),
