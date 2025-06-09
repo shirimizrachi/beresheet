@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/screen/app/loginscreen.dart';
 import 'package:beresheet_app/screen/app/otpscreen.dart';
-import 'package:beresheet_app/screen/app/profilepage.dart';
+import 'package:beresheet_app/screen/app/new_profilepage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -98,7 +98,7 @@ class AuthRepo {
         } else {
           // User does not exist, navigate to ProfilePage to complete profile
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-            return ProfilePage(userCredential: userCredential);
+            return NewProfilePage(userCredential: userCredential);
           }));
         }
       } else {

@@ -105,9 +105,9 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text(
-          'Manage Events',
-          style: TextStyle(
+        title: Text(
+          'navigation.manage_events'.tr,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),

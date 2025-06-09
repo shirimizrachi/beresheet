@@ -1,7 +1,7 @@
 import json
 import os
 from typing import List, Optional
-from models import Event, EventCreate, EventUpdate
+from models import Event, EventCreate, EventUpdate, UserProfile, UserProfileCreate, UserProfileUpdate
 from datetime import datetime
 import uuid
 
@@ -123,5 +123,127 @@ class EventDatabase:
                     return True
         return False
 
-# Global database instance
+class UserDatabase:
+    def __init__(self, data_dir: str = "data/users"):
+        self.data_dir = data_dir
+        self.photos_dir = os.path.join(data_dir, "photos")
+        # Ensure directories exist
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.photos_dir, exist_ok=True)
+    
+    def _get_user_file_path(self, unique_id: str) -> str:
+        """Get the file path for a user's JSON data"""
+        return os.path.join(self.data_dir, f"{unique_id}.json")
+    
+    def _get_photo_file_path(self, unique_id: str) -> str:
+        """Get the file path for a user's photo"""
+        return os.path.join(self.photos_dir, f"{unique_id}.jpeg")
+    
+    def get_user_profile(self, unique_id: str) -> Optional[UserProfile]:
+        """Get user profile by unique ID"""
+        try:
+            file_path = self._get_user_file_path(unique_id)
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return UserProfile(**data)
+            return None
+        except Exception as e:
+            print(f"Error loading user profile {unique_id}: {e}")
+            return None
+    
+    def create_user_profile(self, unique_id: str, user_data: UserProfileCreate) -> UserProfile:
+        """Create a new user profile"""
+        try:
+            current_time = datetime.now().isoformat()
+            new_user = UserProfile(
+                unique_id=unique_id,
+                created_at=current_time,
+                updated_at=current_time,
+                **user_data.model_dump()
+            )
+            
+            file_path = self._get_user_file_path(unique_id)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(new_user.model_dump(), f, indent=2, default=str)
+            
+            return new_user
+        except Exception as e:
+            print(f"Error creating user profile {unique_id}: {e}")
+            raise
+    
+    def update_user_profile(self, unique_id: str, user_data: UserProfileUpdate) -> Optional[UserProfile]:
+        """Update an existing user profile"""
+        try:
+            existing_user = self.get_user_profile(unique_id)
+            if not existing_user:
+                return None
+            
+            update_data = user_data.model_dump(exclude_unset=True)
+            update_data['updated_at'] = datetime.now().isoformat()
+            
+            updated_user = existing_user.model_copy(update=update_data)
+            
+            file_path = self._get_user_file_path(unique_id)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(updated_user.model_dump(), f, indent=2, default=str)
+            
+            return updated_user
+        except Exception as e:
+            print(f"Error updating user profile {unique_id}: {e}")
+            return None
+    
+    def delete_user_profile(self, unique_id: str) -> bool:
+        """Delete a user profile and associated photo"""
+        try:
+            file_path = self._get_user_file_path(unique_id)
+            photo_path = self._get_photo_file_path(unique_id)
+            
+            # Delete user data file
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Delete photo file if it exists
+            if os.path.exists(photo_path):
+                os.remove(photo_path)
+            
+            return True
+        except Exception as e:
+            print(f"Error deleting user profile {unique_id}: {e}")
+            return False
+    
+    def get_all_users(self) -> List[UserProfile]:
+        """Get all user profiles"""
+        try:
+            users = []
+            if os.path.exists(self.data_dir):
+                for filename in os.listdir(self.data_dir):
+                    if filename.endswith('.json'):
+                        unique_id = filename[:-5]  # Remove .json extension
+                        user = self.get_user_profile(unique_id)
+                        if user:
+                            users.append(user)
+            return users
+        except Exception as e:
+            print(f"Error loading all user profiles: {e}")
+            return []
+    
+    def save_user_photo(self, unique_id: str, photo_data: bytes) -> str:
+        """Save user photo and return the file path"""
+        try:
+            photo_path = self._get_photo_file_path(unique_id)
+            with open(photo_path, 'wb') as f:
+                f.write(photo_data)
+            return photo_path
+        except Exception as e:
+            print(f"Error saving photo for user {unique_id}: {e}")
+            raise
+    
+    def get_user_photo_path(self, unique_id: str) -> Optional[str]:
+        """Get the photo file path if it exists"""
+        photo_path = self._get_photo_file_path(unique_id)
+        return photo_path if os.path.exists(photo_path) else None
+
+# Global database instances
 db = EventDatabase()
+user_db = UserDatabase()

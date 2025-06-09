@@ -33,7 +33,32 @@
     "save": "שמור",
     "cancel": "בטל",
     "personal_information": "מידע אישי",
-    "contact_information": "פרטי התקשרות"
+    "contact_information": "פרטי התקשרות",
+    "birthday": "תאריך לידה",
+    "age": "גיל",
+    "role": "תפקיד",
+    "marital_status": "מצב משפחתי",
+    "gender": "מין",
+    "religious": "דתיות",
+    "native_language": "שפת אם",
+    "profile_photo": "תמונת פרופיל",
+    "tap_to_take_photo": "לחץ כדי לצלם תמונה",
+    "select_birthday": "בחר תאריך לידה",
+    "please_select_birthday": "אנא בחר את תאריך הלידה שלך",
+    "create_profile": "צור פרופיל",
+    "edit_profile": "ערוך פרופיל",
+    "update_profile": "עדכן פרופיל",
+    "profile_created_successfully": "הפרופיל נוצר בהצלחה!",
+    "profile_updated_successfully": "הפרופיל עודכן בהצלחה!",
+    "error_saving_profile": "שגיאה בשמירת הפרופיל",
+    "please_enter_full_name": "אנא הכנס את שמך המלא",
+    "please_enter_phone_number": "אנא הכנס את מספר הטלפון שלך",
+    "please_enter_apartment_number": "אנא הכנס את מספר הדירה שלך",
+    "please_select_role": "אנא בחר תפקיד",
+    "please_select_marital_status": "אנא בחר מצב משפחתי",
+    "please_select_gender": "אנא בחר מין",
+    "please_select_religious": "אנא בחר דתיות",
+    "please_select_native_language": "אנא בחר שפת אם"
   },
   
   "events": {
@@ -237,5 +262,41 @@
     "october": "אוקטובר",
     "november": "נובמבר",
     "december": "דצמבר"
-  }
+    },
+    
+    "roles": {
+      "resident": "דייר",
+      "staff": "צוות",
+      "instructor": "מדריך",
+      "service": "נותן שירות",
+      "caregiver": "מטפל"
+    },
+    
+    "marital_status": {
+      "single": "רווק/ה",
+      "married": "נשוי/אה",
+      "divorced": "גרוש/ה",
+      "widowed": "אלמן/ה"
+    },
+    
+    "gender": {
+      "male": "זכר",
+      "female": "נקבה",
+      "other": "אחר"
+    },
+    
+    "religious": {
+      "secular": "חילוני",
+      "orthodox": "דתי",
+      "traditional": "מסורתי"
+    },
+    
+    "languages": {
+      "hebrew": "עברית",
+      "english": "אנגלית",
+      "arabic": "ערבית",
+      "russian": "רוסית",
+      "french": "צרפתית",
+      "spanish": "ספרדית"
+    }
 }

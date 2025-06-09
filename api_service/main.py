@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Optional
-from models import Event, EventCreate, EventUpdate, EventRegistration
-from database import db
+from models import Event, EventCreate, EventUpdate, EventRegistration, UserProfile, UserProfileCreate, UserProfileUpdate
+from database import db, user_db
 import uvicorn
 import os
 
@@ -173,6 +173,91 @@ async def get_stats():
         "total_participants": sum(event.currentParticipants for event in all_events),
         "available_spots": sum(event.maxParticipants - event.currentParticipants for event in all_events)
     }
+
+# User Profile CRUD endpoints
+@api_router.get("/users", response_model=List[UserProfile])
+async def get_all_users():
+    """Get all user profiles"""
+    users = user_db.get_all_users()
+    return users
+
+@api_router.get("/users/{unique_id}", response_model=UserProfile)
+async def get_user_profile(unique_id: str):
+    """Get a specific user profile by unique ID"""
+    user = user_db.get_user_profile(unique_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return user
+
+@api_router.post("/users/{unique_id}", response_model=UserProfile, status_code=201)
+async def create_user_profile(unique_id: str, user: UserProfileCreate):
+    """Create a new user profile"""
+    # Check if user already exists
+    existing_user = user_db.get_user_profile(unique_id)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User profile already exists")
+    
+    try:
+        new_user = user_db.create_user_profile(unique_id, user)
+        return new_user
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating user profile: {str(e)}")
+
+@api_router.put("/users/{unique_id}", response_model=UserProfile)
+async def update_user_profile(unique_id: str, user: UserProfileUpdate):
+    """Update an existing user profile"""
+    updated_user = user_db.update_user_profile(unique_id, user)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return updated_user
+
+@api_router.delete("/users/{unique_id}")
+async def delete_user_profile(unique_id: str):
+    """Delete a user profile"""
+    success = user_db.delete_user_profile(unique_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return {"message": "User profile deleted successfully"}
+
+# User photo endpoints
+@api_router.post("/users/{unique_id}/photo")
+async def upload_user_photo(unique_id: str, photo: UploadFile = File(...)):
+    """Upload a photo for a user profile"""
+    # Check if user exists
+    user = user_db.get_user_profile(unique_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    
+    # Validate file type
+    if not photo.content_type or not photo.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    try:
+        # Read photo data
+        photo_data = await photo.read()
+        
+        # Save photo
+        photo_path = user_db.save_user_photo(unique_id, photo_data)
+        
+        # Update user profile with photo path
+        user_update = UserProfileUpdate(photo=f"/api/users/{unique_id}/photo")
+        updated_user = user_db.update_user_profile(unique_id, user_update)
+        
+        return {
+            "message": "Photo uploaded successfully",
+            "photo_url": f"/api/users/{unique_id}/photo"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
+
+@api_router.get("/users/{unique_id}/photo")
+async def get_user_photo(unique_id: str):
+    """Get a user's photo"""
+    photo_path = user_db.get_user_photo_path(unique_id)
+    if not photo_path:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    return FileResponse(photo_path, media_type="image/jpeg")
 
 # Include the API router
 app.include_router(api_router)

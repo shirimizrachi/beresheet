@@ -109,7 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Always go to homepage after successful profile save
                       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
                     },
-                    child: const Text('OK'),
+                    child: Text('common.ok'.tr),
                   ),
                 ],
               ),
@@ -152,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Profile Information'),
+        title: Text('profile_screen.profile_information'.tr),
         backgroundColor: AppColors.primary,
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -187,14 +187,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     
                     TextFormField(
                       controller: _fullNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                      decoration: InputDecoration(
+                        labelText: 'profile_screen.full_name_label'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your full name';
+                          return 'profile_screen.please_enter_full_name'.tr;
                         }
                         return null;
                       },
@@ -205,14 +205,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     
                     TextFormField(
                       controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText: 'Address',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.home),
+                      decoration: InputDecoration(
+                        labelText: 'profile_screen.address_label'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.home),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your address';
+                          return 'profile_screen.please_enter_address'.tr;
                         }
                         return null;
                       },
@@ -233,7 +233,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 const Icon(Icons.favorite, color: AppColors.primary),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Favorite Activities',
+                                  'profile_screen.favorite_activities'.tr,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -324,7 +324,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                       ),
-                      child: Text(fullName.isEmpty ? 'Create Profile' : 'Update Profile'),
+                      child: Text(fullName.isEmpty ? 'profile_screen.create_profile'.tr : 'profile_screen.update_profile'.tr),
                     ),
                   ],
                 ),

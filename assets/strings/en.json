@@ -33,7 +33,32 @@
     "save": "Save",
     "cancel": "Cancel",
     "personal_information": "Personal Information",
-    "contact_information": "Contact Information"
+    "contact_information": "Contact Information",
+    "birthday": "Birthday",
+    "age": "Age",
+    "role": "Role",
+    "marital_status": "Marital Status",
+    "gender": "Gender",
+    "religious": "Religious",
+    "native_language": "Native Language",
+    "profile_photo": "Profile Photo",
+    "tap_to_take_photo": "Tap to take photo",
+    "select_birthday": "Select Birthday",
+    "please_select_birthday": "Please select your birthday",
+    "create_profile": "Create Profile",
+    "edit_profile": "Edit Profile",
+    "update_profile": "Update Profile",
+    "profile_created_successfully": "Profile created successfully!",
+    "profile_updated_successfully": "Profile updated successfully!",
+    "error_saving_profile": "Error saving profile",
+    "please_enter_full_name": "Please enter your full name",
+    "please_enter_phone_number": "Please enter your phone number",
+    "please_enter_apartment_number": "Please enter your apartment number",
+    "please_select_role": "Please select Role",
+    "please_select_marital_status": "Please select Marital Status",
+    "please_select_gender": "Please select Gender",
+    "please_select_religious": "Please select Religious",
+    "please_select_native_language": "Please select Native Language"
   },
   
   "events": {
@@ -237,5 +262,41 @@
     "october": "October",
     "november": "November",
     "december": "December"
-  }
+    },
+    
+    "roles": {
+      "resident": "Resident",
+      "staff": "Staff",
+      "instructor": "Instructor",
+      "service": "Service Provider",
+      "caregiver": "Caregiver"
+    },
+    
+    "marital_status": {
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced",
+      "widowed": "Widowed"
+    },
+    
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    
+    "religious": {
+      "secular": "Secular",
+      "orthodox": "Orthodox",
+      "traditional": "Traditional"
+    },
+    
+    "languages": {
+      "hebrew": "Hebrew",
+      "english": "English",
+      "arabic": "Arabic",
+      "russian": "Russian",
+      "french": "French",
+      "spanish": "Spanish"
+    }
 }

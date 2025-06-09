@@ -1,7 +1,7 @@
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/registeredevents.dart';
-import 'package:beresheet_app/screen/app/profilepage.dart';
+import 'package:beresheet_app/screen/app/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/localization_service.dart';
@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage> {
                     leading: const Icon(Icons.person, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const ProfilePage(),
+                        builder: (context) => const NewProfilePage(),
                       ));
                     },
                   ),

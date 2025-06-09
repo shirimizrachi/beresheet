@@ -1,6 +1,6 @@
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/screen/app/loginscreen.dart';
-import 'package:beresheet_app/screen/app/profilepage.dart';
+import 'package:beresheet_app/screen/app/new_profilepage.dart';
 import 'package:beresheet_app/services/user_service.dart';
 import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -63,13 +63,13 @@ class MyApp extends StatelessWidget {
       if (userProfile == null) {
         // User is authenticated but not in JSON users storage - create basic profile and direct to profile setup
         await UserService.createBasicUserProfile(user);
-        return const ProfilePage();
+        return const NewProfilePage();
       } else {
         // Check if profile is complete
         final isComplete = userProfile['isComplete'] ?? false;
         if (!isComplete || userProfile['fullName']?.isEmpty == true) {
           // Profile exists but is incomplete - direct to profile setup
-          return const ProfilePage();
+          return const NewProfilePage();
         } else {
           // User exists and profile is complete
           return const HomePage();

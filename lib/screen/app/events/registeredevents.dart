@@ -122,7 +122,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Registered Events'),
+        title: Text('navigation.my_registered_events'.tr),
         backgroundColor: theme.colorScheme.primary,
         titleTextStyle: TextStyle(
           color: theme.colorScheme.onPrimary,
@@ -136,32 +136,32 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
           : registeredEvents.isEmpty
               ? RefreshIndicator(
                   onRefresh: _refreshEvents,
-                  child: const SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: SizedBox(
                       height: 400,
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.event_busy,
                               size: 64,
                               color: Colors.grey,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
-                              'No registered events',
-                              style: TextStyle(
+                              'events.no_registered_events'.tr,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
-                              'Register for events from the home page',
-                              style: TextStyle(
+                              'events.register_from_home'.tr,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
                               ),
@@ -256,7 +256,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            'REGISTERED',
+                                            'events.registered'.tr.toUpperCase(),
                                             style: TextStyle(
                                               color: Colors.green[700],
                                               fontSize: 10,
@@ -346,7 +346,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           foregroundColor: Colors.orange[700],
                                           side: BorderSide(color: Colors.orange[300]!),
                                         ),
-                                        child: const Text('Unregister'),
+                                        child: Text('events.unregister'.tr),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -364,7 +364,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           backgroundColor: theme.colorScheme.primary,
                                           foregroundColor: Colors.white,
                                         ),
-                                        child: const Text('View Details'),
+                                        child: Text('events.view_details'.tr),
                                       ),
                                     ),
                                   ],

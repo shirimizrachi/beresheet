@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 class EventBase(BaseModel):
@@ -36,3 +36,39 @@ class Event(EventBase):
 class EventRegistration(BaseModel):
     event_id: str
     user_id: Optional[str] = None
+
+# User Profile Models
+class UserProfileBase(BaseModel):
+    full_name: str
+    phone_number: str
+    role: str  # "resident", "staff", "instructor", "service", "caregiver"
+    birthday: date
+    apartment_number: str
+    marital_status: str
+    gender: str
+    religious: str
+    native_language: str
+    photo: Optional[str] = None
+
+class UserProfileCreate(UserProfileBase):
+    pass
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    role: Optional[str] = None
+    birthday: Optional[date] = None
+    apartment_number: Optional[str] = None
+    marital_status: Optional[str] = None
+    gender: Optional[str] = None
+    religious: Optional[str] = None
+    native_language: Optional[str] = None
+    photo: Optional[str] = None
+
+class UserProfile(UserProfileBase):
+    unique_id: str
+    created_at: str
+    updated_at: str
+
+    class Config:
+        from_attributes = True

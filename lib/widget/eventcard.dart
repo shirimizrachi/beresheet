@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -41,7 +42,7 @@ class _EventCardState extends State<EventCard> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Unregistered from ${widget.event.name}'),
+                content: Text('${'events.unregistered_from'.tr} ${widget.event.name}'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -52,8 +53,8 @@ class _EventCardState extends State<EventCard> {
         if (!widget.event.isAvailable) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Sorry, this event is full!'),
+              SnackBar(
+                content: Text('events.event_full_message'.tr),
                 backgroundColor: Colors.red,
               ),
             );
@@ -69,7 +70,7 @@ class _EventCardState extends State<EventCard> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Registered for ${widget.event.name}!'),
+                content: Text('${'events.registered_for'.tr} ${widget.event.name}!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -80,8 +81,8 @@ class _EventCardState extends State<EventCard> {
       print('Registration error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration failed. Please try again.'),
+          SnackBar(
+            content: Text('events.registration_failed'.tr),
             backgroundColor: Colors.red,
           ),
         );
@@ -296,7 +297,7 @@ class _EventCardState extends State<EventCard> {
                                       ),
                                     )
                                   : Text(
-                                      widget.event.isRegistered ? 'Unregister' : 'Register',
+                                      widget.event.isRegistered ? 'events.unregister'.tr : 'events.register'.tr,
                                       style: const TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
