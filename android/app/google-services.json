@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "301880694626",
+    "project_id": "beresheet-app",
+    "storage_bucket": "beresheet-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301880694626:android:7225f3f702fdab15a1fe3b",
+        "android_client_info": {
+          "package_name": "com.home.beresheet_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "301880694626-android.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEZqKHv3SyuzCKxvh3k4D7F97XGIHi80s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "301880694626-web.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

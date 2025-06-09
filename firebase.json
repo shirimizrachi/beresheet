@@ -1,0 +1,23 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "beresheet-app",
+          "appId": "1:301880694626:android:7225f3f702fdab15a1fe3b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "beresheet-app",
+          "configurations": {
+            "android": "1:301880694626:android:7225f3f702fdab15a1fe3b",
+            "ios": "1:301880694626:ios:your-ios-app-id",
+            "web": "1:301880694626:web:your-web-app-id"
+          }
+        }
+      }
+    }
+  }
+}

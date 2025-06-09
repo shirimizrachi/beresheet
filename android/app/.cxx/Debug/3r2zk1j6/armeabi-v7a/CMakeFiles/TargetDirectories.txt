@@ -1,0 +1,2 @@
+C:/Users/ranmi/flutter/e_commerce_app/android/app/.cxx/Debug/3r2zk1j6/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/ranmi/flutter/e_commerce_app/android/app/.cxx/Debug/3r2zk1j6/armeabi-v7a/CMakeFiles/rebuild_cache.dir
