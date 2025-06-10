@@ -1,7 +1,9 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 
 class WebHomePage extends StatefulWidget {
   const WebHomePage({Key? key}) : super(key: key);
@@ -83,9 +85,9 @@ class _WebHomePageState extends State<WebHomePage> {
             pinned: true,
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'בראשית - קהילת מגורים',
-                style: TextStyle(
+              title: Text(
+                context.l10n.appTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 24,
@@ -98,12 +100,13 @@ class _WebHomePageState extends State<WebHomePage> {
                 padding: const EdgeInsets.only(right: AppSpacing.md),
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pushNamed('/manage');
+                    // Navigate to management panel using URL hash
+                    html.window.location.hash = '#manage';
                   },
                   icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
-                  label: const Text(
-                    'Management Panel',
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    context.l10n.managementPanel,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
@@ -121,7 +124,7 @@ class _WebHomePageState extends State<WebHomePage> {
               child: Column(
                 children: [
                   Text(
-                    'Welcome to Beresheet Community',
+                    context.l10n.welcomeToBeresheet,
                     style: AppTextStyles.heading1.copyWith(
                       fontSize: 36,
                       color: AppColors.primary,
@@ -130,7 +133,7 @@ class _WebHomePageState extends State<WebHomePage> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Discover amazing events and activities in our community',
+                    context.l10n.discoverEvents,
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontSize: 18,
                       color: Colors.grey[600],
@@ -153,7 +156,7 @@ class _WebHomePageState extends State<WebHomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Featured Events',
+                        context.l10n.featuredEvents,
                         style: AppTextStyles.heading2.copyWith(
                           fontSize: 28,
                           color: AppColors.primary,
@@ -162,7 +165,7 @@ class _WebHomePageState extends State<WebHomePage> {
                       TextButton.icon(
                         onPressed: _refreshEvents,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh'),
+                        label: Text(context.l10n.refresh),
                       ),
                     ],
                   ),
@@ -189,7 +192,7 @@ class _WebHomePageState extends State<WebHomePage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Text(
-                              'No events available',
+                              context.l10n.noEventsAvailable,
                               style: AppTextStyles.heading3.copyWith(
                                 color: Colors.grey[600],
                               ),
@@ -360,7 +363,7 @@ class _WebHomePageState extends State<WebHomePage> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  '${event.currentParticipants}/${event.maxParticipants} participants',
+                                                  '${event.currentParticipants}/${event.maxParticipants} ${context.l10n.participants}',
                                                   style: AppTextStyles.bodySmall.copyWith(
                                                     fontSize: 14,
                                                     color: AppColors.primary,
@@ -415,7 +418,7 @@ class _WebHomePageState extends State<WebHomePage> {
               child: Column(
                 children: [
                   Text(
-                    'Beresheet Community',
+                    context.l10n.beresheetCommunity,
                     style: AppTextStyles.heading2.copyWith(
                       color: Colors.white,
                       fontSize: 24,
@@ -424,7 +427,7 @@ class _WebHomePageState extends State<WebHomePage> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Building a stronger community together',
+                    context.l10n.buildingStrongerCommunity,
                     style: AppTextStyles.bodyLarge.copyWith(
                       color: Colors.white70,
                     ),
@@ -436,10 +439,11 @@ class _WebHomePageState extends State<WebHomePage> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.of(context).pushNamed('/manage');
+                          // Navigate to management panel using URL hash
+                          html.window.location.hash = '#manage';
                         },
                         icon: const Icon(Icons.admin_panel_settings),
-                        label: const Text('Management Panel'),
+                        label: Text(context.l10n.managementPanel),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: Colors.white,
@@ -454,9 +458,9 @@ class _WebHomePageState extends State<WebHomePage> {
                       OutlinedButton.icon(
                         onPressed: _refreshEvents,
                         icon: const Icon(Icons.refresh, color: Colors.white),
-                        label: const Text(
-                          'Refresh Events',
-                          style: TextStyle(color: Colors.white),
+                        label: Text(
+                          context.l10n.refreshEvents,
+                          style: const TextStyle(color: Colors.white),
                         ),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white),

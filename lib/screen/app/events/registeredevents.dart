@@ -1,7 +1,8 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
+import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class RegisteredEventsScreen extends StatefulWidget {
@@ -44,16 +45,16 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('events.unregister_from_event'.tr),
-        content: Text('${'events.unregister_confirmation'.tr} "${event.name}"?'),
+        title: Text(context.l10n.unregister),
+        content: Text('${context.l10n.unregisterConfirmation} "${event.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('common.cancel'.tr),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('events.unregister'.tr),
+            child: Text(context.l10n.unregister),
           ),
         ],
       ),
@@ -77,7 +78,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('events.failed_to_unregister'.tr),
+              content: Text(context.l10n.operationFailed),
               backgroundColor: Colors.red,
             ),
           );
@@ -122,7 +123,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('navigation.my_registered_events'.tr),
+        title: Text(context.l10n.myRegisteredEvents),
         backgroundColor: theme.colorScheme.primary,
         titleTextStyle: TextStyle(
           color: theme.colorScheme.onPrimary,
@@ -151,7 +152,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'events.no_registered_events'.tr,
+                              'No registered events',
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
@@ -160,7 +161,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'events.register_from_home'.tr,
+                              'Register for events from the home page',
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -256,7 +257,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            'events.registered'.tr.toUpperCase(),
+                                            context.l10n.registered.toUpperCase(),
                                             style: TextStyle(
                                               color: Colors.green[700],
                                               fontSize: 10,
@@ -346,7 +347,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           foregroundColor: Colors.orange[700],
                                           side: BorderSide(color: Colors.orange[300]!),
                                         ),
-                                        child: Text('events.unregister'.tr),
+                                        child: Text(context.l10n.unregister),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -364,7 +365,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           backgroundColor: theme.colorScheme.primary,
                                           foregroundColor: Colors.white,
                                         ),
-                                        child: Text('events.view_details'.tr),
+                                        child: Text(context.l10n.viewDetails),
                                       ),
                                     ),
                                   ],

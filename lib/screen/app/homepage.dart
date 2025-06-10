@@ -4,7 +4,7 @@ import 'package:beresheet_app/screen/app/events/registeredevents.dart';
 import 'package:beresheet_app/screen/app/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
 import 'package:flutter/material.dart';
@@ -80,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      AppStrings.appName,
+                      context.l10n.appName,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     Text(
-                      AppStrings.communitySubtitle,
+                      context.l10n.communitySubtitle,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
@@ -103,7 +103,7 @@ class _HomePageState extends State<HomePage> {
               child: ListView(
                 children: [
                   ListTile(
-                    title: Text(AppStrings.profile, style: AppTextStyles.bodyMedium),
+                    title: Text(context.l10n.profile, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.person, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
@@ -112,14 +112,14 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   ListTile(
-                    title: Text(AppStrings.myRegisteredEvents, style: AppTextStyles.bodyMedium),
+                    title: Text(context.l10n.myRegisteredEvents, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.event_available, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisteredEventsScreen()));
                     },
                   ),
                   ListTile(
-                    title: Text(AppStrings.manageEvents, style: AppTextStyles.bodyMedium),
+                    title: Text(context.l10n.manageEvents, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.event_note, color: AppColors.primary),
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   ListTile(
-                    title: Text(AppStrings.logOut, style: AppTextStyles.bodyMedium),
+                    title: Text(context.l10n.logOut, style: AppTextStyles.bodyMedium),
                     leading: const Icon(Icons.logout, color: AppColors.primary),
                     onTap: () {
                       AuthRepo.logoutApp(context);
@@ -147,7 +147,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: Text(
-          AppStrings.appTitle,
+          context.l10n.appTitle,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -210,7 +210,7 @@ class _HomePageState extends State<HomePage> {
                       height: 400,
                       child: Center(
                         child: Text(
-                          AppStrings.noEventsFound,
+                          context.l10n.noEventsFound,
                           style: const TextStyle(color: Colors.black),
                         ),
                       ),

@@ -1,11 +1,12 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventFormScreen extends StatefulWidget {
-  final Event? event; // null for creating new event, non-null for editing
+  final Event? event; // null for creating new event
 
   const EventFormScreen({Key? key, this.event}) : super(key: key);
 
@@ -15,38 +16,46 @@ class EventFormScreen extends StatefulWidget {
 
 class _EventFormScreenState extends State<EventFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _imageUrlController = TextEditingController();
-  final _maxParticipantsController = TextEditingController();
-  final _currentParticipantsController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _maxParticipantsController = TextEditingController();
+  final TextEditingController _currentParticipantsController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
 
   String _selectedType = 'class';
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
-  bool _isLoading = false;
+  bool _isSaving = false;
 
-  final List<String> _eventTypes = ['class', 'performance', 'cultural', 'leisure'];
+  final List<String> _eventTypes = [
+    'class',
+    'performance', 
+    'cultural',
+    'leisure',
+    'workshop',
+    'meeting',
+    'sport',
+    'health'
+  ];
 
   @override
   void initState() {
     super.initState();
     if (widget.event != null) {
-      // Editing existing event
-      _nameController.text = widget.event!.name;
-      _descriptionController.text = widget.event!.description;
-      _locationController.text = widget.event!.location;
-      _imageUrlController.text = widget.event!.imageUrl;
-      _maxParticipantsController.text = widget.event!.maxParticipants.toString();
-      _currentParticipantsController.text = widget.event!.currentParticipants.toString();
-      _selectedType = widget.event!.type;
-      _selectedDateTime = widget.event!.dateTime;
-    } else {
-      // Creating new event - set default values
-      _maxParticipantsController.text = '20';
-      _currentParticipantsController.text = '0';
-      _imageUrlController.text = 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400';
+      _populateFields();
     }
+  }
+
+  void _populateFields() {
+    final event = widget.event!;
+    _nameController.text = event.name;
+    _descriptionController.text = event.description;
+    _locationController.text = event.location;
+    _maxParticipantsController.text = event.maxParticipants.toString();
+    _currentParticipantsController.text = event.currentParticipants.toString();
+    _imageUrlController.text = event.imageUrl;
+    _selectedType = event.type;
+    _selectedDateTime = event.dateTime;
   }
 
   @override
@@ -54,126 +63,156 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
-    _imageUrlController.dispose();
     _maxParticipantsController.dispose();
     _currentParticipantsController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDateTime() async {
-    final DateTime? pickedDate = await showDatePicker(
+    final l10n = context.l10n;
+    
+    final date = await showDatePicker(
       context: context,
       initialDate: _selectedDateTime,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-      );
+    if (date != null) {
+      if (mounted) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+        );
 
-      if (pickedTime != null) {
-        setState(() {
-          _selectedDateTime = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
+        if (time != null) {
+          setState(() {
+            _selectedDateTime = DateTime(
+              date.year,
+              date.month,
+              date.day,
+              time.hour,
+              time.minute,
+            );
+          });
+        }
       }
     }
   }
 
   Future<void> _saveEvent() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
+    final l10n = context.l10n;
 
     setState(() {
-      _isLoading = true;
+      _isSaving = true;
     });
 
     try {
-      Event? savedEvent;
+      final event = Event(
+        id: widget.event?.id ?? '',
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        type: _selectedType,
+        dateTime: _selectedDateTime,
+        location: _locationController.text.trim(),
+        maxParticipants: int.parse(_maxParticipantsController.text),
+        currentParticipants: int.parse(_currentParticipantsController.text),
+        imageUrl: _imageUrlController.text.trim(),
+        isRegistered: widget.event?.isRegistered ?? false,
+      );
 
-      if (widget.event == null) {
-        // Creating new event
-        savedEvent = await EventService.createEvent(
-          name: _nameController.text.trim(),
-          type: _selectedType,
-          description: _descriptionController.text.trim(),
-          dateTime: _selectedDateTime,
-          location: _locationController.text.trim(),
-          maxParticipants: int.parse(_maxParticipantsController.text),
-          imageUrl: _imageUrlController.text.trim(),
-        );
-      } else {
-        // Updating existing event
-        savedEvent = await EventService.updateEvent(
-          eventId: widget.event!.id,
-          name: _nameController.text.trim(),
-          type: _selectedType,
-          description: _descriptionController.text.trim(),
-          dateTime: _selectedDateTime,
-          location: _locationController.text.trim(),
-          maxParticipants: int.parse(_maxParticipantsController.text),
-          imageUrl: _imageUrlController.text.trim(),
-          currentParticipants: int.parse(_currentParticipantsController.text),
-        );
-      }
+      final Event? result = widget.event == null
+          ? await EventService.createEvent(
+              name: event.name,
+              type: event.type,
+              description: event.description,
+              dateTime: event.dateTime,
+              location: event.location,
+              maxParticipants: event.maxParticipants,
+              imageUrl: event.imageUrl,
+            )
+          : await EventService.updateEvent(
+              eventId: event.id,
+              name: event.name,
+              type: event.type,
+              description: event.description,
+              dateTime: event.dateTime,
+              location: event.location,
+              maxParticipants: event.maxParticipants,
+              imageUrl: event.imageUrl,
+              currentParticipants: event.currentParticipants,
+            );
 
-      if (savedEvent != null) {
+      if (result != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.event == null ? 'events.event_created'.tr : 'events.event_updated'.tr),
+            content: Text(widget.event == null ? l10n.eventCreated : l10n.eventUpdated),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pop(true); // Return true to indicate success
-      } else {
-        throw Exception('Failed to save event');
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.error}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  String _getEventTypeDisplayName(String type) {
+    final l10n = context.l10n;
+    
+    switch (type) {
+      case 'class': return l10n.eventTypeClass;
+      case 'performance': return l10n.eventTypePerformance;
+      case 'cultural': return l10n.eventTypeCultural;
+      case 'leisure': return l10n.eventTypeLeisure;
+      case 'workshop': return l10n.eventTypeWorkshop;
+      case 'meeting': return l10n.eventTypeMeeting;
+      case 'sport': return l10n.eventTypeSport;
+      case 'health': return l10n.eventTypeHealth;
+      default: return type;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
-          widget.event == null ? 'events.create_event'.tr : 'events.edit_event'.tr,
+          widget.event == null ? l10n.createEvent : l10n.editEvent,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
+        backgroundColor: AppColors.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
+          icon: Icon(DirectionUtils.backIcon),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _saveEvent,
+            onPressed: _isSaving ? null : _saveEvent,
             child: Text(
-              'common.save'.tr.toUpperCase(),
+              l10n.save.toUpperCase(),
               style: AppTextStyles.buttonText.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -182,242 +221,276 @@ class _EventFormScreenState extends State<EventFormScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Event Name
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'events.event_name'.tr,
-                        hintText: 'events.enter_event_name'.tr,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'events.please_enter_event_name'.tr;
-                        }
-                        return null;
-                      },
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+            children: [
+              // Event Name
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.eventName,
+                      hintText: l10n.enterEventName,
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.pleaseEnterEventName;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
 
-                    // Event Type
-                    DropdownButtonFormField<String>(
-                      value: _selectedType,
-                      decoration: InputDecoration(
-                        labelText: 'events.event_type'.tr,
-                      ),
-                      items: _eventTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
+              // Event Type
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedType,
+                    decoration: InputDecoration(
+                      labelText: l10n.eventType,
+                    ),
+                    items: _eventTypes.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(_getEventTypeDisplayName(type)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedType = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Description
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: l10n.description,
+                      hintText: l10n.enterEventDescription,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.pleaseEnterEventDescription;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Date and Time
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                    children: [
+                      InkWell(
+                        onTap: _selectDateTime,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                           child: Row(
                             children: [
-                              Icon(
-                                ActivityTypeHelper.getIcon(type),
-                                color: ActivityTypeHelper.getColor(type),
-                                size: 20,
-                              ),
+                              const Icon(Icons.calendar_today, color: AppColors.primary),
                               const SizedBox(width: AppSpacing.sm),
-                              Text(ActivityTypeHelper.getDisplayName(type)),
+                              Expanded(
+                                child: Text(
+                                  '${l10n.dateTime}: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                                  style: AppTextStyles.bodyMedium,
+                                ),
+                              ),
                             ],
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedType = value!;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Description
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'events.description'.tr,
-                        hintText: 'events.enter_event_description'.tr,
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'events.please_enter_event_description'.tr;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Date and Time
-                    InkWell(
-                      onTap: _selectDateTime,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.md),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today, color: AppColors.primary),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text(
-                              '${'events.date_time'.tr}: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                              style: AppTextStyles.bodyMedium,
-                            ),
-                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
 
-                    // Location
-                    TextFormField(
-                      controller: _locationController,
-                      decoration: InputDecoration(
-                        labelText: 'events.location'.tr,
-                        hintText: 'events.enter_event_location'.tr,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'events.please_enter_event_location'.tr;
-                        }
-                        return null;
-                      },
+              // Location
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: TextFormField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      labelText: l10n.location,
+                      hintText: l10n.enterEventLocation,
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.pleaseEnterEventLocation;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
 
-                    // Max Participants
-                    TextFormField(
-                      controller: _maxParticipantsController,
-                      decoration: InputDecoration(
-                        labelText: 'events.maximum_participants'.tr,
-                        hintText: 'events.enter_maximum_participants'.tr,
-                      ),
+              // Max Participants
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: TextFormField(
+                    controller: _maxParticipantsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: l10n.maxParticipants,
+                      hintText: l10n.enterMaximumParticipants,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n.pleaseEnterMaximumParticipants;
+                      }
+                      final number = int.tryParse(value);
+                      if (number == null || number <= 0) {
+                        return l10n.pleaseEnterValidPositiveNumber;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Current Participants (only for editing)
+              if (widget.event != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: TextFormField(
+                      controller: _currentParticipantsController,
                       keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.currentParticipants,
+                        hintText: l10n.enterCurrentParticipants,
+                      ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'events.please_enter_maximum_participants'.tr;
+                          return l10n.pleaseEnterCurrentParticipants;
                         }
                         final number = int.tryParse(value);
-                        if (number == null || number <= 0) {
-                          return 'events.please_enter_valid_positive_number'.tr;
+                        if (number == null || number < 0) {
+                          return l10n.pleaseEnterValidNonNegativeNumber;
+                        }
+                        final maxParticipants = int.tryParse(_maxParticipantsController.text) ?? 0;
+                        if (number > maxParticipants) {
+                          return l10n.currentParticipantsCannotExceed;
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                  ),
+                ),
+              if (widget.event != null) const SizedBox(height: AppSpacing.md),
 
-                    // Current Participants (only show when editing)
-                    if (widget.event != null) ...[
+              // Image URL
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                    children: [
                       TextFormField(
-                        controller: _currentParticipantsController,
+                        controller: _imageUrlController,
                         decoration: InputDecoration(
-                          labelText: 'events.current_participants_label'.tr,
-                          hintText: 'events.enter_current_participants'.tr,
+                          labelText: l10n.imageUrl,
+                          hintText: l10n.enterImageUrl,
                         ),
-                        keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'events.please_enter_current_participants'.tr;
-                          }
-                          final number = int.tryParse(value);
-                          if (number == null || number < 0) {
-                            return 'events.please_enter_valid_non_negative_number'.tr;
-                          }
-                          final maxParticipants = int.tryParse(_maxParticipantsController.text) ?? 0;
-                          if (number > maxParticipants) {
-                            return 'events.current_participants_cannot_exceed'.tr;
+                            return l10n.pleaseEnterImageUrl;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: AppSpacing.md),
-                    ],
-
-                    // Image URL
-                    TextFormField(
-                      controller: _imageUrlController,
-                      decoration: InputDecoration(
-                        labelText: 'events.image_url'.tr,
-                        hintText: 'events.enter_image_url'.tr,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'events.please_enter_image_url'.tr;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Preview Image
-                    if (_imageUrlController.text.isNotEmpty) ...[
                       Text(
-                        '${'events.image_preview'.tr}:',
+                        '${l10n.imagePreview}:',
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppBorderRadius.medium),
-                        child: Image.network(
-                          _imageUrlController.text,
+                      if (_imageUrlController.text.isNotEmpty)
+                        Container(
                           height: 200,
                           width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              color: Colors.grey[300],
-                              child: Column(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppSpacing.sm),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppSpacing.sm),
+                            child: Image.network(
+                              _imageUrlController.text,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                  const Icon(Icons.error, color: Colors.red),
                                   const SizedBox(height: AppSpacing.sm),
-                                  Text('events.invalid_image_url'.tr),
+                                  Text(l10n.invalidImageUrl),
                                 ],
                               ),
-                            );
-                          },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(child: CircularProgressIndicator());
+                              },
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
                     ],
-
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveEvent,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : Text(
-                                widget.event == null ? 'events.create_event_button'.tr : 'events.update_event_button'.tr,
-                                style: AppTextStyles.buttonText,
-                              ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveEvent,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.sm),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          widget.event == null ? l10n.createEventButton : l10n.updateEventButton,
+                          style: AppTextStyles.buttonText,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

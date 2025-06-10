@@ -2,13 +2,15 @@ class UserModel {
   final String uniqueId;
   final String fullName;
   final String phoneNumber;
-  final String role;
+  final String role; // "resident", "staff", "instructor", "service", "caregiver", "manager"
   final DateTime birthday;
   final String apartmentNumber;
   final String maritalStatus;
   final String gender;
   final String religious;
   final String nativeLanguage;
+  final int residentId; // Not displayed in profile page, used for internal operations
+  final String userId; // Unique user identifier generated on creation
   final String? photo;
   final String? createdAt;
   final String? updatedAt;
@@ -24,6 +26,8 @@ class UserModel {
     required this.gender,
     required this.religious,
     required this.nativeLanguage,
+    required this.residentId,
+    required this.userId,
     this.photo,
     this.createdAt,
     this.updatedAt,
@@ -42,6 +46,8 @@ class UserModel {
       gender: json['gender'] as String,
       religious: json['religious'] as String,
       nativeLanguage: json['native_language'] as String,
+      residentId: json['resident_id'] as int,
+      userId: json['user_id'] as String,
       photo: json['photo'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
@@ -60,27 +66,10 @@ class UserModel {
       'gender': gender,
       'religious': religious,
       'native_language': nativeLanguage,
+      'resident_id': residentId,
+      'user_id': userId,
       if (photo != null) 'photo': photo,
     };
-  }
-
-  // Legacy method for backward compatibility
-  factory UserModel.fromFirestore(Map<String, dynamic> doc) {
-    return UserModel(
-      uniqueId: doc['uid'] as String,
-      fullName: doc['fullName'] as String,
-      phoneNumber: doc['phoneNumber'] as String,
-      role: doc['role'] as String? ?? 'resident',
-      birthday: doc['birthday'] != null
-          ? DateTime.parse(doc['birthday'] as String)
-          : DateTime.now().subtract(const Duration(days: 365 * 30)), // Default to 30 years ago
-      apartmentNumber: doc['apartmentNumber'] as String? ?? '',
-      maritalStatus: doc['maritalStatus'] as String? ?? '',
-      gender: doc['gender'] as String? ?? '',
-      religious: doc['religious'] as String? ?? '',
-      nativeLanguage: doc['nativeLanguage'] as String? ?? '',
-      photo: doc['photo'] as String?,
-    );
   }
 
   // Legacy method for backward compatibility
@@ -99,6 +88,8 @@ class UserModel {
     String? gender,
     String? religious,
     String? nativeLanguage,
+    int? residentId,
+    String? userId,
     String? photo,
     String? createdAt,
     String? updatedAt,
@@ -114,6 +105,8 @@ class UserModel {
       gender: gender ?? this.gender,
       religious: religious ?? this.religious,
       nativeLanguage: nativeLanguage ?? this.nativeLanguage,
+      residentId: residentId ?? this.residentId,
+      userId: userId ?? this.userId,
       photo: photo ?? this.photo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

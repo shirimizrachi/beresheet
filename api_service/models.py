@@ -41,17 +41,20 @@ class EventRegistration(BaseModel):
 class UserProfileBase(BaseModel):
     full_name: str
     phone_number: str
-    role: str  # "resident", "staff", "instructor", "service", "caregiver"
+    role: str  # "resident", "staff", "instructor", "service", "caregiver", "manager"
     birthday: date
     apartment_number: str
     marital_status: str
     gender: str
     religious: str
     native_language: str
+    resident_id: int  # Not displayed in profile page, used for internal operations
+    user_id: str  # Unique user identifier generated on creation
     photo: Optional[str] = None
 
-class UserProfileCreate(UserProfileBase):
-    pass
+class UserProfileCreate(BaseModel):
+    resident_id: int
+    phone_number: str
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -63,6 +66,7 @@ class UserProfileUpdate(BaseModel):
     gender: Optional[str] = None
     religious: Optional[str] = None
     native_language: Optional[str] = None
+    resident_id: Optional[int] = None
     photo: Optional[str] = None
 
 class UserProfile(UserProfileBase):

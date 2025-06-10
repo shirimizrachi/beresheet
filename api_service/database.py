@@ -153,14 +153,30 @@ class UserDatabase:
             return None
     
     def create_user_profile(self, unique_id: str, user_data: UserProfileCreate) -> UserProfile:
-        """Create a new user profile"""
+        """Create a new user profile with minimal required data"""
         try:
             current_time = datetime.now().isoformat()
+            # Generate unique user_id
+            user_id = str(uuid.uuid4())
+            
+            # Create user profile with minimal data and defaults
             new_user = UserProfile(
                 unique_id=unique_id,
                 created_at=current_time,
                 updated_at=current_time,
-                **user_data.model_dump()
+                user_id=user_id,
+                resident_id=user_data.resident_id,
+                phone_number=user_data.phone_number,
+                # Default values for required fields
+                full_name="",  # To be updated later
+                role="resident",  # Default role
+                birthday=datetime.now().date(),  # Default to today, to be updated
+                apartment_number="",  # To be updated later
+                marital_status="single",  # Default
+                gender="",  # To be updated later
+                religious="",  # To be updated later
+                native_language="hebrew",  # Default
+                photo=None
             )
             
             file_path = self._get_user_file_path(unique_id)

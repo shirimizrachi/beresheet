@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
+import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -62,7 +63,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${'events.unregistered_from'.tr} ${widget.event.name}'),
+                content: Text('${context.l10n.unregister} ${widget.event.name}'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -74,7 +75,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('events.event_full_message'.tr),
+                content: Text(context.l10n.eventFull),
                 backgroundColor: Colors.red,
               ),
             );
@@ -90,7 +91,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${'events.registered_for'.tr} ${widget.event.name}!'),
+                content: Text('${context.l10n.registrationSuccessful} ${widget.event.name}!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -102,7 +103,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('events.registration_failed'.tr),
+            content: Text(context.l10n.operationFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -210,19 +211,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         children: [
                           _buildDetailRow(
                             Icons.access_time,
-                            'events.date_time'.tr,
+                            context.l10n.dateTime,
                             '${widget.event.formattedDate} at ${widget.event.formattedTime}',
                           ),
                           const Divider(),
                           _buildDetailRow(
                             Icons.location_on,
-                            'events.location'.tr,
+                            context.l10n.location,
                             widget.event.location,
                           ),
                           const Divider(),
                           _buildDetailRow(
                             Icons.people,
-                            'events.participants'.tr,
+                            context.l10n.participants,
                             '${widget.event.currentParticipants} / ${widget.event.maxParticipants}',
                           ),
                         ],
@@ -234,7 +235,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   
                   // Description
                   Text(
-                    'events.description'.tr,
+                    context.l10n.description,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -268,7 +269,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'events.waiting_list_message'.tr,
+                              'This event is full. You can still register to be added to the waiting list.',
                               style: TextStyle(
                                 color: Colors.red[700],
                                 fontWeight: FontWeight.w500,
@@ -304,7 +305,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               ),
                             )
                           : Text(
-                              widget.event.isRegistered ? 'events.unregister_from_event'.tr : 'events.register_for_event'.tr,
+                              widget.event.isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

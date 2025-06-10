@@ -1,8 +1,9 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatefulWidget {
@@ -42,7 +43,7 @@ class _EventCardState extends State<EventCard> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${'events.unregistered_from'.tr} ${widget.event.name}'),
+                content: Text('${context.l10n.unregister} ${widget.event.name}'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -54,7 +55,7 @@ class _EventCardState extends State<EventCard> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('events.event_full_message'.tr),
+                content: Text(context.l10n.eventFull),
                 backgroundColor: Colors.red,
               ),
             );
@@ -70,7 +71,7 @@ class _EventCardState extends State<EventCard> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${'events.registered_for'.tr} ${widget.event.name}!'),
+                content: Text('${context.l10n.registrationSuccessful} ${widget.event.name}!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -82,7 +83,7 @@ class _EventCardState extends State<EventCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('events.registration_failed'.tr),
+            content: Text(context.l10n.operationFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -297,7 +298,7 @@ class _EventCardState extends State<EventCard> {
                                       ),
                                     )
                                   : Text(
-                                      widget.event.isRegistered ? 'events.unregister'.tr : 'events.register'.tr,
+                                      widget.event.isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
                                       style: const TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,

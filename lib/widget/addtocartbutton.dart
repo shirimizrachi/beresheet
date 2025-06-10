@@ -1,5 +1,6 @@
 import 'package:beresheet_app/model/product.dart';
 import 'package:beresheet_app/provider/cart_provider.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -68,7 +69,7 @@ class _AddToCartButtonState extends ConsumerState<AddToCartButton> {
                 foregroundColor: Colors.white, // Text color on button
               ),
               onPressed: increment,
-              child: const Text('Add to Cart'),
+              child: Text(context.l10n.addToCart),
             ),
           );
   }

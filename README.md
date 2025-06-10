@@ -175,3 +175,5 @@ If you see errors like `MissingPluginException` for `getApplicationDocumentsDire
 - Python 3.8+
 - FastAPI
 - Chrome browser (for web development)
+
+Server=localhost\SQLEXPRESS;Database=master;Trusted_Connection=True;

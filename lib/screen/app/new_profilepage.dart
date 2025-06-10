@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/services/api_user_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/model/user.dart';
+import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -50,7 +51,6 @@ class _NewProfilePageState extends State<NewProfilePage> {
   void dispose() {
     _fullNameController.dispose();
     _phoneController.dispose();
-    // Birthday is managed as a DateTime variable, no controller to dispose
     _apartmentController.dispose();
     super.dispose();
   }
@@ -58,27 +58,23 @@ class _NewProfilePageState extends State<NewProfilePage> {
   Future<void> _loadUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final userData = await ApiUserService.getUserProfile(user.uid);
-        
-        if (userData != null) {
-          setState(() {
-            _currentUser = userData;
-            _fullNameController.text = userData.fullName;
-            _phoneController.text = userData.phoneNumber;
-            _selectedBirthday = userData.birthday;
-            _apartmentController.text = userData.apartmentNumber;
-            _selectedRole = userData.role;
-            _selectedMaritalStatus = userData.maritalStatus;
-            _selectedGender = userData.gender;
-            _selectedReligious = userData.religious;
-            _selectedLanguage = userData.nativeLanguage;
-            _photoUrl = userData.photo;
-          });
-        } else {
-          // Set phone number from Firebase if available
-          _phoneController.text = user.phoneNumber ?? '';
-        }
+      if (user == null) return;
+
+      final userData = await ApiUserService.getUserProfile(user.uid);
+      if (userData != null) {
+        setState(() {
+          _currentUser = userData;
+          _fullNameController.text = userData.fullName ?? '';
+          _phoneController.text = userData.phoneNumber ?? '';
+          _apartmentController.text = userData.apartmentNumber ?? '';
+          _selectedRole = userData.role ?? 'resident';
+          _selectedMaritalStatus = userData.maritalStatus ?? 'single';
+          _selectedGender = userData.gender ?? 'male';
+          _selectedReligious = userData.religious ?? 'secular';
+          _selectedLanguage = userData.nativeLanguage ?? 'hebrew';
+          _selectedBirthday = userData.birthday;
+          _photoUrl = userData.photo;
+        });
       }
     } catch (e) {
       print('Error loading user data: $e');
@@ -92,10 +88,10 @@ class _NewProfilePageState extends State<NewProfilePage> {
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+        source: ImageSource.gallery,
+        maxWidth: 500,
+        maxHeight: 500,
+        imageQuality: 75,
       );
 
       if (image != null) {
@@ -107,7 +103,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking image: $e'),
+            content: Text('${context.l10n.errorPickingImage}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -118,11 +114,13 @@ class _NewProfilePageState extends State<NewProfilePage> {
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     
+    final l10n = context.l10n;
+    
     // Validate birthday separately since it's not a form field
     if (_selectedBirthday == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('profile.please_select_birthday'.tr),
+          content: Text(l10n.pleaseSelectBirthday),
           backgroundColor: Colors.red,
         ),
       );
@@ -140,6 +138,17 @@ class _NewProfilePageState extends State<NewProfilePage> {
       }
 
       // Create user model
+      // Only allow updates if current user exists
+      if (_currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile not found. Please contact administrator to create your profile.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final userModel = UserModel(
         uniqueId: user.uid,
         fullName: _fullNameController.text.trim(),
@@ -151,18 +160,13 @@ class _NewProfilePageState extends State<NewProfilePage> {
         gender: _selectedGender,
         religious: _selectedReligious,
         nativeLanguage: _selectedLanguage,
+        residentId: _currentUser!.residentId, // Keep existing residentId
+        userId: _currentUser!.userId, // Keep existing userId
         photo: _photoUrl,
       );
 
-      // Save or update user profile
-      UserModel? savedUser;
-      if (_currentUser != null) {
-        // Update existing profile
-        savedUser = await ApiUserService.updateUserProfile(user.uid, userModel);
-      } else {
-        // Create new profile
-        savedUser = await ApiUserService.createUserProfile(user.uid, userModel);
-      }
+      // Update existing profile only (creation should be done via web interface)
+      UserModel? savedUser = await ApiUserService.updateUserProfile(user.uid, userModel);
 
       if (savedUser == null) {
         throw Exception('Failed to save user profile');
@@ -183,10 +187,10 @@ class _NewProfilePageState extends State<NewProfilePage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Success'),
+            title: Text(l10n.success),
             content: Text(_currentUser != null
-              ? 'profile.profile_updated_successfully'.tr
-              : 'profile.profile_created_successfully'.tr),
+              ? l10n.profileUpdatedSuccessfully
+              : l10n.profileCreatedSuccessfully),
             actions: [
               TextButton(
                 onPressed: () {
@@ -195,7 +199,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
                     MaterialPageRoute(builder: (_) => const HomePage()),
                   );
                 },
-                child: Text('common.ok'.tr),
+                child: Text(l10n.ok),
               ),
             ],
           ),
@@ -205,7 +209,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${'profile.error_saving_profile'.tr}: $e'),
+            content: Text('${l10n.errorSavingProfile}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -218,6 +222,8 @@ class _NewProfilePageState extends State<NewProfilePage> {
   }
 
   Widget _buildPhotoSection() {
+    final l10n = context.l10n;
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -228,7 +234,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
                 const Icon(Icons.photo_camera, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'profile.profile_photo'.tr,
+                  l10n.profilePhoto,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -265,29 +271,20 @@ class _NewProfilePageState extends State<NewProfilePage> {
                                 fit: BoxFit.cover,
                                 width: 120,
                                 height: 120,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
-                                    Icons.camera_alt,
-                                    size: 40,
-                                    color: AppColors.primary,
-                                  );
-                                },
+                                errorBuilder: (context, error, stackTrace) => 
+                                    const Icon(Icons.person, size: 60),
                               ),
                             )
-                          : const Icon(
-                              Icons.camera_alt,
-                              size: 40,
-                              color: AppColors.primary,
-                            ),
+                          : const Icon(Icons.person, size: 60),
                 ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'profile.tap_to_take_photo'.tr,
-              style: TextStyle(
+              l10n.tapToTakePhoto,
+              style: const TextStyle(
+                color: Colors.grey,
                 fontSize: 12,
-                color: Colors.grey[600],
               ),
             ),
           ],
@@ -296,269 +293,311 @@ class _NewProfilePageState extends State<NewProfilePage> {
     );
   }
 
-  Widget _buildDropdownField(
-    String label,
-    String value,
-    List<String> options,
-    ValueChanged<String?> onChanged,
-  ) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        prefixIcon: _getFieldIcon(label),
-      ),
-      items: options.map((String option) {
-        return DropdownMenuItem<String>(
-          value: option,
-          child: Text(_getDisplayName(option)),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          // Generate appropriate validation message based on label
-          if (label.contains('profile.role'.tr)) {
-            return 'profile.please_select_role'.tr;
-          } else if (label.contains('profile.marital_status'.tr)) {
-            return 'profile.please_select_marital_status'.tr;
-          } else if (label.contains('profile.gender'.tr)) {
-            return 'profile.please_select_gender'.tr;
-          } else if (label.contains('profile.religious'.tr)) {
-            return 'profile.please_select_religious'.tr;
-          } else if (label.contains('profile.native_language'.tr)) {
-            return 'profile.please_select_native_language'.tr;
-          } else {
-            return 'Please select $label';
+  Widget _buildDropdownField(String label, String value, List<String> options, Function(String?) onChanged) {
+    final l10n = context.l10n;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        items: options.map((String option) {
+          return DropdownMenuItem<String>(
+            value: option,
+            child: Text(_getDisplayValue(option, label)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return _getValidationMessage(label, l10n);
           }
-        }
-        return null;
-      },
+          return null;
+        },
+      ),
     );
   }
 
-  Icon _getFieldIcon(String label) {
-    switch (label) {
-      case 'Role':
-        return const Icon(Icons.work);
-      case 'Marital Status':
-        return const Icon(Icons.favorite);
-      case 'Gender':
-        return const Icon(Icons.person);
-      case 'Religious':
-        return const Icon(Icons.place);
-      case 'Native Language':
-        return const Icon(Icons.language);
-      default:
-        return const Icon(Icons.info);
-    }
+  String _getValidationMessage(String label, dynamic l10n) {
+    // Since we can't easily check the label content with l10n, we'll use a general message
+    return l10n.fieldRequired;
   }
 
-  String _getDisplayName(String value) {
-    // Check different categories for translation keys
-    if (['resident', 'staff', 'instructor', 'service', 'caregiver'].contains(value)) {
-      return 'roles.$value'.tr;
-    } else if (['single', 'married', 'divorced', 'widowed'].contains(value)) {
-      return 'marital_status.$value'.tr;
-    } else if (['male', 'female', 'other'].contains(value)) {
-      return 'gender.$value'.tr;
-    } else if (['secular', 'orthodox', 'traditional'].contains(value)) {
-      return 'religious.$value'.tr;
-    } else if (['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'].contains(value)) {
-      return 'languages.$value'.tr;
-    } else {
-      return value.toUpperCase();
+  String _getDisplayValue(String value, String category) {
+    final l10n = context.l10n;
+    
+    // Map values to localized strings
+    switch (category) {
+      case 'Role': // This will need to be updated when we localize the category labels
+        switch (value) {
+          case 'resident': return l10n.roleResident;
+          case 'staff': return l10n.roleStaff;
+          case 'instructor': return l10n.roleInstructor;
+          case 'service': return l10n.roleService;
+          case 'caregiver': return l10n.roleCaregiver;
+          default: return value;
+        }
+      case 'Marital Status':
+        switch (value) {
+          case 'single': return l10n.maritalStatusSingle;
+          case 'married': return l10n.maritalStatusMarried;
+          case 'divorced': return l10n.maritalStatusDivorced;
+          case 'widowed': return l10n.maritalStatusWidowed;
+          default: return value;
+        }
+      case 'Gender':
+        switch (value) {
+          case 'male': return l10n.genderMale;
+          case 'female': return l10n.genderFemale;
+          case 'other': return l10n.genderOther;
+          default: return value;
+        }
+      case 'Religious':
+        switch (value) {
+          case 'secular': return l10n.religiousSecular;
+          case 'orthodox': return l10n.religiousOrthodox;
+          case 'traditional': return l10n.religiousTraditional;
+          default: return value;
+        }
+      case 'Language':
+        switch (value) {
+          case 'hebrew': return l10n.languageHebrew;
+          case 'english': return l10n.languageEnglish;
+          case 'arabic': return l10n.languageArabic;
+          case 'russian': return l10n.languageRussian;
+          case 'french': return l10n.languageFrench;
+          case 'spanish': return l10n.languageSpanish;
+          default: return value;
+        }
+      default:
+        return value;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(_currentUser != null ? 'profile.edit_profile'.tr : 'profile.create_profile'.tr),
-        backgroundColor: AppColors.primary,
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Photo section
-                    _buildPhotoSection(),
-                    const SizedBox(height: 24),
+    final l10n = context.l10n;
+    
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(_currentUser != null ? l10n.editProfile : l10n.createProfile),
+          leading: IconButton(
+            icon: Icon(DirectionUtils.backIcon),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-                    // Full Name
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_currentUser != null ? l10n.editProfile : l10n.createProfile),
+        leading: IconButton(
+          icon: Icon(DirectionUtils.backIcon),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            _buildPhotoSection(),
+            const SizedBox(height: 16),
+            
+            // Personal Information
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                  children: [
+                    Text(
+                      l10n.personalInformation,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
                     TextFormField(
                       controller: _fullNameController,
                       decoration: InputDecoration(
-                        labelText: 'profile.full_name'.tr,
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.person),
+                        labelText: l10n.fullName,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'profile.please_enter_full_name'.tr;
+                          return l10n.pleaseEnterFullName;
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Phone Number
+                    
                     TextFormField(
                       controller: _phoneController,
                       decoration: InputDecoration(
-                        labelText: 'profile.phone'.tr,
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.phone),
+                        labelText: l10n.phone,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       keyboardType: TextInputType.phone,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'profile.please_enter_phone_number'.tr;
+                          return l10n.pleaseEnterPhoneNumber;
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Role
+                    
                     _buildDropdownField(
-                      'profile.role'.tr,
+                      l10n.role,
                       _selectedRole,
-                      ApiUserService.getAvailableRoles(),
+                      ['resident', 'staff', 'instructor', 'service', 'caregiver'],
                       (value) => setState(() => _selectedRole = value!),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Birthday
-                    GestureDetector(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedBirthday ?? DateTime.now().subtract(const Duration(days: 365 * 30)),
-                          firstDate: DateTime.now().subtract(const Duration(days: 365 * 120)),
-                          lastDate: DateTime.now(),
-                        );
-                        if (picked != null && picked != _selectedBirthday) {
-                          setState(() {
-                            _selectedBirthday = picked;
-                          });
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.cake, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _selectedBirthday != null
-                                    ? '${_selectedBirthday!.day}/${_selectedBirthday!.month}/${_selectedBirthday!.year}'
-                                    : 'Select Birthday',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: _selectedBirthday != null ? Colors.black : Colors.grey[600],
-                                ),
-                              ),
+                    
+                    // Birthday field
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedBirthday ?? DateTime.now().subtract(const Duration(days: 365 * 25)),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _selectedBirthday = date;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.birthday,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const Icon(Icons.calendar_today, color: Colors.grey),
-                          ],
+                            suffixIcon: const Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _selectedBirthday != null 
+                                ? '${_selectedBirthday!.day}/${_selectedBirthday!.month}/${_selectedBirthday!.year}'
+                                : l10n.selectBirthday,
+                            style: TextStyle(
+                              color: _selectedBirthday != null ? null : Colors.grey[600],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Apartment Number
-                    TextFormField(
-                      controller: _apartmentController,
-                      decoration: InputDecoration(
-                        labelText: 'profile.apartment_number'.tr,
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.home),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'profile.please_enter_apartment_number'.tr;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Marital Status
-                    _buildDropdownField(
-                      'profile.marital_status'.tr,
-                      _selectedMaritalStatus,
-                      ApiUserService.getAvailableMaritalStatuses(),
-                      (value) => setState(() => _selectedMaritalStatus = value!),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Gender
-                    _buildDropdownField(
-                      'profile.gender'.tr,
-                      _selectedGender,
-                      ApiUserService.getAvailableGenders(),
-                      (value) => setState(() => _selectedGender = value!),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Religious
-                    _buildDropdownField(
-                      'profile.religious'.tr,
-                      _selectedReligious,
-                      ['secular', 'orthodox', 'traditional'],
-                      (value) => setState(() => _selectedReligious = value!),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Native Language
-                    _buildDropdownField(
-                      'profile.native_language'.tr,
-                      _selectedLanguage,
-                      ApiUserService.getAvailableLanguages(),
-                      (value) => setState(() => _selectedLanguage = value!),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Save Button
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _saveProfile,
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        disabledBackgroundColor: Colors.grey,
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(_currentUser != null ? 'profile.update_profile'.tr : 'profile.create_profile'.tr),
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            
+            // Contact Information
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                  children: [
+                    Text(
+                      l10n.contactInformation,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    TextFormField(
+                      controller: _apartmentController,
+                      decoration: InputDecoration(
+                        labelText: l10n.apartmentNumber,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return l10n.pleaseEnterApartmentNumber;
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    _buildDropdownField(
+                      l10n.maritalStatus,
+                      _selectedMaritalStatus,
+                      ['single', 'married', 'divorced', 'widowed'],
+                      (value) => setState(() => _selectedMaritalStatus = value!),
+                    ),
+                    
+                    _buildDropdownField(
+                      l10n.gender,
+                      _selectedGender,
+                      ['male', 'female', 'other'],
+                      (value) => setState(() => _selectedGender = value!),
+                    ),
+                    
+                    _buildDropdownField(
+                      l10n.religious,
+                      _selectedReligious,
+                      ['secular', 'orthodox', 'traditional'],
+                      (value) => setState(() => _selectedReligious = value!),
+                    ),
+                    
+                    _buildDropdownField(
+                      l10n.nativeLanguage,
+                      _selectedLanguage,
+                      ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'],
+                      (value) => setState(() => _selectedLanguage = value!),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _isSaving
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(_currentUser != null ? l10n.updateProfile : l10n.createProfile),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

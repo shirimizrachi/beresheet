@@ -1,0 +1,785 @@
+{
+  "appTitle": "Beresheet - Residential Community",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "appName": "Beresheet",
+  "@appName": {
+    "description": "The name of the application"
+  },
+  "communitySubtitle": "Residential Community",
+  "@communitySubtitle": {
+    "description": "Subtitle for the community"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile navigation"
+  },
+  "myRegisteredEvents": "My Registered Events",
+  "@myRegisteredEvents": {
+    "description": "My registered events navigation"
+  },
+  "manageEvents": "Manage Events",
+  "@manageEvents": {
+    "description": "Manage events navigation"
+  },
+  "logOut": "Log Out",
+  "@logOut": {
+    "description": "Log out navigation"
+  },
+  "back": "Back",
+  "@back": {
+    "description": "Back navigation"
+  },
+  "home": "Home",
+  "@home": {
+    "description": "Home navigation"
+  },
+  
+  "login": "Login",
+  "@login": {
+    "description": "Login button"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button"
+  },
+  "register": "Register",
+  "@register": {
+    "description": "Register button"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email field"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password field"
+  },
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": {
+    "description": "Forgot password link"
+  },
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "Create account button"
+  },
+  "alreadyHaveAccount": "Already have an account?",
+  "@alreadyHaveAccount": {
+    "description": "Already have account text"
+  },
+  "dontHaveAccount": "Don't have an account?",
+  "@dontHaveAccount": {
+    "description": "Don't have account text"
+  },
+  
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field"
+  },
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone field"
+  },
+  "apartmentNumber": "Apartment Number",
+  "@apartmentNumber": {
+    "description": "Apartment number field"
+  },
+  "editProfile": "Edit Profile",
+  "@editProfile": {
+    "description": "Edit profile button"
+  },
+  "personalInformation": "Personal Information",
+  "@personalInformation": {
+    "description": "Personal information section"
+  },
+  "contactInformation": "Contact Information",
+  "@contactInformation": {
+    "description": "Contact information section"
+  },
+  "birthday": "Birthday",
+  "@birthday": {
+    "description": "Birthday field"
+  },
+  "age": "Age",
+  "@age": {
+    "description": "Age field"
+  },
+  "role": "Role",
+  "@role": {
+    "description": "Role field"
+  },
+  "maritalStatus": "Marital Status",
+  "@maritalStatus": {
+    "description": "Marital status field"
+  },
+  "gender": "Gender",
+  "@gender": {
+    "description": "Gender field"
+  },
+  "religious": "Religious",
+  "@religious": {
+    "description": "Religious field"
+  },
+  "nativeLanguage": "Native Language",
+  "@nativeLanguage": {
+    "description": "Native language field"
+  },
+  "profilePhoto": "Profile Photo",
+  "@profilePhoto": {
+    "description": "Profile photo field"
+  },
+  "tapToTakePhoto": "Tap to take photo",
+  "@tapToTakePhoto": {
+    "description": "Tap to take photo instruction"
+  },
+  "selectBirthday": "Select Birthday",
+  "@selectBirthday": {
+    "description": "Select birthday instruction"
+  },
+  "pleaseSelectBirthday": "Please select your birthday",
+  "@pleaseSelectBirthday": {
+    "description": "Please select birthday message"
+  },
+  "createProfile": "Create Profile",
+  "@createProfile": {
+    "description": "Create profile button"
+  },
+  "updateProfile": "Update Profile",
+  "@updateProfile": {
+    "description": "Update profile button"
+  },
+  "profileCreatedSuccessfully": "Profile created successfully!",
+  "@profileCreatedSuccessfully": {
+    "description": "Profile created success message"
+  },
+  "profileUpdatedSuccessfully": "Profile updated successfully!",
+  "@profileUpdatedSuccessfully": {
+    "description": "Profile updated success message"
+  },
+  "errorSavingProfile": "Error saving profile",
+  "@errorSavingProfile": {
+    "description": "Error saving profile message"
+  },
+  "pleaseEnterFullName": "Please enter your full name",
+  "@pleaseEnterFullName": {
+    "description": "Please enter full name validation"
+  },
+  "pleaseEnterPhoneNumber": "Please enter your phone number",
+  "@pleaseEnterPhoneNumber": {
+    "description": "Please enter phone number validation"
+  },
+  "pleaseEnterApartmentNumber": "Please enter your apartment number",
+  "@pleaseEnterApartmentNumber": {
+    "description": "Please enter apartment number validation"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Address field"
+  },
+  "pleaseEnterAddress": "Please enter your address",
+  "@pleaseEnterAddress": {
+    "description": "Please enter address validation"
+  },
+  
+  "events": "Events",
+  "@events": {
+    "description": "Events label"
+  },
+  "event": "Event",
+  "@event": {
+    "description": "Event label"
+  },
+  "eventDetails": "Event Details",
+  "@eventDetails": {
+    "description": "Event details label"
+  },
+  "upcomingEvents": "Upcoming Events",
+  "@upcomingEvents": {
+    "description": "Upcoming events label"
+  },
+  "registeredEvents": "Registered Events",
+  "@registeredEvents": {
+    "description": "Registered events label"
+  },
+  "myEvents": "My Events",
+  "@myEvents": {
+    "description": "My events label"
+  },
+  "noEventsFound": "No events found",
+  "@noEventsFound": {
+    "description": "No events found message"
+  },
+  "registerEvent": "Register",
+  "@registerEvent": {
+    "description": "Register for event button"
+  },
+  "unregister": "Unregister",
+  "@unregister": {
+    "description": "Unregister from event button"
+  },
+  "registered": "Registered",
+  "@registered": {
+    "description": "Registered status"
+  },
+  "eventFull": "Event Full",
+  "@eventFull": {
+    "description": "Event full status"
+  },
+  "availableSpots": "Available Spots",
+  "@availableSpots": {
+    "description": "Available spots label"
+  },
+  "participants": "Participants",
+  "@participants": {
+    "description": "Participants label"
+  },
+  "location": "Location",
+  "@location": {
+    "description": "Location label"
+  },
+  "dateTime": "Date & Time",
+  "@dateTime": {
+    "description": "Date and time label"
+  },
+  "description": "Description",
+  "@description": {
+    "description": "Description label"
+  },
+  "eventName": "Event Name",
+  "@eventName": {
+    "description": "Event name label"
+  },
+  "eventType": "Event Type",
+  "@eventType": {
+    "description": "Event type label"
+  },
+  "createEvent": "Create Event",
+  "@createEvent": {
+    "description": "Create event button"
+  },
+  "editEvent": "Edit Event",
+  "@editEvent": {
+    "description": "Edit event button"
+  },
+  "deleteEvent": "Delete Event",
+  "@deleteEvent": {
+    "description": "Delete event button"
+  },
+  "maxParticipants": "Max Participants",
+  "@maxParticipants": {
+    "description": "Maximum participants label"
+  },
+  "currentParticipants": "Current Participants",
+  "@currentParticipants": {
+    "description": "Current participants label"
+  },
+  "imageUrl": "Image URL",
+  "@imageUrl": {
+    "description": "Image URL label"
+  },
+  "eventCreated": "Event created successfully",
+  "@eventCreated": {
+    "description": "Event created success message"
+  },
+  "eventUpdated": "Event updated successfully",
+  "@eventUpdated": {
+    "description": "Event updated success message"
+  },
+  "eventDeleted": "Event deleted successfully",
+  "@eventDeleted": {
+    "description": "Event deleted success message"
+  },
+  "registrationSuccessful": "Registration successful",
+  "@registrationSuccessful": {
+    "description": "Registration successful message"
+  },
+  "unregistrationSuccessful": "Unregistration successful",
+  "@unregistrationSuccessful": {
+    "description": "Unregistration successful message"
+  },
+  "viewDetails": "View Details",
+  "@viewDetails": {
+    "description": "View details button"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+  
+  "eventTypeClass": "Class",
+  "@eventTypeClass": {
+    "description": "Class event type"
+  },
+  "eventTypePerformance": "Performance",
+  "@eventTypePerformance": {
+    "description": "Performance event type"
+  },
+  "eventTypeCultural": "Cultural",
+  "@eventTypeCultural": {
+    "description": "Cultural event type"
+  },
+  "eventTypeLeisure": "Leisure",
+  "@eventTypeLeisure": {
+    "description": "Leisure event type"
+  },
+  "eventTypeWorkshop": "Workshop",
+  "@eventTypeWorkshop": {
+    "description": "Workshop event type"
+  },
+  "eventTypeMeeting": "Meeting",
+  "@eventTypeMeeting": {
+    "description": "Meeting event type"
+  },
+  "eventTypeSport": "Sport",
+  "@eventTypeSport": {
+    "description": "Sport event type"
+  },
+  "eventTypeHealth": "Health",
+  "@eventTypeHealth": {
+    "description": "Health event type"
+  },
+  
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes button"
+  },
+  "no": "No",
+  "@no": {
+    "description": "No button"
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "OK button"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit button"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button"
+  },
+  "add": "Add",
+  "@add": {
+    "description": "Add button"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading message"
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Error message"
+  },
+  "success": "Success",
+  "@success": {
+    "description": "Success message"
+  },
+  "warning": "Warning",
+  "@warning": {
+    "description": "Warning message"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button"
+  },
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+  "required": "Required",
+  "@required": {
+    "description": "Required field indicator"
+  },
+  "optional": "Optional",
+  "@optional": {
+    "description": "Optional field indicator"
+  },
+  
+  "welcome": "Welcome",
+  "@welcome": {
+    "description": "Welcome message"
+  },
+  "somethingWentWrong": "Something went wrong",
+  "@somethingWentWrong": {
+    "description": "Something went wrong message"
+  },
+  "pleaseWait": "Please wait",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
+  "operationSuccessful": "Operation successful",
+  "@operationSuccessful": {
+    "description": "Operation successful message"
+  },
+  "operationFailed": "Operation failed",
+  "@operationFailed": {
+    "description": "Operation failed message"
+  },
+  "areYouSure": "Are you sure?",
+  "@areYouSure": {
+    "description": "Are you sure confirmation"
+  },
+  "confirmDelete": "Confirm Delete",
+  "@confirmDelete": {
+    "description": "Confirm delete message"
+  },
+  "fieldRequired": "This field is required",
+  "@fieldRequired": {
+    "description": "Field required validation"
+  },
+  
+  "profileInformation": "Profile Information",
+  "@profileInformation": {
+    "description": "Profile information label"
+  },
+  "favoriteActivities": "Favorite Activities",
+  "@favoriteActivities": {
+    "description": "Favorite activities label"
+  },
+  
+  "roleResident": "Resident",
+  "@roleResident": {
+    "description": "Resident role"
+  },
+  "roleStaff": "Staff",
+  "@roleStaff": {
+    "description": "Staff role"
+  },
+  "roleInstructor": "Instructor",
+  "@roleInstructor": {
+    "description": "Instructor role"
+  },
+  "roleService": "Service Provider",
+  "@roleService": {
+    "description": "Service provider role"
+  },
+  "roleCaregiver": "Caregiver",
+  "@roleCaregiver": {
+    "description": "Caregiver role"
+  },
+  
+  "maritalStatusSingle": "Single",
+  "@maritalStatusSingle": {
+    "description": "Single marital status"
+  },
+  "maritalStatusMarried": "Married",
+  "@maritalStatusMarried": {
+    "description": "Married marital status"
+  },
+  "maritalStatusDivorced": "Divorced",
+  "@maritalStatusDivorced": {
+    "description": "Divorced marital status"
+  },
+  "maritalStatusWidowed": "Widowed",
+  "@maritalStatusWidowed": {
+    "description": "Widowed marital status"
+  },
+  
+  "genderMale": "Male",
+  "@genderMale": {
+    "description": "Male gender"
+  },
+  "genderFemale": "Female",
+  "@genderFemale": {
+    "description": "Female gender"
+  },
+  "genderOther": "Other",
+  "@genderOther": {
+    "description": "Other gender"
+  },
+  
+  "religiousSecular": "Secular",
+  "@religiousSecular": {
+    "description": "Secular religious status"
+  },
+  "religiousOrthodox": "Orthodox",
+  "@religiousOrthodox": {
+    "description": "Orthodox religious status"
+  },
+  "religiousTraditional": "Traditional",
+  "@religiousTraditional": {
+    "description": "Traditional religious status"
+  },
+  
+  "languageHebrew": "Hebrew",
+  "@languageHebrew": {
+    "description": "Hebrew language"
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "English language"
+  },
+  "languageArabic": "Arabic",
+  "@languageArabic": {
+    "description": "Arabic language"
+  },
+  "languageRussian": "Russian",
+  "@languageRussian": {
+    "description": "Russian language"
+  },
+  "languageFrench": "French",
+  "@languageFrench": {
+    "description": "French language"
+  },
+  "languageSpanish": "Spanish",
+  "@languageSpanish": {
+    "description": "Spanish language"
+  },
+  
+  "noOrdersFound": "No orders found",
+  "@noOrdersFound": {
+    "description": "No orders found message"
+  },
+  "noProductsFound": "No products found",
+  "@noProductsFound": {
+    "description": "No products found message"
+  },
+  "addToCart": "Add to Cart",
+  "@addToCart": {
+    "description": "Add to cart button"
+  },
+  "backToOrders": "Back to Orders",
+  "@backToOrders": {
+    "description": "Back to orders button"
+  },
+  "noUserLoggedIn": "No user logged in",
+  "@noUserLoggedIn": {
+    "description": "No user logged in message"
+  },
+  "errorLoadingOrderDetails": "Error loading order details",
+  "@errorLoadingOrderDetails": {
+    "description": "Error loading order details"
+  },
+  "noOrderFound": "No order found",
+  "@noOrderFound": {
+    "description": "No order found message"
+  },
+  "errorPickingImage": "Error picking image",
+  "@errorPickingImage": {
+    "description": "Error picking image message"
+  },
+  "unregisterConfirmation": "Are you sure you want to unregister from",
+  "@unregisterConfirmation": {
+    "description": "Unregister confirmation message"
+  },
+  "noRegisteredEvents": "No registered events",
+  "@noRegisteredEvents": {
+    "description": "No registered events message"
+  },
+  "registerFromHome": "Register for events from the home page",
+  "@registerFromHome": {
+    "description": "Register from home message"
+  },
+  "createFirstEvent": "Tap the + button to create your first event",
+  "@createFirstEvent": {
+    "description": "Create first event instruction"
+  },
+  "failedToLoadEvents": "Failed to load events",
+  "@failedToLoadEvents": {
+    "description": "Failed to load events error"
+  },
+  "failedToDeleteEvent": "Failed to delete event",
+  "@failedToDeleteEvent": {
+    "description": "Failed to delete event error"
+  },
+  "failedToUnregister": "Failed to unregister",
+  "@failedToUnregister": {
+    "description": "Failed to unregister error"
+  },
+  "enterEventName": "Enter event name",
+  "@enterEventName": {
+    "description": "Enter event name hint"
+  },
+  "pleaseEnterEventName": "Please enter event name",
+  "@pleaseEnterEventName": {
+    "description": "Please enter event name validation"
+  },
+  "enterEventDescription": "Enter event description",
+  "@enterEventDescription": {
+    "description": "Enter event description hint"
+  },
+  "pleaseEnterEventDescription": "Please enter event description",
+  "@pleaseEnterEventDescription": {
+    "description": "Please enter event description validation"
+  },
+  "enterEventLocation": "Enter event location",
+  "@enterEventLocation": {
+    "description": "Enter event location hint"
+  },
+  "pleaseEnterEventLocation": "Please enter event location",
+  "@pleaseEnterEventLocation": {
+    "description": "Please enter event location validation"
+  },
+  "enterMaximumParticipants": "Enter maximum participants",
+  "@enterMaximumParticipants": {
+    "description": "Enter maximum participants hint"
+  },
+  "pleaseEnterMaximumParticipants": "Please enter maximum participants",
+  "@pleaseEnterMaximumParticipants": {
+    "description": "Please enter maximum participants validation"
+  },
+  "pleaseEnterValidPositiveNumber": "Please enter a valid positive number",
+  "@pleaseEnterValidPositiveNumber": {
+    "description": "Please enter valid positive number validation"
+  },
+  "enterCurrentParticipants": "Enter current participants",
+  "@enterCurrentParticipants": {
+    "description": "Enter current participants hint"
+  },
+  "pleaseEnterCurrentParticipants": "Please enter current participants",
+  "@pleaseEnterCurrentParticipants": {
+    "description": "Please enter current participants validation"
+  },
+  "pleaseEnterValidNonNegativeNumber": "Please enter a valid non-negative number",
+  "@pleaseEnterValidNonNegativeNumber": {
+    "description": "Please enter valid non-negative number validation"
+  },
+  "currentParticipantsCannotExceed": "Current participants cannot exceed maximum",
+  "@currentParticipantsCannotExceed": {
+    "description": "Current participants validation"
+  },
+  "enterImageUrl": "Enter image URL",
+  "@enterImageUrl": {
+    "description": "Enter image URL hint"
+  },
+  "pleaseEnterImageUrl": "Please enter image URL",
+  "@pleaseEnterImageUrl": {
+    "description": "Please enter image URL validation"
+  },
+  "imagePreview": "Image Preview",
+  "@imagePreview": {
+    "description": "Image preview label"
+  },
+  "invalidImageUrl": "Invalid image URL",
+  "@invalidImageUrl": {
+    "description": "Invalid image URL message"
+  },
+  "createEventButton": "CREATE EVENT",
+  "@createEventButton": {
+    "description": "Create event button text"
+  },
+  "updateEventButton": "UPDATE EVENT",
+  "@updateEventButton": {
+    "description": "Update event button text"
+  },
+  "deleteEventConfirmation": "Are you sure you want to delete this event? This action cannot be undone.",
+  "@deleteEventConfirmation": {
+    "description": "Delete event confirmation message"
+  },
+  
+  "managementPanel": "Management Panel",
+  "@managementPanel": {
+    "description": "Management panel label"
+  },
+  "welcomeToBeresheet": "Welcome to Beresheet Community",
+  "@welcomeToBeresheet": {
+    "description": "Welcome message to Beresheet community"
+  },
+  "discoverEvents": "Discover amazing events and activities in our community",
+  "@discoverEvents": {
+    "description": "Discover events description"
+  },
+  "featuredEvents": "Featured Events",
+  "@featuredEvents": {
+    "description": "Featured events label"
+  },
+  "noEventsAvailable": "No events available",
+  "@noEventsAvailable": {
+    "description": "No events available message"
+  },
+  "beresheetCommunity": "Beresheet Community",
+  "@beresheetCommunity": {
+    "description": "Beresheet community name"
+  },
+  "buildingStrongerCommunity": "Building a stronger community together",
+  "@buildingStrongerCommunity": {
+    "description": "Building stronger community slogan"
+  },
+  "refreshEvents": "Refresh Events",
+  "@refreshEvents": {
+    "description": "Refresh events button"
+  },
+  "managementPanelTitle": "Management Panel - Beresheet Community",
+  "@managementPanelTitle": {
+    "description": "Management panel title with community name"
+  },
+  "manageAllAspects": "Manage all aspects of the Beresheet community",
+  "@manageAllAspects": {
+    "description": "Manage all aspects description"
+  },
+  "managementTools": "Management Tools",
+  "@managementTools": {
+    "description": "Management tools label"
+  },
+  "eventsManagement": "Events Management",
+  "@eventsManagement": {
+    "description": "Events management label"
+  },
+  "createEditManageEvents": "Create, edit, and manage community events",
+  "@createEditManageEvents": {
+    "description": "Create edit manage events description"
+  },
+  "usersManagement": "Users Management",
+  "@usersManagement": {
+    "description": "Users management label"
+  },
+  "manageMembersPermissions": "Manage community members and permissions",
+  "@manageMembersPermissions": {
+    "description": "Manage members and permissions description"
+  },
+  "announcements": "Announcements",
+  "@announcements": {
+    "description": "Announcements label"
+  },
+  "createManageAnnouncements": "Create and manage community announcements",
+  "@createManageAnnouncements": {
+    "description": "Create and manage announcements description"
+  },
+  "facilities": "Facilities",
+  "@facilities": {
+    "description": "Facilities label"
+  },
+  "manageFacilitiesBookings": "Manage community facilities and bookings",
+  "@manageFacilitiesBookings": {
+    "description": "Manage facilities and bookings description"
+  },
+  "reportsAnalytics": "Reports & Analytics",
+  "@reportsAnalytics": {
+    "description": "Reports and analytics label"
+  },
+  "viewStatisticsReports": "View community statistics and reports",
+  "@viewStatisticsReports": {
+    "description": "View statistics and reports description"
+  },
+  "systemSettings": "System Settings",
+  "@systemSettings": {
+    "description": "System settings label"
+  },
+  "configureSystemSettings": "Configure system settings and preferences",
+  "@configureSystemSettings": {
+    "description": "Configure system settings description"
+  },
+  "soon": "Soon",
+  "@soon": {
+    "description": "Soon label"
+  },
+  "comingSoon": "Coming Soon",
+  "@comingSoon": {
+    "description": "Coming soon label"
+  },
+  "featureUnderDevelopment": "is currently under development and will be available in a future update.",
+  "@featureUnderDevelopment": {
+    "description": "Feature under development message"
+  }
+}

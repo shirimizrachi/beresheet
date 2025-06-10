@@ -1,9 +1,9 @@
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/services/user_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.userCredential});
@@ -109,7 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Always go to homepage after successful profile save
                       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
                     },
-                    child: Text('common.ok'.tr),
+                    child: Text(AppLocalizations.of(context)!.ok),
                   ),
                 ],
               ),
@@ -152,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('profile_screen.profile_information'.tr),
+        title: Text(AppLocalizations.of(context)!.profileInformation),
         backgroundColor: AppColors.primary,
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -188,13 +188,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     TextFormField(
                       controller: _fullNameController,
                       decoration: InputDecoration(
-                        labelText: 'profile_screen.full_name_label'.tr,
+                        labelText: AppLocalizations.of(context)!.fullName,
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.person),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'profile_screen.please_enter_full_name'.tr;
+                          return AppLocalizations.of(context)!.pleaseEnterFullName;
                         }
                         return null;
                       },
@@ -206,13 +206,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     TextFormField(
                       controller: _addressController,
                       decoration: InputDecoration(
-                        labelText: 'profile_screen.address_label'.tr,
+                        labelText: AppLocalizations.of(context)!.address,
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.home),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'profile_screen.please_enter_address'.tr;
+                          return AppLocalizations.of(context)!.pleaseEnterAddress;
                         }
                         return null;
                       },
@@ -233,7 +233,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 const Icon(Icons.favorite, color: AppColors.primary),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'profile_screen.favorite_activities'.tr,
+                                  AppLocalizations.of(context)!.favoriteActivities,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -324,7 +324,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                       ),
-                      child: Text(fullName.isEmpty ? 'profile_screen.create_profile'.tr : 'profile_screen.update_profile'.tr),
+                      child: Text(fullName.isEmpty ? AppLocalizations.of(context)!.createProfile : AppLocalizations.of(context)!.updateProfile),
                     ),
                   ],
                 ),

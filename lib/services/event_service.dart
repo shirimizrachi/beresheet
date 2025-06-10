@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:beresheet_app/model/event.dart';
+import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -19,9 +20,10 @@ class EventService {
   static Future<List<Event>> loadEvents() async {
     try {
       print('EventService: Attempting to load events from $baseUrl/events');
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/events'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       print('EventService: Response status code: ${response.statusCode}');
@@ -80,9 +82,10 @@ class EventService {
   // Get event by ID from API
   static Future<Event?> getEventById(String eventId) async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/events/$eventId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -103,9 +106,10 @@ class EventService {
   static Future<bool> registerForEvent(Event event) async {
     try {
       // Register via API
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/events/${event.id}/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -156,9 +160,10 @@ class EventService {
   static Future<bool> unregisterFromEvent(String eventId) async {
     try {
       // Unregister via API
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/events/$eventId/unregister'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -197,9 +202,10 @@ class EventService {
   // Get events by type
   static Future<List<Event>> getEventsByType(String type) async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/events?type=$type'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -218,9 +224,10 @@ class EventService {
   // Get upcoming events (events in the future)
   static Future<List<Event>> getUpcomingEvents() async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/events?upcoming=true'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -239,9 +246,10 @@ class EventService {
   // Get API statistics
   static Future<Map<String, dynamic>?> getStats() async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/stats'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -278,9 +286,10 @@ class EventService {
         'isRegistered': false,
       };
 
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/events'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(eventData),
       );
 
@@ -320,9 +329,10 @@ class EventService {
       if (imageUrl != null) updateData['image_url'] = imageUrl;
       if (currentParticipants != null) updateData['currentParticipants'] = currentParticipants;
 
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.put(
         Uri.parse('$baseUrl/events/$eventId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(updateData),
       );
 
@@ -341,9 +351,10 @@ class EventService {
   // Delete an event
   static Future<bool> deleteEvent(String eventId) async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.delete(
         Uri.parse('$baseUrl/events/$eventId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {

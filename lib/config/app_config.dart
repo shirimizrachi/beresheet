@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 
 /// Application configuration constants
 class AppConfig {
-  /// Text direction for the entire application
-  /// Set to TextDirection.rtl for Hebrew/Arabic support
-  /// Set to TextDirection.ltr for English/Latin languages
-  static const TextDirection textDirection = TextDirection.rtl;
+  /// Default language for the application - Hebrew
+  static const String defaultLanguage = 'he';
   
-  /// Default language for the application
-  static const String defaultLanguage = 'he'; // Hebrew as default
-  
-  /// Fallback language if default fails to load
-  static const String fallbackLanguage = 'en'; // English as fallback
+  /// Fallback language if default fails to load - English
+  static const String fallbackLanguage = 'en';
   
   /// List of supported languages
   static const List<String> supportedLanguages = ['he', 'en'];
+  
+  /// Default text direction - RTL for Hebrew-first app
+  static const TextDirection textDirection = TextDirection.rtl;
   
   /// Check if the app is using RTL direction
   static bool get isRTL => textDirection == TextDirection.rtl;
@@ -25,14 +23,17 @@ class AppConfig {
   /// Get the text direction as a string
   static String get directionString => isRTL ? 'RTL' : 'LTR';
   
-  /// Application title
-  static const String appTitle = 'בראשית - קהילת מגורים';
+  /// Default locale - Hebrew (Israel)
+  static const Locale appLocale = Locale('he', 'IL');
   
-  /// Locale for the application (optional, for internationalization)
-  static const Locale appLocale = Locale('he', 'IL'); // Hebrew - Israel
+  /// English locale for fallback
+  static const Locale englishLocale = Locale('en', 'US');
   
-  /// Alternative locale for LTR (if needed in future)
-  static const Locale altLocale = Locale('en', 'US'); // English - US
+  /// Get supported locales
+  static List<Locale> get supportedLocales => [
+    appLocale,      // Hebrew first (default)
+    englishLocale,  // English as fallback
+  ];
   
   /// Get locale from language code
   static Locale getLocale(String languageCode) {
@@ -40,9 +41,9 @@ class AppConfig {
       case 'he':
         return appLocale;
       case 'en':
-        return altLocale;
+        return englishLocale;
       default:
-        return appLocale;
+        return appLocale; // Default to Hebrew
     }
   }
   
@@ -54,7 +55,7 @@ class AppConfig {
       case 'en':
         return TextDirection.ltr;
       default:
-        return textDirection;
+        return TextDirection.rtl; // Default to RTL
     }
   }
 }

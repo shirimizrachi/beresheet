@@ -1,6 +1,9 @@
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
+import 'package:beresheet_app/screen/web/create_user_screen.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 
 class WebManagementPanel extends StatelessWidget {
   const WebManagementPanel({Key? key}) : super(key: key);
@@ -10,9 +13,9 @@ class WebManagementPanel extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Management Panel - בראשית קהילת מגורים',
-          style: TextStyle(
+        title: Text(
+          context.l10n.managementPanelTitle,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -22,7 +25,8 @@ class WebManagementPanel extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.home, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/');
+            // Navigate back to home using URL hash
+            html.window.location.hash = '#home';
           },
         ),
       ),
@@ -56,7 +60,7 @@ class WebManagementPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Management Panel',
+                    context.l10n.managementPanel,
                     style: AppTextStyles.heading1.copyWith(
                       fontSize: 32,
                       color: AppColors.primary,
@@ -65,7 +69,7 @@ class WebManagementPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Manage all aspects of the Beresheet community',
+                    context.l10n.manageAllAspects,
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -80,7 +84,7 @@ class WebManagementPanel extends StatelessWidget {
             
             // Management Sections
             Text(
-              'Management Tools',
+              context.l10n.managementTools,
               style: AppTextStyles.heading2.copyWith(
                 fontSize: 24,
                 color: AppColors.primary,
@@ -105,8 +109,8 @@ class WebManagementPanel extends StatelessWidget {
                     // Events Management Card
                     _buildManagementCard(
                       context: context,
-                      title: 'Events Management',
-                      description: 'Create, edit, and manage community events',
+                      title: context.l10n.eventsManagement,
+                      description: context.l10n.createEditManageEvents,
                       icon: Icons.event_note,
                       color: Colors.blue,
                       onTap: () {
@@ -119,68 +123,72 @@ class WebManagementPanel extends StatelessWidget {
                       },
                     ),
                     
-                    // Future: Users Management Card
+                    // Users Management Card
                     _buildManagementCard(
                       context: context,
-                      title: 'Users Management',
-                      description: 'Manage community members and permissions',
+                      title: context.l10n.usersManagement,
+                      description: context.l10n.manageMembersPermissions,
                       icon: Icons.people,
                       color: Colors.green,
-                      isComingSoon: true,
                       onTap: () {
-                        _showComingSoonDialog(context, 'Users Management');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateUserScreen(),
+                          ),
+                        );
                       },
                     ),
                     
                     // Future: Announcements Management Card
                     _buildManagementCard(
                       context: context,
-                      title: 'Announcements',
-                      description: 'Create and manage community announcements',
+                      title: context.l10n.announcements,
+                      description: context.l10n.createManageAnnouncements,
                       icon: Icons.campaign,
                       color: Colors.orange,
                       isComingSoon: true,
                       onTap: () {
-                        _showComingSoonDialog(context, 'Announcements Management');
+                        _showComingSoonDialog(context, context.l10n.announcements);
                       },
                     ),
                     
                     // Future: Facilities Management Card
                     _buildManagementCard(
                       context: context,
-                      title: 'Facilities',
-                      description: 'Manage community facilities and bookings',
+                      title: context.l10n.facilities,
+                      description: context.l10n.manageFacilitiesBookings,
                       icon: Icons.apartment,
                       color: Colors.purple,
                       isComingSoon: true,
                       onTap: () {
-                        _showComingSoonDialog(context, 'Facilities Management');
+                        _showComingSoonDialog(context, context.l10n.facilities);
                       },
                     ),
                     
                     // Future: Reports & Analytics Card
                     _buildManagementCard(
                       context: context,
-                      title: 'Reports & Analytics',
-                      description: 'View community statistics and reports',
+                      title: context.l10n.reportsAnalytics,
+                      description: context.l10n.viewStatisticsReports,
                       icon: Icons.analytics,
                       color: Colors.teal,
                       isComingSoon: true,
                       onTap: () {
-                        _showComingSoonDialog(context, 'Reports & Analytics');
+                        _showComingSoonDialog(context, context.l10n.reportsAnalytics);
                       },
                     ),
                     
                     // Future: Settings Card
                     _buildManagementCard(
                       context: context,
-                      title: 'System Settings',
-                      description: 'Configure system settings and preferences',
+                      title: context.l10n.systemSettings,
+                      description: context.l10n.configureSystemSettings,
                       icon: Icons.settings,
                       color: Colors.grey,
                       isComingSoon: true,
                       onTap: () {
-                        _showComingSoonDialog(context, 'System Settings');
+                        _showComingSoonDialog(context, context.l10n.systemSettings);
                       },
                     ),
                   ],
@@ -247,8 +255,8 @@ class WebManagementPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Soon',
-                          style: TextStyle(
+                          context.l10n.soon,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -296,20 +304,20 @@ class WebManagementPanel extends StatelessWidget {
           ),
           title: Row(
             children: [
-              Icon(Icons.construction, color: Colors.orange),
+              const Icon(Icons.construction, color: Colors.orange),
               const SizedBox(width: AppSpacing.sm),
-              Text('Coming Soon'),
+              Text(context.l10n.comingSoon),
             ],
           ),
           content: Text(
-            '$feature is currently under development and will be available in a future update.',
+            '$feature ${context.l10n.featureUnderDevelopment}',
             style: AppTextStyles.bodyMedium,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'OK',
+                context.l10n.ok,
                 style: TextStyle(color: AppColors.primary),
               ),
             ),

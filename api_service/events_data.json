@@ -1,7 +1,7 @@
 [
   {
     "name": "Gentle Chair Yoga",
-    "type": "class",
+    "type": "leisure",
     "description": "Safe and relaxing chair yoga session designed for seniors. Improve flexibility and reduce stress with gentle movements.",
     "dateTime": "2025-06-10 10:15:00",
     "location": "Wellness Room A",
@@ -91,8 +91,8 @@
     "location": "Computer Room",
     "maxParticipants": 8,
     "image_url": "https://images.unsplash.com/photo-1556761175-4b46a572b786?w=400",
-    "currentParticipants": 4,
-    "isRegistered": false,
+    "currentParticipants": 5,
+    "isRegistered": true,
     "id": "h8i9j0k1-l2m3-4567-hijk-890123456789"
   },
   {

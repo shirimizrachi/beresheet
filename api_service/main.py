@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -31,6 +31,38 @@ api_router = APIRouter(prefix="/api")
 # Web build path for Flutter web
 web_build_path = "../build/web"
 
+# Header dependencies
+async def get_resident_id(resident_id: str = Header(..., alias="residentID")):
+    """Dependency to extract and validate residentID header"""
+    if not resident_id:
+        raise HTTPException(status_code=400, detail="residentID header is required")
+    try:
+        return int(resident_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="residentID must be a valid integer")
+
+async def get_firebase_token(firebase_token: Optional[str] = Header(None, alias="firebaseToken")):
+    """Dependency to extract Firebase token header"""
+    return firebase_token
+
+async def get_user_id(user_id: Optional[str] = Header(None, alias="userId")):
+    """Dependency to extract user ID header"""
+    return user_id
+
+async def get_user_role(unique_id: str) -> str:
+    """Get user role from database"""
+    user = user_db.get_user_profile(unique_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    return user.role
+
+async def require_manager_role(unique_id: str):
+    """Dependency to ensure user has manager role"""
+    role = await get_user_role(unique_id)
+    if role != "manager":
+        raise HTTPException(status_code=403, detail="Manager role required")
+    return True
+
 @app.get("/")
 async def root():
     """Root endpoint - redirect to web app"""
@@ -59,9 +91,15 @@ async def health_check():
 @api_router.get("/events", response_model=List[Event])
 async def get_events(
     type: Optional[str] = Query(None, description="Filter by event type"),
-    upcoming: Optional[bool] = Query(False, description="Get only upcoming events")
+    upcoming: Optional[bool] = Query(False, description="Get only upcoming events"),
+    resident_id: int = Depends(get_resident_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token),
+    user_id: Optional[str] = Depends(get_user_id)
 ):
     """Get all events, optionally filtered by type or upcoming only"""
+    # Log headers for tracking (can be expanded for analytics/auditing)
+    print(f"Request from residentID: {resident_id}, userID: {user_id}")
+    
     if upcoming:
         events = db.get_upcoming_events()
     elif type:
@@ -72,7 +110,12 @@ async def get_events(
     return events
 
 @api_router.get("/events/{event_id}", response_model=Event)
-async def get_event(event_id: str):
+async def get_event(
+    event_id: str,
+    resident_id: int = Depends(get_resident_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token),
+    user_id: Optional[str] = Depends(get_user_id)
+):
     """Get a specific event by ID"""
     event = db.get_event_by_id(event_id)
     if not event:
@@ -80,7 +123,12 @@ async def get_event(event_id: str):
     return event
 
 @api_router.post("/events", response_model=Event, status_code=201)
-async def create_event(event: EventCreate):
+async def create_event(
+    event: EventCreate,
+    resident_id: int = Depends(get_resident_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token),
+    user_id: Optional[str] = Depends(get_user_id)
+):
     """Create a new event"""
     try:
         new_event = db.create_event(event)
@@ -89,7 +137,13 @@ async def create_event(event: EventCreate):
         raise HTTPException(status_code=400, detail=f"Error creating event: {str(e)}")
 
 @api_router.put("/events/{event_id}", response_model=Event)
-async def update_event(event_id: str, event: EventUpdate):
+async def update_event(
+    event_id: str,
+    event: EventUpdate,
+    resident_id: int = Depends(get_resident_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token),
+    user_id: Optional[str] = Depends(get_user_id)
+):
     """Update an existing event"""
     updated_event = db.update_event(event_id, event)
     if not updated_event:
@@ -97,7 +151,12 @@ async def update_event(event_id: str, event: EventUpdate):
     return updated_event
 
 @api_router.delete("/events/{event_id}")
-async def delete_event(event_id: str):
+async def delete_event(
+    event_id: str,
+    resident_id: int = Depends(get_resident_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token),
+    user_id: Optional[str] = Depends(get_user_id)
+):
     """Delete an event"""
     success = db.delete_event(event_id)
     if not success:
@@ -106,7 +165,11 @@ async def delete_event(event_id: str):
 
 # Event registration endpoints
 @api_router.post("/events/{event_id}/register")
-async def register_for_event(event_id: str, registration: Optional[EventRegistration] = None):
+async def register_for_event(
+    event_id: str,
+    registration: Optional[EventRegistration] = None,
+    resident_id: int = Depends(get_resident_id)
+):
     """Register for an event"""
     user_id = registration.user_id if registration else None
     
@@ -126,7 +189,11 @@ async def register_for_event(event_id: str, registration: Optional[EventRegistra
     return {"message": "Successfully registered for event", "event_id": event_id}
 
 @api_router.post("/events/{event_id}/unregister")
-async def unregister_from_event(event_id: str, registration: Optional[EventRegistration] = None):
+async def unregister_from_event(
+    event_id: str,
+    registration: Optional[EventRegistration] = None,
+    resident_id: int = Depends(get_resident_id)
+):
     """Unregister from an event"""
     user_id = registration.user_id if registration else None
     
@@ -176,13 +243,13 @@ async def get_stats():
 
 # User Profile CRUD endpoints
 @api_router.get("/users", response_model=List[UserProfile])
-async def get_all_users():
+async def get_all_users(resident_id: int = Depends(get_resident_id)):
     """Get all user profiles"""
     users = user_db.get_all_users()
     return users
 
 @api_router.get("/users/{unique_id}", response_model=UserProfile)
-async def get_user_profile(unique_id: str):
+async def get_user_profile(unique_id: str, resident_id: int = Depends(get_resident_id)):
     """Get a specific user profile by unique ID"""
     user = user_db.get_user_profile(unique_id)
     if not user:
@@ -190,8 +257,16 @@ async def get_user_profile(unique_id: str):
     return user
 
 @api_router.post("/users/{unique_id}", response_model=UserProfile, status_code=201)
-async def create_user_profile(unique_id: str, user: UserProfileCreate):
-    """Create a new user profile"""
+async def create_user_profile(
+    unique_id: str,
+    user: UserProfileCreate,
+    current_user_id: str = Header(..., alias="currentUserId"),
+    resident_id: int = Depends(get_resident_id)
+):
+    """Create a new user profile - requires manager role"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id)
+    
     # Check if user already exists
     existing_user = user_db.get_user_profile(unique_id)
     if existing_user:
@@ -204,7 +279,11 @@ async def create_user_profile(unique_id: str, user: UserProfileCreate):
         raise HTTPException(status_code=400, detail=f"Error creating user profile: {str(e)}")
 
 @api_router.put("/users/{unique_id}", response_model=UserProfile)
-async def update_user_profile(unique_id: str, user: UserProfileUpdate):
+async def update_user_profile(
+    unique_id: str,
+    user: UserProfileUpdate,
+    resident_id: int = Depends(get_resident_id)
+):
     """Update an existing user profile"""
     updated_user = user_db.update_user_profile(unique_id, user)
     if not updated_user:
@@ -212,7 +291,7 @@ async def update_user_profile(unique_id: str, user: UserProfileUpdate):
     return updated_user
 
 @api_router.delete("/users/{unique_id}")
-async def delete_user_profile(unique_id: str):
+async def delete_user_profile(unique_id: str, resident_id: int = Depends(get_resident_id)):
     """Delete a user profile"""
     success = user_db.delete_user_profile(unique_id)
     if not success:
@@ -221,7 +300,11 @@ async def delete_user_profile(unique_id: str):
 
 # User photo endpoints
 @api_router.post("/users/{unique_id}/photo")
-async def upload_user_photo(unique_id: str, photo: UploadFile = File(...)):
+async def upload_user_photo(
+    unique_id: str,
+    photo: UploadFile = File(...),
+    resident_id: int = Depends(get_resident_id)
+):
     """Upload a photo for a user profile"""
     # Check if user exists
     user = user_db.get_user_profile(unique_id)
@@ -251,7 +334,7 @@ async def upload_user_photo(unique_id: str, photo: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
 
 @api_router.get("/users/{unique_id}/photo")
-async def get_user_photo(unique_id: str):
+async def get_user_photo(unique_id: str, resident_id: int = Depends(get_resident_id)):
     """Get a user's photo"""
     photo_path = user_db.get_user_photo_path(unique_id)
     if not photo_path:

@@ -1,7 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/event_form_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/localization_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -37,7 +37,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = '${'events.failed_to_load_events'.tr}: $e';
+        errorMessage = e.toString();
         isLoading = false;
       });
     }
@@ -48,17 +48,17 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('events.delete_event'.tr),
-          content: Text('events.delete_event_confirmation'.tr),
+          title: Text(context.l10n.deleteEvent),
+          content: Text(context.l10n.deleteEventConfirmation),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text('common.cancel'.tr),
+              child: Text(context.l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text('common.delete'.tr),
+              child: Text(context.l10n.delete),
             ),
           ],
         );
@@ -70,7 +70,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('events.event_deleted'.tr),
+            content: Text(context.l10n.eventDeleted),
             backgroundColor: Colors.green,
           ),
         );
@@ -78,7 +78,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('events.failed_to_delete_event'.tr),
+            content: Text(context.l10n.failedToDeleteEvent),
             backgroundColor: Colors.red,
           ),
         );
@@ -106,7 +106,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: Text(
-          'navigation.manage_events'.tr,
+          context.l10n.manageEvents,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -137,14 +137,14 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        errorMessage!,
+                        '${context.l10n.failedToLoadEvents}: $errorMessage',
                         style: AppTextStyles.bodyMedium.copyWith(color: Colors.red),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
                         onPressed: loadEvents,
-                        child: Text('events.retry'.tr),
+                        child: Text(context.l10n.retry),
                       ),
                     ],
                   ),
@@ -161,12 +161,12 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                           ),
                           const SizedBox(height: AppSpacing.md),
                           Text(
-                            'events.no_events_found'.tr,
+                            context.l10n.noEventsFound,
                             style: AppTextStyles.heading4.copyWith(color: Colors.grey[600]),
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Text(
-                            'events.create_first_event'.tr,
+                            context.l10n.createFirstEvent,
                             style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey[500]),
                           ),
                         ],
@@ -222,7 +222,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                     style: AppTextStyles.bodySmall,
                                   ),
                                   Text(
-                                    '${event.currentParticipants}/${event.maxParticipants} participants',
+                                    '${event.currentParticipants}/${event.maxParticipants} ${context.l10n.participants}',
                                     style: AppTextStyles.bodySmall,
                                   ),
                                 ],
@@ -243,7 +243,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                     value: 'edit',
                                     child: ListTile(
                                       leading: const Icon(Icons.edit),
-                                      title: Text('common.edit'.tr),
+                                      title: Text(context.l10n.edit),
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                   ),
@@ -251,7 +251,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                     value: 'delete',
                                     child: ListTile(
                                       leading: const Icon(Icons.delete, color: Colors.red),
-                                      title: Text('common.delete'.tr, style: const TextStyle(color: Colors.red)),
+                                      title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                   ),
