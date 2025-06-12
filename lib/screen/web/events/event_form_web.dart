@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
 
 class EventFormWeb extends StatefulWidget {
   final Event? event; // null for creating new event
@@ -34,7 +35,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   DateTime? _recurringEndDate;
   
   // Image handling
-  String _imageSource = 'url'; // 'url' or 'upload'
+  String _imageSource = 'url'; // 'url', 'unsplash', or 'upload'
   
   bool _isLoading = false;
   String? _errorMessage;
@@ -776,8 +777,69 @@ class _EventFormWebState extends State<EventFormWeb> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
-                      TextFormField(
+
+                      // Image source selection
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          SizedBox(
+                            width: 160,
+                            child: RadioListTile<String>(
+                              title: const Text('URL'),
+                              value: 'url',
+                              groupValue: _imageSource,
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _imageSource = value!;
+                                });
+                              } : null,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 160,
+                            child: RadioListTile<String>(
+                              title: const Text('Upload'),
+                              value: 'upload',
+                              groupValue: _imageSource,
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _imageSource = value!;
+                                });
+                              } : null,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 160,
+                            child: RadioListTile<String>(
+                              title: const Text('Unsplash'),
+                              value: 'unsplash',
+                              groupValue: _imageSource,
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _imageSource = value!;
+                                  _imageUrlController.clear();
+                                });
+                              } : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (_imageSource == 'unsplash') ...[
+                        SizedBox(
+                          height: 400,
+                          child: UnsplashImagePicker(
+                            eventType: _selectedType,
+                            onImageSelected: (imageUrl) {
+                              setState(() {
+                                _imageUrlController.text = imageUrl;
+                              });
+                            },
+                          ),
+                        ),
+                      ] else
+                        TextFormField(
                         controller: _imageUrlController,
                         enabled: _isFieldEditable,
                         decoration: InputDecoration(

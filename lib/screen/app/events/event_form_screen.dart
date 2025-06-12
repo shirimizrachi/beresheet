@@ -3,6 +3,7 @@ import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
+import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -35,7 +36,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   DateTime? _recurringEndDate;
   
   // Image handling
-  String _imageSource = 'url'; // 'url' or 'gallery'
+  String _imageSource = 'url'; // 'url', 'gallery', or 'unsplash'
   File? _selectedImageFile;
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -711,9 +712,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       const SizedBox(height: AppSpacing.md),
                       
                       // Image source selection
-                      Row(
+                      Wrap(
+                        spacing: 8,
                         children: [
-                          Expanded(
+                          SizedBox(
+                            width: 160,
                             child: RadioListTile<String>(
                               title: const Text('Gallery'),
                               value: 'gallery',
@@ -725,7 +728,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               } : null,
                             ),
                           ),
-                          Expanded(
+                          SizedBox(
+                            width: 160,
                             child: RadioListTile<String>(
                               title: const Text('URL'),
                               value: 'url',
@@ -737,13 +741,41 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               } : null,
                             ),
                           ),
+                          SizedBox(
+                            width: 160,
+                            child: RadioListTile<String>(
+                              title: const Text('Unsplash'),
+                              value: 'unsplash',
+                              groupValue: _imageSource,
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _imageSource = value!;
+                                  _selectedImageFile = null;
+                                  _imageUrlController.clear();
+                                });
+                              } : null,
+                            ),
+                          ),
                         ],
                       ),
                       
                       const SizedBox(height: AppSpacing.md),
                       
                       // Image source specific UI
-                      if (_imageSource == 'gallery') ...[
+                      if (_imageSource == 'unsplash') ...[
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          height: 400,
+                          child: UnsplashImagePicker(
+                            eventType: _selectedType,
+                            onImageSelected: (imageUrl) {
+                              setState(() {
+                                _imageUrlController.text = imageUrl;
+                              });
+                            },
+                          ),
+                        ),
+                      ] else if (_imageSource == 'gallery') ...[
                         Row(
                           children: [
                             Expanded(

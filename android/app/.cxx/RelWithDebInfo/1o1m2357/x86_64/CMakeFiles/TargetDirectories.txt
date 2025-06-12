@@ -1,0 +1,2 @@
+C:/Users/ranmi/flutter/beresheet_app/android/app/.cxx/RelWithDebInfo/1o1m2357/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/ranmi/flutter/beresheet_app/android/app/.cxx/RelWithDebInfo/1o1m2357/x86_64/CMakeFiles/rebuild_cache.dir

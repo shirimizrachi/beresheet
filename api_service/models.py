@@ -39,6 +39,17 @@ class Event(EventBase):
     class Config:
         from_attributes = True
 
+# Room Models
+class Room(BaseModel):
+    id: int
+    room_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class RoomCreate(BaseModel):
+    room_name: str
 class EventRegistration(BaseModel):
     event_id: str
     user_id: Optional[str] = None

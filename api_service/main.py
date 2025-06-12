@@ -3,8 +3,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Optional
-from models import Event, EventCreate, EventUpdate, EventRegistration, UserProfile, UserProfileCreate, UserProfileUpdate, LoginRequest, LoginResponse, SessionInfo
+from models import (
+    Event,
+    EventCreate,
+    EventUpdate,
+    EventRegistration,
+    UserProfile,
+    UserProfileCreate,
+    UserProfileUpdate,
+    LoginRequest,
+    LoginResponse,
+    SessionInfo,
+    Room,
+    RoomCreate,
+)
 from events import event_db
+from rooms import room_db
 from events_registration import events_registration_db
 from users import user_db
 import uvicorn
@@ -266,6 +280,48 @@ async def get_available_homes():
     """Get all available homes for creating user profiles"""
     homes = user_db.get_available_homes()
     return homes
+
+
+# ------------------------- Rooms Endpoints ------------------------- #
+@api_router.get("/rooms", response_model=List[Room])
+async def get_rooms(
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+    permitted: bool = Depends(require_manager_role),
+):
+    """List all rooms - manager role required"""
+    rooms = room_db.get_all_rooms(home_id)
+    return rooms
+
+
+@api_router.post("/rooms", response_model=Room, status_code=201)
+async def create_room(
+    room: RoomCreate,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+    permitted: bool = Depends(require_manager_role),
+):
+    """Create a new room - manager role required"""
+    new_room = room_db.create_room(room, home_id)
+    if not new_room:
+        raise HTTPException(
+            status_code=400, detail="Unable to create room (duplicate name?)"
+        )
+    return new_room
+
+
+@api_router.delete("/rooms/{room_id}")
+async def delete_room(
+    room_id: int,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+    permitted: bool = Depends(require_manager_role),
+):
+    """Delete a room by ID - manager role required"""
+    success = room_db.delete_room(room_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return {"message": "Room deleted successfully"}
 
 # User Profile CRUD endpoints
 @api_router.get("/users", response_model=List[UserProfile])

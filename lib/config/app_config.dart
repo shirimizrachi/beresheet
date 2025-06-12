@@ -72,4 +72,11 @@ class AppConfig {
   
   /// Get the API base URL
   static String get baseUrl => apiBaseUrl;
+
+  /// Unsplash API configuration
+  /// Replace this with your actual Unsplash API access key
+  static const String unsplashAccessKey = 'l4TUVw_DzVoNebjqDrd8x0-dED46kFfQkxuF3-KRQ2k';
+  
+  /// Get the Unsplash API access key
+  static String get unsplashKey => unsplashAccessKey;
 }
