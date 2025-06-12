@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
+import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
@@ -21,12 +22,22 @@ class _WebHomePageState extends State<WebHomePage> {
   @override
   void initState() {
     super.initState();
+    _initializeSession();
     loadEvents();
     
     // Auto-scroll carousel every 5 seconds
     Future.delayed(const Duration(seconds: 3), () {
       _startAutoScroll();
     });
+  }
+
+  Future<void> _initializeSession() async {
+    // Initialize web auth service to check existing session
+    await WebAuthService.initializeSession();
+    // Refresh the UI after session check
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -100,12 +111,18 @@ class _WebHomePageState extends State<WebHomePage> {
                 padding: const EdgeInsets.only(right: AppSpacing.md),
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to management panel using URL hash
-                    html.window.location.hash = '#manage';
+                    // Check if user is authenticated
+                    if (WebAuthService.isLoggedIn) {
+                      // Navigate to management panel using URL hash
+                      html.window.location.hash = '#manage';
+                    } else {
+                      // Navigate to login page
+                      html.window.location.hash = '#login';
+                    }
                   },
                   icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
                   label: Text(
-                    context.l10n.managementPanel,
+                    WebAuthService.isLoggedIn ? context.l10n.managementPanel : 'Login',
                     style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(

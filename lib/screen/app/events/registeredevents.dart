@@ -24,16 +24,37 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
 
   Future<void> loadRegisteredEvents() async {
     try {
-      final events = await EventService.getRegisteredEvents();
+      // Get user registrations from API
+      final registrations = await EventService.getUserRegistrations();
+      
+      // Get event details for each registration
+      final List<Event> events = [];
+      for (final registration in registrations) {
+        final eventId = registration['event_id'];
+        final event = await EventService.getEventById(eventId);
+        if (event != null) {
+          events.add(event);
+        }
+      }
+      
       setState(() {
         registeredEvents = events;
         isLoading = false;
       });
     } catch (e) {
       print('Error loading registered events: $e');
-      setState(() {
-        isLoading = false;
-      });
+      // Fallback to local method
+      try {
+        final events = await EventService.getRegisteredEvents();
+        setState(() {
+          registeredEvents = events;
+          isLoading = false;
+        });
+      } catch (e2) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 

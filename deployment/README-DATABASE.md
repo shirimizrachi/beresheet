@@ -75,7 +75,7 @@ Stores user profile information.
 | Column | Type | Description |
 |--------|------|-------------|
 | id | NVARCHAR(50) | Primary key |
-| unique_id | NVARCHAR(50) | Unique identifier (Firebase UID) |
+| firebase_id | NVARCHAR(50) | Unique identifier (Firebase UID) |
 | display_name | NVARCHAR(100) | User's display name |
 | email | NVARCHAR(255) | User's email address |
 | phone_number | NVARCHAR(20) | User's phone number |
@@ -122,7 +122,7 @@ Stores event registration information.
 
 The following indexes are created for optimal performance:
 
-- `IX_users_unique_id` - Non-clustered index on users.unique_id
+- `IX_users_firebase_id` - Non-clustered index on users.firebase_id
 - `IX_events_date_time` - Non-clustered index on events.date_time
 - `IX_events_type` - Non-clustered index on events.event_type
 - `IX_event_registrations_event_id` - Non-clustered index on event_registrations.event_id
@@ -206,6 +206,15 @@ For immediate setup of the home database, use:
 ```batch
 sqlcmd -S localhost\SQLEXPRESS -E -i setup_home_direct.sql
 ```
+
+### Events Registration Table Setup
+
+To set up the events_registration table for a specific schema (e.g., beresheet):
+```batch
+python create_events_registration_table.py beresheet
+```
+
+This will create the `events_registration` table with proper indexes and constraints for tracking event registrations.
 
 ### Support
 

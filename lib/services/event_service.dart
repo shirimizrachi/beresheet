@@ -33,16 +33,8 @@ class EventService {
         final List<dynamic> data = json.decode(response.body);
         print('EventService: Parsed ${data.length} events from API');
         
-        // Get registered events to mark them as registered
-        final List<String> registeredEventIds = await getRegisteredEventIds();
-        
         final List<Event> events = data.map((eventJson) {
-          Event event = Event.fromJson(eventJson);
-          // Mark as registered if it's in the local registered list
-          if (registeredEventIds.contains(event.id)) {
-            event = event.copyWith(isRegistered: true);
-          }
-          return event;
+          return Event.fromJson(eventJson);
         }).toList();
         
         print('EventService: Successfully loaded ${events.length} events');
@@ -64,14 +56,8 @@ class EventService {
       final String response = await rootBundle.loadString('assets/data/events.json');
       final List<dynamic> data = json.decode(response);
       
-      final List<String> registeredEventIds = await getRegisteredEventIds();
-      
       return data.map((eventJson) {
-        Event event = Event.fromJson(eventJson);
-        if (registeredEventIds.contains(event.id)) {
-          event = event.copyWith(isRegistered: true);
-        }
-        return event;
+        return Event.fromJson(eventJson);
       }).toList();
     } catch (e) {
       print('Error loading events from assets: $e');
@@ -118,8 +104,7 @@ class EventService {
         
         // Check if already registered locally
         if (!registeredEvents.any((e) => e.id == event.id)) {
-          final Event registeredEvent = event.copyWith(isRegistered: true);
-          registeredEvents.add(registeredEvent);
+          registeredEvents.add(event);
           await _saveRegisteredEvents(registeredEvents);
         }
         return true;
@@ -144,8 +129,7 @@ class EventService {
       }
 
       // Add to registered events
-      final Event registeredEvent = event.copyWith(isRegistered: true);
-      registeredEvents.add(registeredEvent);
+      registeredEvents.add(event);
       
       // Save to file
       await _saveRegisteredEvents(registeredEvents);
@@ -272,6 +256,9 @@ class EventService {
     required String location,
     required int maxParticipants,
     required String imageUrl,
+    String recurring = 'none',
+    DateTime? recurringEndDate,
+    String? recurringPattern,
   }) async {
     try {
       final Map<String, dynamic> eventData = {
@@ -283,7 +270,9 @@ class EventService {
         'maxParticipants': maxParticipants,
         'image_url': imageUrl,
         'currentParticipants': 0,
-        'isRegistered': false,
+        'recurring': recurring,
+        'recurring_end_date': recurringEndDate?.toIso8601String(),
+        'recurring_pattern': recurringPattern,
       };
 
       final headers = await UserSessionService.getApiHeaders();
@@ -316,6 +305,9 @@ class EventService {
     int? maxParticipants,
     String? imageUrl,
     int? currentParticipants,
+    String? recurring,
+    DateTime? recurringEndDate,
+    String? recurringPattern,
   }) async {
     try {
       final Map<String, dynamic> updateData = <String, dynamic>{};
@@ -328,6 +320,9 @@ class EventService {
       if (maxParticipants != null) updateData['maxParticipants'] = maxParticipants;
       if (imageUrl != null) updateData['image_url'] = imageUrl;
       if (currentParticipants != null) updateData['currentParticipants'] = currentParticipants;
+      if (recurring != null) updateData['recurring'] = recurring;
+      if (recurringEndDate != null) updateData['recurring_end_date'] = recurringEndDate.toIso8601String();
+      if (recurringPattern != null) updateData['recurring_pattern'] = recurringPattern;
 
       final headers = await UserSessionService.getApiHeaders();
       final response = await http.put(
@@ -425,11 +420,57 @@ class EventService {
 
   static Future<bool> isRegisteredForEvent(String eventId) async {
     try {
-      final List<String> registeredEventIds = await getRegisteredEventIds();
-      return registeredEventIds.contains(eventId);
+      final headers = await UserSessionService.getApiHeaders();
+      final String? userId = headers['userId'];
+      
+      if (userId == null) {
+        print('No user ID available for registration check');
+        return false;
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/registrations/check/$eventId/$userId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data['is_registered'] ?? false;
+      } else {
+        throw Exception('Failed to check registration status: ${response.statusCode}');
+      }
     } catch (e) {
       print('Error checking registration status: $e');
-      return false;
+      // Fallback to local check
+      final List<String> registeredEventIds = await getRegisteredEventIds();
+      return registeredEventIds.contains(eventId);
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserRegistrations() async {
+    try {
+      final headers = await UserSessionService.getApiHeaders();
+      final String? userId = headers['userId'];
+      
+      if (userId == null) {
+        print('No user ID available for getting registrations');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/registrations/user/$userId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((item) => item as Map<String, dynamic>).toList();
+      } else {
+        throw Exception('Failed to get user registrations: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting user registrations: $e');
+      return [];
     }
   }
 }

@@ -17,21 +17,22 @@ class ApiUserService {
     }
   }
 
-  /// Get user profile by unique ID
-  static Future<UserModel?> getUserProfile(String uniqueId) async {
+  /// Get user profile by user ID
+  static Future<UserModel?> getUserProfile(String userId) async {
     try {
+      final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/api/users/$uniqueId'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/api/users/$userId'),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final user = UserModel.fromJson(data);
         // Store user session data after successful fetch
-        await UserSessionService.setResidentId(user.residentId);
+        await UserSessionService.sethomeID(user.homeID);
         await UserSessionService.setRole(user.role);
-        await UserSessionService.setUserId(user.userId);
+        await UserSessionService.setUserId(user.id);
         return user;
       } else if (response.statusCode == 404) {
         return null; // User not found
@@ -45,14 +46,64 @@ class ApiUserService {
     }
   }
 
-  /// Create a new user profile (requires manager role and residentID header)
-  static Future<UserModel?> createUserProfile(String uniqueId, UserModel user, String currentUserId) async {
+  /// Get user profile by phone number
+  static Future<UserModel?> getUserProfileByPhone(String phoneNumber, int homeId) async {
+    try {
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'homeID': homeId.toString(),
+      };
+      
+      // Add Firebase token if available
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final token = await user.getIdToken();
+          if (token != null) {
+            headers['firebaseToken'] = token;
+          }
+        }
+      } catch (e) {
+        print('Error getting Firebase token: $e');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/users/by-phone'),
+        headers: headers,
+        body: json.encode({'phone_number': phoneNumber}),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final user = UserModel.fromJson(data);
+        // Store user session data after successful fetch
+        await UserSessionService.sethomeID(user.homeID);
+        await UserSessionService.setRole(user.role);
+        await UserSessionService.setUserId(user.id);
+        return user;
+      } else if (response.statusCode == 404) {
+        return null; // User not found
+      } else {
+        print('Error fetching user profile by phone: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user profile by phone: $e');
+      return null;
+    }
+  }
+
+  /// Create a new user profile (requires manager role and homeID header)
+  static Future<UserModel?> createUserProfile(UserModel user, String currentUserId, {String? firebaseId}) async {
     try {
       final headers = await UserSessionService.getApiHeaders();
       headers['currentUserId'] = currentUserId; // Add current user ID for role validation
+      if (firebaseId != null) {
+        headers['firebaseId'] = firebaseId; // Optional firebase ID for linking
+      }
       
       final response = await http.post(
-        Uri.parse('$baseUrl/api/users/$uniqueId'),
+        Uri.parse('$baseUrl/api/users'),
         headers: headers,
         body: json.encode(user.toJson()),
       );
@@ -70,19 +121,22 @@ class ApiUserService {
     }
   }
 
-  /// Create a new user profile with minimal data (residentId and phone only)
-  static Future<UserModel?> createUserProfileMinimal(String uniqueId, int residentId, String phoneNumber, String currentUserId) async {
+  /// Create a new user profile with minimal data (homeID and phone only)
+  static Future<UserModel?> createUserProfileMinimal(int homeID, String phoneNumber, String currentUserId, {String? firebaseId}) async {
     try {
       final headers = await UserSessionService.getApiHeaders();
       headers['currentUserId'] = currentUserId; // Add current user ID for role validation
+      if (firebaseId != null) {
+        headers['firebaseId'] = firebaseId; // Optional firebase ID for linking
+      }
       
       final minimalData = {
-        'resident_id': residentId,
+        'home_id': homeID,
         'phone_number': phoneNumber,
       };
       
       final response = await http.post(
-        Uri.parse('$baseUrl/api/users/$uniqueId'),
+        Uri.parse('$baseUrl/api/users'),
         headers: headers,
         body: json.encode(minimalData),
       );
@@ -101,11 +155,11 @@ class ApiUserService {
   }
 
   /// Update an existing user profile
-  static Future<UserModel?> updateUserProfile(String uniqueId, UserModel user) async {
+  static Future<UserModel?> updateUserProfile(String userId, UserModel user) async {
     try {
       final headers = await UserSessionService.getApiHeaders();
       final response = await http.put(
-        Uri.parse('$baseUrl/api/users/$uniqueId'),
+        Uri.parse('$baseUrl/api/users/$userId'),
         headers: headers,
         body: json.encode(user.toJson()),
       );
@@ -114,9 +168,9 @@ class ApiUserService {
         final Map<String, dynamic> data = json.decode(response.body);
         final updatedUser = UserModel.fromJson(data);
         // Update session with latest data
-        await UserSessionService.setResidentId(updatedUser.residentId);
+        await UserSessionService.sethomeID(updatedUser.homeID);
         await UserSessionService.setRole(updatedUser.role);
-        await UserSessionService.setUserId(updatedUser.userId);
+        await UserSessionService.setUserId(updatedUser.id);
         return updatedUser;
       } else {
         print('Error updating user profile: ${response.statusCode} - ${response.body}');
@@ -129,11 +183,11 @@ class ApiUserService {
   }
 
   /// Delete a user profile
-  static Future<bool> deleteUserProfile(String uniqueId) async {
+  static Future<bool> deleteUserProfile(String userId) async {
     try {
       final headers = await UserSessionService.getApiHeaders();
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/users/$uniqueId'),
+        Uri.parse('$baseUrl/api/users/$userId'),
         headers: headers,
       );
 
@@ -172,14 +226,14 @@ class ApiUserService {
   }
 
   /// Upload user photo
-  static Future<String?> uploadUserPhoto(String uniqueId, File imageFile) async {
+  static Future<String?> uploadUserPhoto(String userId, File imageFile) async {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/api/users/$uniqueId/photo'),
+        Uri.parse('$baseUrl/api/users/$userId/photo'),
       );
 
-      // Add headers including residentID
+      // Add headers including homeID
       final headers = await UserSessionService.getApiHeaders();
       request.headers.addAll(headers);
 
@@ -187,7 +241,7 @@ class ApiUserService {
         await http.MultipartFile.fromPath(
           'photo',
           imageFile.path,
-          filename: '$uniqueId.jpeg',
+          filename: '$userId.jpeg',
         ),
       );
 
@@ -208,14 +262,14 @@ class ApiUserService {
   }
 
   /// Upload user photo from bytes
-  static Future<String?> uploadUserPhotoFromBytes(String uniqueId, Uint8List imageBytes, String filename) async {
+  static Future<String?> uploadUserPhotoFromBytes(String userId, Uint8List imageBytes, String filename) async {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/api/users/$uniqueId/photo'),
+        Uri.parse('$baseUrl/api/users/$userId/photo'),
       );
 
-      // Add headers including residentID
+      // Add headers including homeID
       final headers = await UserSessionService.getApiHeaders();
       request.headers.addAll(headers);
 
@@ -244,15 +298,22 @@ class ApiUserService {
   }
 
   /// Get user photo URL
-  static String getUserPhotoUrl(String uniqueId) {
-    return '$baseUrl/api/users/$uniqueId/photo';
+  static String getUserPhotoUrl(String userId) {
+    return '$baseUrl/api/users/$userId/photo';
   }
 
   /// Convenience method to get current user's profile
   static Future<UserModel?> getCurrentUserProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return await getUserProfile(user.uid);
+      // First try to get from session
+      final userId = await UserSessionService.getUserId();
+      if (userId != null) {
+        return await getUserProfile(userId);
+      }
+      // Fallback: search by firebase ID (this might need to be handled differently)
+      // For now, return null and let the app handle user creation
+      return null;
     }
     return null;
   }
@@ -261,15 +322,17 @@ class ApiUserService {
   static Future<UserModel?> saveCurrentUserProfile(UserModel userProfile) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Check if profile exists
-      final existingProfile = await getUserProfile(user.uid);
-      if (existingProfile != null) {
-        // Update existing profile
-        return await updateUserProfile(user.uid, userProfile);
-      } else {
-        // Create new profile (requires manager role)
-        return await createUserProfile(user.uid, userProfile, user.uid);
+      // Check if profile exists using stored userId
+      final userId = await UserSessionService.getUserId();
+      if (userId != null) {
+        final existingProfile = await getUserProfile(userId);
+        if (existingProfile != null) {
+          // Update existing profile
+          return await updateUserProfile(userId, userProfile);
+        }
       }
+      // Create new profile (requires manager role) with firebase ID for linking
+      return await createUserProfile(userProfile, user.uid, firebaseId: user.uid);
     }
     return null;
   }

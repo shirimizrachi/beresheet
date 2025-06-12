@@ -131,28 +131,28 @@ class UserDatabase:
         os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.photos_dir, exist_ok=True)
     
-    def _get_user_file_path(self, unique_id: str) -> str:
+    def _get_user_file_path(self, firebase_id: str) -> str:
         """Get the file path for a user's JSON data"""
-        return os.path.join(self.data_dir, f"{unique_id}.json")
+        return os.path.join(self.data_dir, f"{firebase_id}.json")
     
-    def _get_photo_file_path(self, unique_id: str) -> str:
+    def _get_photo_file_path(self, firebase_id: str) -> str:
         """Get the file path for a user's photo"""
-        return os.path.join(self.photos_dir, f"{unique_id}.jpeg")
+        return os.path.join(self.photos_dir, f"{firebase_id}.jpeg")
     
-    def get_user_profile(self, unique_id: str) -> Optional[UserProfile]:
+    def get_user_profile(self, firebase_id: str) -> Optional[UserProfile]:
         """Get user profile by unique ID"""
         try:
-            file_path = self._get_user_file_path(unique_id)
+            file_path = self._get_user_file_path(firebase_id)
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     return UserProfile(**data)
             return None
         except Exception as e:
-            print(f"Error loading user profile {unique_id}: {e}")
+            print(f"Error loading user profile {firebase_id}: {e}")
             return None
     
-    def create_user_profile(self, unique_id: str, user_data: UserProfileCreate) -> UserProfile:
+    def create_user_profile(self, firebase_id: str, user_data: UserProfileCreate) -> UserProfile:
         """Create a new user profile with minimal required data"""
         try:
             current_time = datetime.now().isoformat()
@@ -161,11 +161,11 @@ class UserDatabase:
             
             # Create user profile with minimal data and defaults
             new_user = UserProfile(
-                unique_id=unique_id,
+                firebase_id=firebase_id,
                 created_at=current_time,
                 updated_at=current_time,
                 user_id=user_id,
-                resident_id=user_data.resident_id,
+                home_id=user_data.home_id,
                 phone_number=user_data.phone_number,
                 # Default values for required fields
                 full_name="",  # To be updated later
@@ -179,19 +179,19 @@ class UserDatabase:
                 photo=None
             )
             
-            file_path = self._get_user_file_path(unique_id)
+            file_path = self._get_user_file_path(firebase_id)
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(new_user.model_dump(), f, indent=2, default=str)
             
             return new_user
         except Exception as e:
-            print(f"Error creating user profile {unique_id}: {e}")
+            print(f"Error creating user profile {firebase_id}: {e}")
             raise
     
-    def update_user_profile(self, unique_id: str, user_data: UserProfileUpdate) -> Optional[UserProfile]:
+    def update_user_profile(self, firebase_id: str, user_data: UserProfileUpdate) -> Optional[UserProfile]:
         """Update an existing user profile"""
         try:
-            existing_user = self.get_user_profile(unique_id)
+            existing_user = self.get_user_profile(firebase_id)
             if not existing_user:
                 return None
             
@@ -200,20 +200,20 @@ class UserDatabase:
             
             updated_user = existing_user.model_copy(update=update_data)
             
-            file_path = self._get_user_file_path(unique_id)
+            file_path = self._get_user_file_path(firebase_id)
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(updated_user.model_dump(), f, indent=2, default=str)
             
             return updated_user
         except Exception as e:
-            print(f"Error updating user profile {unique_id}: {e}")
+            print(f"Error updating user profile {firebase_id}: {e}")
             return None
     
-    def delete_user_profile(self, unique_id: str) -> bool:
+    def delete_user_profile(self, firebase_id: str) -> bool:
         """Delete a user profile and associated photo"""
         try:
-            file_path = self._get_user_file_path(unique_id)
-            photo_path = self._get_photo_file_path(unique_id)
+            file_path = self._get_user_file_path(firebase_id)
+            photo_path = self._get_photo_file_path(firebase_id)
             
             # Delete user data file
             if os.path.exists(file_path):
@@ -225,7 +225,7 @@ class UserDatabase:
             
             return True
         except Exception as e:
-            print(f"Error deleting user profile {unique_id}: {e}")
+            print(f"Error deleting user profile {firebase_id}: {e}")
             return False
     
     def get_all_users(self) -> List[UserProfile]:
@@ -235,8 +235,8 @@ class UserDatabase:
             if os.path.exists(self.data_dir):
                 for filename in os.listdir(self.data_dir):
                     if filename.endswith('.json'):
-                        unique_id = filename[:-5]  # Remove .json extension
-                        user = self.get_user_profile(unique_id)
+                        firebase_id = filename[:-5]  # Remove .json extension
+                        user = self.get_user_profile(firebase_id)
                         if user:
                             users.append(user)
             return users
@@ -244,20 +244,20 @@ class UserDatabase:
             print(f"Error loading all user profiles: {e}")
             return []
     
-    def save_user_photo(self, unique_id: str, photo_data: bytes) -> str:
+    def save_user_photo(self, firebase_id: str, photo_data: bytes) -> str:
         """Save user photo and return the file path"""
         try:
-            photo_path = self._get_photo_file_path(unique_id)
+            photo_path = self._get_photo_file_path(firebase_id)
             with open(photo_path, 'wb') as f:
                 f.write(photo_data)
             return photo_path
         except Exception as e:
-            print(f"Error saving photo for user {unique_id}: {e}")
+            print(f"Error saving photo for user {firebase_id}: {e}")
             raise
     
-    def get_user_photo_path(self, unique_id: str) -> Optional[str]:
+    def get_user_photo_path(self, firebase_id: str) -> Optional[str]:
         """Get the photo file path if it exists"""
-        photo_path = self._get_photo_file_path(unique_id)
+        photo_path = self._get_photo_file_path(firebase_id)
         return photo_path if os.path.exists(photo_path) else None
 
 # Global database instances

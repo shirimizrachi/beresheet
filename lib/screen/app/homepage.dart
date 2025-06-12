@@ -1,7 +1,7 @@
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/registeredevents.dart';
-import 'package:beresheet_app/screen/app/new_profilepage.dart';
+import 'package:beresheet_app/screen/app/users/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
@@ -131,13 +131,7 @@ class _HomePageState extends State<HomePage> {
                       });
                     },
                   ),
-                  ListTile(
-                    title: Text(context.l10n.logOut, style: AppTextStyles.bodyMedium),
-                    leading: const Icon(Icons.logout, color: AppColors.primary),
-                    onTap: () {
-                      AuthRepo.logoutApp(context);
-                    },
-                  )
+                  // Logout option removed - users need to delete app to logout
                 ],
               ),
             ),

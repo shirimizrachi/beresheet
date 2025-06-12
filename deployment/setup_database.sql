@@ -146,7 +146,7 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ''user
 BEGIN
     CREATE TABLE users (
         id NVARCHAR(50) PRIMARY KEY,
-        unique_id NVARCHAR(50) UNIQUE NOT NULL,
+        firebase_id NVARCHAR(50) UNIQUE NOT NULL,
         display_name NVARCHAR(100),
         email NVARCHAR(255),
         phone_number NVARCHAR(20),
@@ -200,8 +200,8 @@ BEGIN
 END
 
 -- Create indexes for better performance
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = ''IX_users_unique_id'' AND object_id = OBJECT_ID(''users''))
-    CREATE NONCLUSTERED INDEX IX_users_unique_id ON users(unique_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = ''IX_users_firebase_id'' AND object_id = OBJECT_ID(''users''))
+    CREATE NONCLUSTERED INDEX IX_users_firebase_id ON users(firebase_id);
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = ''IX_events_date_time'' AND object_id = OBJECT_ID(''events''))
     CREATE NONCLUSTERED INDEX IX_events_date_time ON events(date_time);

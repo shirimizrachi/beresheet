@@ -2,7 +2,7 @@
 echo Starting Beresheet Events API Server...
 echo.
 echo Installing dependencies if needed...
-pip install -r requirements.txt
+echo pip install -r requirements.txt
 echo.
 echo Starting server on http://localhost:8000
 echo API Documentation will be available at: http://localhost:8000/docs

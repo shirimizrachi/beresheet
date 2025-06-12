@@ -24,7 +24,7 @@ echo Activating virtual environment...
 call venv\Scripts\activate
 
 echo Installing/updating Python dependencies...
-pip install -r requirements.txt
+echo install -r requirements.txt
 
 echo.
 echo Step 3: Starting combined API and Web server...
@@ -35,6 +35,6 @@ echo   - Web App: http://localhost:8000/web
 echo   - API Docs: http://localhost:8000/docs
 echo.
 
-python main.py
 
+python start_server.py
 pause

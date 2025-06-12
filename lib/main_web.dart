@@ -1,5 +1,7 @@
 import 'package:beresheet_app/screen/web/web_homepage.dart';
 import 'package:beresheet_app/screen/web/web_management_panel.dart';
+import 'package:beresheet_app/screen/web/web_login_web.dart';
+import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize web auth service to restore sessions
+  await WebAuthService.initializeSession();
+  
   runApp(const ProviderScope(child: WebApp()));
 }
 
@@ -73,7 +79,12 @@ class _AppRouteInformationParser extends RouteInformationParser<String> {
       path = path.substring(1);
     }
     
-    return path.isEmpty ? 'home' : path;
+    // Handle empty path
+    if (path.isEmpty) {
+      return '';
+    }
+    
+    return path;
   }
 
   @override
@@ -117,12 +128,29 @@ class _AppRouterDelegate extends RouterDelegate<String> with ChangeNotifier, Pop
   }
 
   Widget _buildPage(String path) {
+    // Check if user is logged in for all pages except login
+    if (path != 'login' && !WebAuthService.isLoggedIn) {
+      return const WebLoginWeb();
+    }
+    
     switch (path) {
+      case 'login':
+        return const WebLoginWeb();
+      
+      // Management routes - require authentication
       case 'manage':
-        return const WebManagementPanel();
+      case 'manage/':
+        return const WebManagementPanel(initialTab: 'home');
+      case 'manage/events':
+        return const WebManagementPanel(initialTab: 'events');
+      case 'manage/users':
+        return const WebManagementPanel(initialTab: 'user_list');
+      
+      // Public homepage with events carousel - require authentication but accessible to all roles
       case 'home':
+      case '':
       default:
-        return const WebHomePage();
+        return const WebHomePage(); // Public homepage with events carousel
     }
   }
 

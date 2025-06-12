@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/services/api_user_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
+import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -55,23 +56,36 @@ class _NewProfilePageState extends State<NewProfilePage> {
     super.dispose();
   }
 
+  // Helper method to validate dropdown values
+  String _validateDropdownValue(String? value, List<String> validOptions, String defaultValue) {
+    if (value != null && validOptions.contains(value)) {
+      return value;
+    }
+    return defaultValue;
+  }
+
   Future<void> _loadUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final userData = await ApiUserService.getUserProfile(user.uid);
+      // Get userId from session
+      final userId = await UserSessionService.getUserId();
+      if (userId == null) return;
+
+      final userData = await ApiUserService.getUserProfile(userId);
       if (userData != null) {
         setState(() {
           _currentUser = userData;
           _fullNameController.text = userData.fullName ?? '';
           _phoneController.text = userData.phoneNumber ?? '';
           _apartmentController.text = userData.apartmentNumber ?? '';
-          _selectedRole = userData.role ?? 'resident';
-          _selectedMaritalStatus = userData.maritalStatus ?? 'single';
-          _selectedGender = userData.gender ?? 'male';
-          _selectedReligious = userData.religious ?? 'secular';
-          _selectedLanguage = userData.nativeLanguage ?? 'hebrew';
+          // Ensure the loaded values are in the valid options list
+          _selectedRole = _validateDropdownValue(userData.role, ['resident', 'staff', 'instructor', 'service', 'caregiver'], 'resident');
+          _selectedMaritalStatus = _validateDropdownValue(userData.maritalStatus, ['single', 'married', 'divorced', 'widowed'], 'single');
+          _selectedGender = _validateDropdownValue(userData.gender, ['male', 'female', 'other'], 'male');
+          _selectedReligious = _validateDropdownValue(userData.religious, ['secular', 'orthodox', 'traditional'], 'secular');
+          _selectedLanguage = _validateDropdownValue(userData.nativeLanguage, ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'], 'hebrew');
           _selectedBirthday = userData.birthday;
           _photoUrl = userData.photo;
         });
@@ -150,7 +164,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
       }
 
       final userModel = UserModel(
-        uniqueId: user.uid,
+        firebaseID: user.uid,
         fullName: _fullNameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
@@ -160,13 +174,13 @@ class _NewProfilePageState extends State<NewProfilePage> {
         gender: _selectedGender,
         religious: _selectedReligious,
         nativeLanguage: _selectedLanguage,
-        residentId: _currentUser!.residentId, // Keep existing residentId
-        userId: _currentUser!.userId, // Keep existing userId
+        homeID: _currentUser!.homeID, // Keep existing homeID
+        id: _currentUser!.id, // Keep existing id
         photo: _photoUrl,
       );
 
       // Update existing profile only (creation should be done via web interface)
-      UserModel? savedUser = await ApiUserService.updateUserProfile(user.uid, userModel);
+      UserModel? savedUser = await ApiUserService.updateUserProfile(_currentUser!.id, userModel);
 
       if (savedUser == null) {
         throw Exception('Failed to save user profile');
@@ -174,7 +188,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
 
       // Upload photo if selected
       if (_selectedImage != null) {
-        final photoUrl = await ApiUserService.uploadUserPhoto(user.uid, _selectedImage!);
+        final photoUrl = await ApiUserService.uploadUserPhoto(_currentUser!.id, _selectedImage!);
         if (photoUrl != null) {
           setState(() {
             _photoUrl = photoUrl;
@@ -267,7 +281,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
                       : _photoUrl != null
                           ? ClipOval(
                               child: Image.network(
-                                ApiUserService.getUserPhotoUrl(FirebaseAuth.instance.currentUser!.uid),
+                                ApiUserService.getUserPhotoUrl(_currentUser?.id ?? ''),
                                 fit: BoxFit.cover,
                                 width: 120,
                                 height: 120,
@@ -296,10 +310,13 @@ class _NewProfilePageState extends State<NewProfilePage> {
   Widget _buildDropdownField(String label, String value, List<String> options, Function(String?) onChanged) {
     final l10n = context.l10n;
     
+    // Ensure the value exists in the options list to prevent assertion errors
+    String safeValue = options.contains(value) ? value : options.first;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: safeValue,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
@@ -331,52 +348,51 @@ class _NewProfilePageState extends State<NewProfilePage> {
   String _getDisplayValue(String value, String category) {
     final l10n = context.l10n;
     
-    // Map values to localized strings
-    switch (category) {
-      case 'Role': // This will need to be updated when we localize the category labels
-        switch (value) {
-          case 'resident': return l10n.roleResident;
-          case 'staff': return l10n.roleStaff;
-          case 'instructor': return l10n.roleInstructor;
-          case 'service': return l10n.roleService;
-          case 'caregiver': return l10n.roleCaregiver;
-          default: return value;
-        }
-      case 'Marital Status':
-        switch (value) {
-          case 'single': return l10n.maritalStatusSingle;
-          case 'married': return l10n.maritalStatusMarried;
-          case 'divorced': return l10n.maritalStatusDivorced;
-          case 'widowed': return l10n.maritalStatusWidowed;
-          default: return value;
-        }
-      case 'Gender':
-        switch (value) {
-          case 'male': return l10n.genderMale;
-          case 'female': return l10n.genderFemale;
-          case 'other': return l10n.genderOther;
-          default: return value;
-        }
-      case 'Religious':
-        switch (value) {
-          case 'secular': return l10n.religiousSecular;
-          case 'orthodox': return l10n.religiousOrthodox;
-          case 'traditional': return l10n.religiousTraditional;
-          default: return value;
-        }
-      case 'Language':
-        switch (value) {
-          case 'hebrew': return l10n.languageHebrew;
-          case 'english': return l10n.languageEnglish;
-          case 'arabic': return l10n.languageArabic;
-          case 'russian': return l10n.languageRussian;
-          case 'french': return l10n.languageFrench;
-          case 'spanish': return l10n.languageSpanish;
-          default: return value;
-        }
-      default:
-        return value;
+    // Map values to localized strings based on the localized category label
+    if (category == l10n.role) {
+      switch (value) {
+        case 'resident': return l10n.roleResident;
+        case 'staff': return l10n.roleStaff;
+        case 'instructor': return l10n.roleInstructor;
+        case 'service': return l10n.roleService;
+        case 'caregiver': return l10n.roleCaregiver;
+        default: return value;
+      }
+    } else if (category == l10n.maritalStatus) {
+      switch (value) {
+        case 'single': return l10n.maritalStatusSingle;
+        case 'married': return l10n.maritalStatusMarried;
+        case 'divorced': return l10n.maritalStatusDivorced;
+        case 'widowed': return l10n.maritalStatusWidowed;
+        default: return value;
+      }
+    } else if (category == l10n.gender) {
+      switch (value) {
+        case 'male': return l10n.genderMale;
+        case 'female': return l10n.genderFemale;
+        case 'other': return l10n.genderOther;
+        default: return value;
+      }
+    } else if (category == l10n.religious) {
+      switch (value) {
+        case 'secular': return l10n.religiousSecular;
+        case 'orthodox': return l10n.religiousOrthodox;
+        case 'traditional': return l10n.religiousTraditional;
+        default: return value;
+      }
+    } else if (category == l10n.nativeLanguage) {
+      switch (value) {
+        case 'hebrew': return l10n.languageHebrew;
+        case 'english': return l10n.languageEnglish;
+        case 'arabic': return l10n.languageArabic;
+        case 'russian': return l10n.languageRussian;
+        case 'french': return l10n.languageFrench;
+        case 'spanish': return l10n.languageSpanish;
+        default: return value;
+      }
     }
+    
+    return value;
   }
 
   @override

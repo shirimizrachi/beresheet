@@ -1,16 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:html' as html;
 import '../model/user.dart';
 import 'api_user_service.dart';
 
 class UserSessionService {
-  static const String _residentIdKey = 'user_resident_id';
+  static const String _homeIDKey = 'user_home_id';
   static const String _roleKey = 'user_role';
   static const String _userIdKey = 'user_id';
   
-  static int? _cachedResidentId;
+  static int? _cachedhomeID;
   static String? _cachedRole;
   static String? _cachedUserId;
 
@@ -19,153 +18,79 @@ class UserSessionService {
     try {
       final user = await ApiUserService.getCurrentUserProfile();
       if (user != null) {
-        await setResidentId(user.residentId);
+        await sethomeID(user.homeID);
         await setRole(user.role);
-        await setUserId(user.userId);
+        await setUserId(user.id);
       }
     } catch (e) {
       print('Error initializing user session: $e');
     }
   }
 
-  /// Store residentId based on platform
-  static Future<void> setResidentId(int residentId) async {
-    _cachedResidentId = residentId;
-    
-    if (kIsWeb) {
-      // Store in cookie for web
-      html.document.cookie = '$_residentIdKey=$residentId; path=/';
-    } else {
-      // Store in SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_residentIdKey, residentId);
-    }
+  /// Store homeID using SharedPreferences (works on all platforms)
+  static Future<void> sethomeID(int homeID) async {
+    _cachedhomeID = homeID;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_homeIDKey, homeID);
   }
 
-  /// Get residentId based on platform
-  static Future<int?> getResidentId() async {
-    if (_cachedResidentId != null) {
-      return _cachedResidentId;
+  /// Get homeID using SharedPreferences
+  static Future<int?> gethomeID() async {
+    if (_cachedhomeID != null) {
+      return _cachedhomeID;
     }
 
-    if (kIsWeb) {
-      // Get from cookie for web
-      final cookies = html.document.cookie?.split(';') ?? [];
-      for (final cookie in cookies) {
-        final parts = cookie.trim().split('=');
-        if (parts.length == 2 && parts[0] == _residentIdKey) {
-          _cachedResidentId = int.tryParse(parts[1]);
-          return _cachedResidentId;
-        }
-      }
-    } else {
-      // Get from SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      _cachedResidentId = prefs.getInt(_residentIdKey);
-      return _cachedResidentId;
-    }
-    
-    return null;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedhomeID = prefs.getInt(_homeIDKey);
+    return _cachedhomeID;
   }
 
-  /// Store role based on platform
+  /// Store role using SharedPreferences
   static Future<void> setRole(String role) async {
     _cachedRole = role;
-    
-    if (kIsWeb) {
-      // Store in cookie for web
-      html.document.cookie = '$_roleKey=$role; path=/';
-    } else {
-      // Store in SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_roleKey, role);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_roleKey, role);
   }
 
-  /// Get role based on platform
+  /// Get role using SharedPreferences
   static Future<String?> getRole() async {
     if (_cachedRole != null) {
       return _cachedRole;
     }
 
-    if (kIsWeb) {
-      // Get from cookie for web
-      final cookies = html.document.cookie?.split(';') ?? [];
-      for (final cookie in cookies) {
-        final parts = cookie.trim().split('=');
-        if (parts.length == 2 && parts[0] == _roleKey) {
-          _cachedRole = parts[1];
-          return _cachedRole;
-        }
-      }
-    } else {
-      // Get from SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      _cachedRole = prefs.getString(_roleKey);
-      return _cachedRole;
-    }
-    
-    return null;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedRole = prefs.getString(_roleKey);
+    return _cachedRole;
   }
 
-  /// Store userId based on platform
+  /// Store userId using SharedPreferences
   static Future<void> setUserId(String userId) async {
     _cachedUserId = userId;
-    
-    if (kIsWeb) {
-      // Store in cookie for web
-      html.document.cookie = '$_userIdKey=$userId; path=/';
-    } else {
-      // Store in SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userIdKey, userId);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userIdKey, userId);
   }
 
-  /// Get userId based on platform
+  /// Get userId using SharedPreferences
   static Future<String?> getUserId() async {
     if (_cachedUserId != null) {
       return _cachedUserId;
     }
 
-    if (kIsWeb) {
-      // Get from cookie for web
-      final cookies = html.document.cookie?.split(';') ?? [];
-      for (final cookie in cookies) {
-        final parts = cookie.trim().split('=');
-        if (parts.length == 2 && parts[0] == _userIdKey) {
-          _cachedUserId = parts[1];
-          return _cachedUserId;
-        }
-      }
-    } else {
-      // Get from SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      _cachedUserId = prefs.getString(_userIdKey);
-      return _cachedUserId;
-    }
-    
-    return null;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedUserId = prefs.getString(_userIdKey);
+    return _cachedUserId;
   }
 
   /// Clear session data
   static Future<void> clearSession() async {
-    _cachedResidentId = null;
+    _cachedhomeID = null;
     _cachedRole = null;
     _cachedUserId = null;
     
-    if (kIsWeb) {
-      // Clear cookies for web
-      html.document.cookie = '$_residentIdKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      html.document.cookie = '$_roleKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      html.document.cookie = '$_userIdKey=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    } else {
-      // Clear SharedPreferences for mobile
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_residentIdKey);
-      await prefs.remove(_roleKey);
-      await prefs.remove(_userIdKey);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_homeIDKey);
+    await prefs.remove(_roleKey);
+    await prefs.remove(_userIdKey);
   }
 
   /// Check if user has manager role
@@ -174,16 +99,16 @@ class UserSessionService {
     return role == 'manager';
   }
 
-  /// Get headers with residentID, Firebase token, and userId for API requests
+  /// Get headers with homeID, Firebase token, and userId for API requests
   static Future<Map<String, String>> getApiHeaders() async {
-    final residentId = await getResidentId();
+    final homeID = await gethomeID();
     final userId = await getUserId();
     final headers = <String, String>{
       'Content-Type': 'application/json',
     };
     
-    if (residentId != null) {
-      headers['residentID'] = residentId.toString();
+    if (homeID != null) {
+      headers['homeID'] = homeID.toString();
     }
     
     if (userId != null) {

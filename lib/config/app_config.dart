@@ -58,4 +58,18 @@ class AppConfig {
         return TextDirection.rtl; // Default to RTL
     }
   }
+  
+  /// Default home ID for user authentication
+  /// This should be configured based on the specific deployment
+  static const int defaultHomeId = 1;
+  
+  /// Get the default home ID
+  static int get homeId => defaultHomeId;
+  
+  /// API base URL for backend services
+  /// This should be configured based on the deployment environment
+  static const String apiBaseUrl = 'http://localhost:8000';
+  
+  /// Get the API base URL
+  static String get baseUrl => apiBaseUrl;
 }

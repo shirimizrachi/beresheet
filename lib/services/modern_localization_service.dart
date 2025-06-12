@@ -253,4 +253,24 @@ class ModernAppStrings {
   String get createEventButton => _l10n.createEventButton;
   String get updateEventButton => _l10n.updateEventButton;
   String get deleteEventConfirmation => _l10n.deleteEventConfirmation;
+  
+  // Create User Profile
+  String get createNewUserProfile => _l10n.createNewUserProfile;
+  String get createNewUserProfileDescription => _l10n.createNewUserProfileDescription;
+  String get homeId => _l10n.homeId;
+  String get homeIdRequired => _l10n.homeIdRequired;
+  String get pleaseEnterValidNumber => _l10n.pleaseEnterValidNumber;
+  String get selectHome => _l10n.selectHome;
+  String get phoneNumber => _l10n.phoneNumber;
+  String get phoneNumberRequired => _l10n.phoneNumberRequired;
+  String get pleaseEnterValidPhoneNumber => _l10n.pleaseEnterValidPhoneNumber;
+  String get enterPhoneNumber => _l10n.enterPhoneNumber;
+  String get createUserProfile => _l10n.createUserProfile;
+  String get creating => _l10n.creating;
+  String get accessDenied => _l10n.accessDenied;
+  String get onlyManagersCanCreateUsers => _l10n.onlyManagersCanCreateUsers;
+  String get userProfileCreatedSuccessfully => _l10n.userProfileCreatedSuccessfully;
+  String get userId => _l10n.userId;
+  String get failedToCreateUserProfile => _l10n.failedToCreateUserProfile;
+  String get anErrorOccurred => _l10n.anErrorOccurred;
 }

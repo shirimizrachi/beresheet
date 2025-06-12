@@ -781,5 +781,77 @@
   "featureUnderDevelopment": "is currently under development and will be available in a future update.",
   "@featureUnderDevelopment": {
     "description": "Feature under development message"
+  },
+  "createNewUserProfile": "Create New User Profile",
+  "@createNewUserProfile": {
+    "description": "Create new user profile title"
+  },
+  "createNewUserProfileDescription": "Enter the basic information to create a new user profile. Additional details can be updated later.",
+  "@createNewUserProfileDescription": {
+    "description": "Create new user profile description"
+  },
+  "homeId": "Home",
+  "@homeId": {
+    "description": "Home field label"
+  },
+  "homeIdRequired": "Home selection is required",
+  "@homeIdRequired": {
+    "description": "Home selection required validation"
+  },
+  "pleaseEnterValidNumber": "Please enter a valid number",
+  "@pleaseEnterValidNumber": {
+    "description": "Please enter valid number validation"
+  },
+  "selectHome": "Select a home",
+  "@selectHome": {
+    "description": "Select home hint"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number field label"
+  },
+  "phoneNumberRequired": "Phone number is required",
+  "@phoneNumberRequired": {
+    "description": "Phone number required validation"
+  },
+  "pleaseEnterValidPhoneNumber": "Please enter a valid phone number",
+  "@pleaseEnterValidPhoneNumber": {
+    "description": "Please enter valid phone number validation"
+  },
+  "enterPhoneNumber": "Enter phone number",
+  "@enterPhoneNumber": {
+    "description": "Enter phone number hint"
+  },
+  "createUserProfile": "Create User Profile",
+  "@createUserProfile": {
+    "description": "Create user profile button"
+  },
+  "creating": "Creating...",
+  "@creating": {
+    "description": "Creating status text"
+  },
+  "accessDenied": "Access Denied",
+  "@accessDenied": {
+    "description": "Access denied dialog title"
+  },
+  "onlyManagersCanCreateUsers": "Only managers can create new user profiles.",
+  "@onlyManagersCanCreateUsers": {
+    "description": "Only managers can create users message"
+  },
+  "userProfileCreatedSuccessfully": "User profile created successfully!",
+  "@userProfileCreatedSuccessfully": {
+    "description": "User profile created successfully message"
+  },
+  "userId": "User ID",
+  "@userId": {
+    "description": "User ID label"
+  },
+  "failedToCreateUserProfile": "Failed to create user profile. Please try again.",
+  "@failedToCreateUserProfile": {
+    "description": "Failed to create user profile message"
+  },
+  "anErrorOccurred": "An error occurred",
+  "@anErrorOccurred": {
+    "description": "An error occurred message"
   }
 }

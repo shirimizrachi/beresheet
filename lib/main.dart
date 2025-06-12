@@ -1,9 +1,10 @@
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/screen/app/loginscreen.dart';
-import 'package:beresheet_app/screen/app/new_profilepage.dart';
+import 'package:beresheet_app/screen/app/users/new_profilepage.dart';
 import 'package:beresheet_app/services/user_service.dart';
 import 'package:beresheet_app/services/api_user_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
+import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -76,34 +77,40 @@ class MyApp extends StatelessWidget {
 
   // Function to determine which page to navigate to based on user status
   Future<Widget> _getUserStatus() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      // Clear session if no user
-      await UserSessionService.clearSession();
-      return const LoginPage();
-    } else {
-      // Check if the user exists in the API
-      final userProfile = await ApiUserService.getUserProfile(user.uid);
-      if (userProfile == null) {
-        // User is authenticated but profile doesn't exist - only allow updates in mobile app
-        // Clear any existing session
-        await UserSessionService.clearSession();
-        return const NewProfilePage();
-      } else {
-        // Initialize session with user data
-        await UserSessionService.setResidentId(userProfile.residentId);
-        await UserSessionService.setRole(userProfile.role);
-        await UserSessionService.setUserId(userProfile.userId);
-        
-        // Check if profile data is complete
-        if (userProfile.fullName.isEmpty) {
-          // Profile exists but is incomplete - direct to profile setup
-          return const NewProfilePage();
-        } else {
-          // User exists and profile is complete
-          return const HomePage();
+    try {
+      // Use the new authentication check from AuthRepo
+      final isAuthenticated = await AuthRepo.checkAuthenticationStatus();
+      
+      if (isAuthenticated) {
+        // User is authenticated and has valid session data
+        final storedUserId = await UserSessionService.getUserId();
+        if (storedUserId != null) {
+          final userProfile = await ApiUserService.getUserProfile(storedUserId);
+          if (userProfile != null) {
+            // Check if profile data is complete
+            if (userProfile.fullName.isEmpty) {
+              // Profile exists but is incomplete - direct to profile setup
+              return const NewProfilePage();
+            } else {
+              // User exists and profile is complete
+              return const HomePage();
+            }
+          } else {
+            // User profile was deleted from database
+            await UserSessionService.clearSession();
+            await FirebaseAuth.instance.signOut();
+          }
         }
       }
+      
+      // Not authenticated or no valid session - clear session and show login
+      await UserSessionService.clearSession();
+      return const LoginPage();
+    } catch (e) {
+      print('Error checking user status: $e');
+      // On error, clear session and show login
+      await UserSessionService.clearSession();
+      return const LoginPage();
     }
   }
 }

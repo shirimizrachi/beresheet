@@ -1,5 +1,5 @@
 class UserModel {
-  final String uniqueId;
+  final String firebaseID;
   final String fullName;
   final String phoneNumber;
   final String role; // "resident", "staff", "instructor", "service", "caregiver", "manager"
@@ -9,14 +9,14 @@ class UserModel {
   final String gender;
   final String religious;
   final String nativeLanguage;
-  final int residentId; // Not displayed in profile page, used for internal operations
-  final String userId; // Unique user identifier generated on creation
+  final int homeID; // Not displayed in profile page, used for internal operations
+  final String id; // Unique user identifier (primary key)
   final String? photo;
   final String? createdAt;
   final String? updatedAt;
 
   UserModel({
-    required this.uniqueId,
+    required this.firebaseID,
     required this.fullName,
     required this.phoneNumber,
     required this.role,
@@ -26,8 +26,8 @@ class UserModel {
     required this.gender,
     required this.religious,
     required this.nativeLanguage,
-    required this.residentId,
-    required this.userId,
+    required this.homeID,
+    required this.id,
     this.photo,
     this.createdAt,
     this.updatedAt,
@@ -36,7 +36,7 @@ class UserModel {
   // Converts API response to UserModel
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      uniqueId: json['unique_id'] as String,
+      firebaseID: json['firebase_id'] as String,
       fullName: json['full_name'] as String,
       phoneNumber: json['phone_number'] as String,
       role: json['role'] as String,
@@ -46,8 +46,8 @@ class UserModel {
       gender: json['gender'] as String,
       religious: json['religious'] as String,
       nativeLanguage: json['native_language'] as String,
-      residentId: json['resident_id'] as int,
-      userId: json['user_id'] as String,
+      homeID: json['home_id'] as int,
+      id: json['id'] as String,
       photo: json['photo'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
@@ -66,8 +66,8 @@ class UserModel {
       'gender': gender,
       'religious': religious,
       'native_language': nativeLanguage,
-      'resident_id': residentId,
-      'user_id': userId,
+      'home_id': homeID,
+      'id': id,
       if (photo != null) 'photo': photo,
     };
   }
@@ -78,7 +78,7 @@ class UserModel {
   }
 
   UserModel copyWith({
-    String? uniqueId,
+    String? firebaseID,
     String? fullName,
     String? phoneNumber,
     String? role,
@@ -88,14 +88,14 @@ class UserModel {
     String? gender,
     String? religious,
     String? nativeLanguage,
-    int? residentId,
-    String? userId,
+    int? homeID,
+    String? id,
     String? photo,
     String? createdAt,
     String? updatedAt,
   }) {
     return UserModel(
-      uniqueId: uniqueId ?? this.uniqueId,
+      firebaseID: firebaseID ?? this.firebaseID,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       role: role ?? this.role,
@@ -105,8 +105,8 @@ class UserModel {
       gender: gender ?? this.gender,
       religious: religious ?? this.religious,
       nativeLanguage: nativeLanguage ?? this.nativeLanguage,
-      residentId: residentId ?? this.residentId,
-      userId: userId ?? this.userId,
+      homeID: homeID ?? this.homeID,
+      id: id ?? this.id,
       photo: photo ?? this.photo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

@@ -14,6 +14,22 @@ class EventDetailPage extends StatefulWidget {
 
 class _EventDetailPageState extends State<EventDetailPage> {
   bool isRegistering = false;
+  bool isRegistered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRegistrationStatus();
+  }
+
+  Future<void> _checkRegistrationStatus() async {
+    final registered = await EventService.isRegisteredForEvent(widget.event.id);
+    if (mounted) {
+      setState(() {
+        isRegistered = registered;
+      });
+    }
+  }
 
   Color _getTypeColor(String type) {
     switch (type.toLowerCase()) {
@@ -53,12 +69,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     });
 
     try {
-      if (widget.event.isRegistered) {
+      if (isRegistered) {
         // Unregister
         final success = await EventService.unregisterFromEvent(widget.event.id);
         if (success) {
           setState(() {
-            widget.event.isRegistered = false;
+            isRegistered = false;
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +102,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         final success = await EventService.registerForEvent(widget.event);
         if (success) {
           setState(() {
-            widget.event.isRegistered = true;
+            isRegistered = true;
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -286,8 +302,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     child: ElevatedButton(
                       onPressed: isRegistering ? null : _handleRegistration,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.event.isRegistered 
-                            ? Colors.orange 
+                        backgroundColor: isRegistered
+                            ? Colors.orange
                             : theme.colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -305,7 +321,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               ),
                             )
                           : Text(
-                              widget.event.isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
+                              isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

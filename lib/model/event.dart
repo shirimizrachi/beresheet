@@ -9,7 +9,10 @@ class Event {
     required this.maxParticipants,
     required this.imageUrl,
     this.currentParticipants = 0,
-    this.isRegistered = false,
+    this.status = "pending-approval",
+    this.recurring = "none",
+    this.recurringEndDate,
+    this.recurringPattern,
   });
 
   final String id;
@@ -21,7 +24,10 @@ class Event {
   final int maxParticipants;
   final String imageUrl;
   int currentParticipants;
-  bool isRegistered;
+  final String status; // "active", "canceled", "suspended", "pending-approval"
+  final String recurring; // "none", "daily", "weekly", "monthly", "yearly", "custom"
+  final DateTime? recurringEndDate;
+  final String? recurringPattern; // JSON string with custom pattern details
 
   bool get isAvailable => currentParticipants < maxParticipants;
   
@@ -52,7 +58,12 @@ class Event {
       maxParticipants: json['maxParticipants'],
       imageUrl: json['image_url'],
       currentParticipants: json['currentParticipants'] ?? 0,
-      isRegistered: json['isRegistered'] ?? false,
+      status: json['status'] ?? 'pending-approval',
+      recurring: json['recurring'] ?? 'none',
+      recurringEndDate: json['recurring_end_date'] != null
+          ? DateTime.parse(json['recurring_end_date'])
+          : null,
+      recurringPattern: json['recurring_pattern'],
     );
   }
 
@@ -67,7 +78,10 @@ class Event {
       'maxParticipants': maxParticipants,
       'image_url': imageUrl,
       'currentParticipants': currentParticipants,
-      'isRegistered': isRegistered,
+      'status': status,
+      'recurring': recurring,
+      'recurring_end_date': recurringEndDate?.toIso8601String(),
+      'recurring_pattern': recurringPattern,
     };
   }
 
@@ -81,7 +95,10 @@ class Event {
     int? maxParticipants,
     String? imageUrl,
     int? currentParticipants,
-    bool? isRegistered,
+    String? status,
+    String? recurring,
+    DateTime? recurringEndDate,
+    String? recurringPattern,
   }) {
     return Event(
       id: id ?? this.id,
@@ -93,7 +110,10 @@ class Event {
       maxParticipants: maxParticipants ?? this.maxParticipants,
       imageUrl: imageUrl ?? this.imageUrl,
       currentParticipants: currentParticipants ?? this.currentParticipants,
-      isRegistered: isRegistered ?? this.isRegistered,
+      status: status ?? this.status,
+      recurring: recurring ?? this.recurring,
+      recurringEndDate: recurringEndDate ?? this.recurringEndDate,
+      recurringPattern: recurringPattern ?? this.recurringPattern,
     );
   }
 }

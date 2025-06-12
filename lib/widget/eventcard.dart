@@ -16,6 +16,22 @@ class EventCard extends StatefulWidget {
 
 class _EventCardState extends State<EventCard> {
   bool isRegistering = false;
+  bool isRegistered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRegistrationStatus();
+  }
+
+  Future<void> _checkRegistrationStatus() async {
+    final registered = await EventService.isRegisteredForEvent(widget.event.id);
+    if (mounted) {
+      setState(() {
+        isRegistered = registered;
+      });
+    }
+  }
 
   Color _getTypeColor(String type) {
     return ActivityTypeHelper.getColor(type);
@@ -33,12 +49,12 @@ class _EventCardState extends State<EventCard> {
     });
 
     try {
-      if (widget.event.isRegistered) {
+      if (isRegistered) {
         // Unregister
         final success = await EventService.unregisterFromEvent(widget.event.id);
         if (success) {
           setState(() {
-            widget.event.isRegistered = false;
+            isRegistered = false;
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -66,7 +82,7 @@ class _EventCardState extends State<EventCard> {
         final success = await EventService.registerForEvent(widget.event);
         if (success) {
           setState(() {
-            widget.event.isRegistered = true;
+            isRegistered = true;
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -278,7 +294,7 @@ class _EventCardState extends State<EventCard> {
                             child: ElevatedButton(
                               onPressed: isRegistering ? null : _handleRegistration,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: widget.event.isRegistered
+                                backgroundColor: isRegistered
                                     ? AppColors.accent
                                     : AppColors.primary,
                                 foregroundColor: Colors.white,
@@ -298,7 +314,7 @@ class _EventCardState extends State<EventCard> {
                                       ),
                                     )
                                   : Text(
-                                      widget.event.isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
+                                      isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
                                       style: const TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
