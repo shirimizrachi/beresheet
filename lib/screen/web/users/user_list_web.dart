@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'edit_user_web.dart';
+import 'package:beresheet_app/config/app_config.dart';
 
 class UserListWeb extends StatefulWidget {
   const UserListWeb({Key? key}) : super(key: key);
@@ -45,7 +46,7 @@ class _UserListWebState extends State<UserListWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('http://localhost:8000/api/users'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/users'),
         headers: headers,
       );
 

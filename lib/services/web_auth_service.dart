@@ -203,7 +203,7 @@ class WebAuthService {
   static bool get isLoggedIn => _sessionId != null;
 
   /// Check if user has manager role
-  static bool get isManager => _userRole == 'manager';
+  static bool get isManager => _userRole == AppConfig.userRoleManager;
 
   /// Get current session data
   static String? get sessionId => _sessionId;

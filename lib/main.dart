@@ -10,15 +10,25 @@ import 'package:beresheet_app/config/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // for kDebugMode
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'firebase_options.dart';
 
+void setupFirebaseAuth() {
+  if (kDebugMode) {
+    FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Setup Firebase Auth for debug mode
+  setupFirebaseAuth();
 
   runApp(const ProviderScope(child: MyApp()));
 }

@@ -6,12 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../model/user.dart';
 import 'user_session_service.dart';
+import '../config/app_config.dart';
 
 class ApiUserService {
   // Use different URLs for web vs mobile platforms
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000'; // Web can use localhost
+      return AppConfig.apiBaseUrl; // Web can use localhost
     } else {
       return 'http://10.0.2.2:8000'; // Android emulator uses 10.0.2.2
     }

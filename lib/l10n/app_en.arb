@@ -853,5 +853,359 @@
   "anErrorOccurred": "An error occurred",
   "@anErrorOccurred": {
     "description": "An error occurred message"
+  },
+  
+  "webManagementPanel": "Management Panel",
+  "@webManagementPanel": {
+    "description": "Web management panel title"
+  },
+  "webHomepage": "Homepage",
+  "@webHomepage": {
+    "description": "Web homepage link"
+  },
+  "webCreateEvent": "Create Event",
+  "@webCreateEvent": {
+    "description": "Web create event navigation"
+  },
+  "webEventsList": "Events List",
+  "@webEventsList": {
+    "description": "Web events list navigation"
+  },
+  "webEventRegistrations": "Event Registrations",
+  "@webEventRegistrations": {
+    "description": "Web event registrations navigation"
+  },
+  "webCreateUser": "Create User",
+  "@webCreateUser": {
+    "description": "Web create user navigation"
+  },
+  "webUserList": "User List",
+  "@webUserList": {
+    "description": "Web user list navigation"
+  },
+  "webRooms": "Rooms",
+  "@webRooms": {
+    "description": "Web rooms navigation"
+  },
+  "webEventsManagement": "Events Management",
+  "@webEventsManagement": {
+    "description": "Web events management title"
+  },
+  "webFilter": "Filter",
+  "@webFilter": {
+    "description": "Web filter label"
+  },
+  "webAll": "All",
+  "@webAll": {
+    "description": "Web all filter option"
+  },
+  "webApproved": "Approved",
+  "@webApproved": {
+    "description": "Web approved filter option"
+  },
+  "webPendingApproval": "Pending Approval",
+  "@webPendingApproval": {
+    "description": "Web pending approval filter option"
+  },
+  "webDate": "Date",
+  "@webDate": {
+    "description": "Web date label"
+  },
+  "webType": "Type",
+  "@webType": {
+    "description": "Web type label"
+  },
+  "webStatus": "Status",
+  "@webStatus": {
+    "description": "Web status label"
+  },
+  "webUpdateEvent": "Update Event",
+  "@webUpdateEvent": {
+    "description": "Web update event button"
+  },
+  "webDeleteEvent": "Delete Event",
+  "@webDeleteEvent": {
+    "description": "Web delete event button"
+  },
+  "webClearForm": "Clear Form",
+  "@webClearForm": {
+    "description": "Web clear form button"
+  },
+  "webConfirmDelete": "Confirm Delete",
+  "@webConfirmDelete": {
+    "description": "Web confirm delete dialog title"
+  },
+  "webFinalConfirmation": "Final Confirmation",
+  "@webFinalConfirmation": {
+    "description": "Web final confirmation dialog title"
+  },
+  "webDeleteConfirmMessage": "Are you sure you want to delete the event \"{eventName}\"?\n\nThis action cannot be undone.",
+  "@webDeleteConfirmMessage": {
+    "description": "Web delete confirmation message",
+    "placeholders": {
+      "eventName": {
+        "type": "String"
+      }
+    }
+  },
+  "webFinalConfirmMessage": "You approve removing the event from all users?\n\nThis will permanently delete all registrations and cannot be undone.",
+  "@webFinalConfirmMessage": {
+    "description": "Web final confirmation message"
+  },
+  "webYesRemoveFromAllUsers": "Yes, Remove from All Users",
+  "@webYesRemoveFromAllUsers": {
+    "description": "Web yes remove from all users button"
+  },
+  "webEventForm": "Event Form",
+  "@webEventForm": {
+    "description": "Web event form title"
+  },
+  "webBasicInformation": "Basic Information",
+  "@webBasicInformation": {
+    "description": "Web basic information section"
+  },
+  "webEventImage": "Event Image",
+  "@webEventImage": {
+    "description": "Web event image section"
+  },
+  "webImageSource": "Image Source",
+  "@webImageSource": {
+    "description": "Web image source label"
+  },
+  "webDirectUrl": "Direct URL",
+  "@webDirectUrl": {
+    "description": "Web direct URL option"
+  },
+  "webUnsplash": "Unsplash",
+  "@webUnsplash": {
+    "description": "Web Unsplash option"
+  },
+  "webUpload": "Upload",
+  "@webUpload": {
+    "description": "Web upload option"
+  },
+  "webEnterImageUrl": "Enter image URL",
+  "@webEnterImageUrl": {
+    "description": "Web enter image URL placeholder"
+  },
+  "webSearchUnsplash": "Search on Unsplash",
+  "@webSearchUnsplash": {
+    "description": "Web search Unsplash placeholder"
+  },
+  "webUploadImage": "Upload Image",
+  "@webUploadImage": {
+    "description": "Web upload image button"
+  },
+  "webParticipantsSettings": "Participants Settings",
+  "@webParticipantsSettings": {
+    "description": "Web participants settings section"
+  },
+  "webRecurringSettings": "Recurring Settings",
+  "@webRecurringSettings": {
+    "description": "Web recurring settings section"
+  },
+  "webRecurrence": "Recurrence",
+  "@webRecurrence": {
+    "description": "Web recurrence label"
+  },
+  "webNoRecurrence": "No Recurrence",
+  "@webNoRecurrence": {
+    "description": "Web no recurrence option"
+  },
+  "webDaily": "Daily",
+  "@webDaily": {
+    "description": "Web daily recurrence option"
+  },
+  "webWeekly": "Weekly",
+  "@webWeekly": {
+    "description": "Web weekly recurrence option"
+  },
+  "webMonthly": "Monthly",
+  "@webMonthly": {
+    "description": "Web monthly recurrence option"
+  },
+  "webYearly": "Yearly",
+  "@webYearly": {
+    "description": "Web yearly recurrence option"
+  },
+  "webCustomPattern": "Custom Pattern",
+  "@webCustomPattern": {
+    "description": "Web custom pattern recurrence option"
+  },
+  "webRecurringEndDate": "Recurring End Date",
+  "@webRecurringEndDate": {
+    "description": "Web recurring end date label"
+  },
+  "webSelectDate": "Select Date",
+  "@webSelectDate": {
+    "description": "Web select date button"
+  },
+  "webSelectTime": "Select Time",
+  "@webSelectTime": {
+    "description": "Web select time button"
+  },
+  "webSelectRoom": "Select a room",
+  "@webSelectRoom": {
+    "description": "Web select room placeholder"
+  },
+  "webNoRoomsAvailable": "No rooms available",
+  "@webNoRoomsAvailable": {
+    "description": "Web no rooms available message"
+  },
+  "webFailedToLoadRooms": "Failed to load rooms",
+  "@webFailedToLoadRooms": {
+    "description": "Web failed to load rooms message"
+  },
+  "webEventCreationRequiresRole": "Event creation requires manager, staff, or instructor role.",
+  "@webEventCreationRequiresRole": {
+    "description": "Web event creation requires role message"
+  },
+  "webAccessDenied": "Access Denied",
+  "@webAccessDenied": {
+    "description": "Web access denied title"
+  },
+  "webReturnToHome": "Return to Home",
+  "@webReturnToHome": {
+    "description": "Web return to home button"
+  },
+  
+  "eventStatusPendingApproval": "Pending Approval",
+  "@eventStatusPendingApproval": {
+    "description": "Event status: pending approval"
+  },
+  "eventStatusApproved": "Approved",
+  "@eventStatusApproved": {
+    "description": "Event status: approved"
+  },
+  "eventStatusRejected": "Rejected",
+  "@eventStatusRejected": {
+    "description": "Event status: rejected"
+  },
+  "eventStatusCancelled": "Cancelled",
+  "@eventStatusCancelled": {
+    "description": "Event status: cancelled"
+  },
+  
+  "userRoleManager": "Manager",
+  "@userRoleManager": {
+    "description": "User role: manager"
+  },
+  "userRoleStaff": "Staff",
+  "@userRoleStaff": {
+    "description": "User role: staff"
+  },
+  "userRoleInstructor": "Instructor",
+  "@userRoleInstructor": {
+    "description": "User role: instructor"
+  },
+  "userRoleResident": "Resident",
+  "@userRoleResident": {
+    "description": "User role: resident"
+  },
+  "userRoleCaregiver": "Caregiver",
+  "@userRoleCaregiver": {
+    "description": "User role: caregiver"
+  },
+  "userRoleService": "Service",
+  "@userRoleService": {
+    "description": "User role: service"
+  },
+  
+  "eventRecurringNone": "Once",
+  "@eventRecurringNone": {
+    "description": "Event recurring: none/once"
+  },
+  "eventRecurringDaily": "Daily",
+  "@eventRecurringDaily": {
+    "description": "Event recurring: daily"
+  },
+  "eventRecurringWeekly": "Weekly",
+  "@eventRecurringWeekly": {
+    "description": "Event recurring: weekly"
+  },
+  "eventRecurringMonthly": "Monthly",
+  "@eventRecurringMonthly": {
+    "description": "Event recurring: monthly"
+  },
+  
+  "locationRoom": "Location/Room",
+  "@locationRoom": {
+    "description": "Location or room label"
+  },
+  "participants": "Participants",
+  "@participants": {
+    "description": "Participants label"
+  },
+  "recurringSettings": "Recurring Settings",
+  "@recurringSettings": {
+    "description": "Recurring settings section"
+  },
+  "recurrence": "Recurrence",
+  "@recurrence": {
+    "description": "Recurrence label"
+  },
+  "eventImage": "Event Image",
+  "@eventImage": {
+    "description": "Event image label"
+  },
+  "imagePreview": "Image Preview",
+  "@imagePreview": {
+    "description": "Image preview label"
+  },
+  "imageUrl": "Image URL",
+  "@imageUrl": {
+    "description": "Image URL label"
+  },
+  "upload": "Upload",
+  "@upload": {
+    "description": "Upload button"
+  },
+  "imagePicker": "Image Picker",
+  "@imagePicker": {
+    "description": "Image picker (formerly Unsplash)"
+  },
+  "clearForm": "Clear Form",
+  "@clearForm": {
+    "description": "Clear form button"
+  },
+  "createForm": "Create Event",
+  "@createForm": {
+    "description": "Create form button"
+  },
+  "validateImageUrl": "Validate Image URL",
+  "@validateImageUrl": {
+    "description": "Validate image URL button"
+  },
+  "deleteEvent": "Delete Event",
+  "@deleteEvent": {
+    "description": "Delete event button"
+  },
+  "updateEvent": "Update Event",
+  "@updateEvent": {
+    "description": "Update event button"
+  },
+  "eventTime": "Event Time",
+  "@eventTime": {
+    "description": "Event time label"
+  },
+  "eventDate": "Event Date",
+  "@eventDate": {
+    "description": "Event date label"
+  },
+  "endDate": "End Date",
+  "@endDate": {
+    "description": "End date label"
+  },
+  "customPattern": "Custom Pattern",
+  "@customPattern": {
+    "description": "Custom pattern label"
+  },
+  "invalidImageUrl": "Invalid image URL",
+  "@invalidImageUrl": {
+    "description": "Invalid image URL error message"
+  },
+  "status": "Status",
+  "@status": {
+    "description": "Status label"
   }
 }

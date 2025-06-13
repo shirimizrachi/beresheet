@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../model/user.dart';
+import '../config/app_config.dart';
 import 'api_user_service.dart';
 
 class UserSessionService {
@@ -96,7 +97,7 @@ class UserSessionService {
   /// Check if user has manager role
   static Future<bool> isManager() async {
     final role = await getRole();
-    return role == 'manager';
+    return role == AppConfig.userRoleManager;
   }
 
   /// Get headers with homeID, Firebase token, and userId for API requests

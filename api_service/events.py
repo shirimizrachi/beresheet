@@ -76,6 +76,88 @@ class EventDatabase:
             print(f"Error getting all events for home {home_id}: {e}")
             return []
 
+    def get_approved_events(self, home_id: int) -> List[Event]:
+        """Get all approved events ordered by date desc"""
+        try:
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return []
+
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            events = []
+            with self.engine.connect() as conn:
+                results = conn.execute(
+                    events_table.select()
+                    .where(events_table.c.status == 'active')
+                    .order_by(events_table.c.dateTime.desc())
+                ).fetchall()
+                
+                for result in results:
+                    events.append(Event(
+                        id=result.id,
+                        name=result.name,
+                        type=result.type,
+                        description=result.description,
+                        dateTime=result.dateTime,
+                        location=result.location,
+                        maxParticipants=result.maxParticipants,
+                        currentParticipants=result.currentParticipants,
+                        image_url=result.image_url,
+                        status=result.status if hasattr(result, 'status') else "pending-approval",
+                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                    ))
+            return events
+
+        except Exception as e:
+            print(f"Error getting approved events for home {home_id}: {e}")
+            return []
+
+
+    def get_all_events_ordered(self, home_id: int) -> List[Event]:
+        """Get all events ordered by date desc (for staff/manager)"""
+        try:
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return []
+
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            events = []
+            with self.engine.connect() as conn:
+                results = conn.execute(
+                    events_table.select()
+                    .order_by(events_table.c.dateTime.desc())
+                ).fetchall()
+                
+                for result in results:
+                    events.append(Event(
+                        id=result.id,
+                        name=result.name,
+                        type=result.type,
+                        description=result.description,
+                        dateTime=result.dateTime,
+                        location=result.location,
+                        maxParticipants=result.maxParticipants,
+                        currentParticipants=result.currentParticipants,
+                        image_url=result.image_url,
+                        status=result.status if hasattr(result, 'status') else "pending-approval",
+                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                    ))
+            return events
+
+        except Exception as e:
+            print(f"Error getting all events ordered for home {home_id}: {e}")
+            return []
+
     def get_event_by_id(self, event_id: str, home_id: int) -> Optional[Event]:
         """Get a specific event by ID from the appropriate schema"""
         try:
@@ -117,7 +199,7 @@ class EventDatabase:
             print(f"Error getting event {event_id}: {e}")
             return None
 
-    def create_event(self, event_data: EventCreate, home_id: int) -> Event:
+    def create_event(self, event_data: EventCreate, home_id: int, created_by: str = None) -> Event:
         """Create a new event"""
         try:
             # Get schema for home
@@ -149,6 +231,7 @@ class EventDatabase:
                 'recurring': event_data.recurring if hasattr(event_data, 'recurring') else "none",
                 'recurring_end_date': event_data.recurring_end_date if hasattr(event_data, 'recurring_end_date') else None,
                 'recurring_pattern': event_data.recurring_pattern if hasattr(event_data, 'recurring_pattern') else None,
+                'created_by': created_by,
                 'created_at': current_time,
                 'updated_at': current_time
             }

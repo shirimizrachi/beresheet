@@ -8,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:convert';
+import '../../../config/app_config.dart';
+import '../../../utils/display_name_utils.dart';
+import '../../../services/user_session_service.dart';
 
 class EventFormScreen extends StatefulWidget {
   final Event? event; // null for creating new event
@@ -26,10 +30,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
   final TextEditingController _maxParticipantsController = TextEditingController();
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
-  final TextEditingController _recurringPatternController = TextEditingController();
 
-  String _selectedType = 'class';
-  String _selectedStatus = 'pending-approval';
+  String _selectedType = AppConfig.eventTypeClass;
+  String _selectedStatus = AppConfig.eventStatusPendingApproval;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   bool _isSaving = false;
   String _selectedRecurring = 'none';
@@ -39,37 +42,21 @@ class _EventFormScreenState extends State<EventFormScreen> {
   String _imageSource = 'url'; // 'url', 'gallery', or 'unsplash'
   File? _selectedImageFile;
   final ImagePicker _imagePicker = ImagePicker();
+  
+  // Rooms functionality
+  List<Map<String, dynamic>> _rooms = [];
+  bool _isLoadingRooms = true;
+  String? _selectedRoomName;
 
-  final List<String> _eventTypes = [
-    'class',
-    'performance',
-    'cultural',
-    'leisure',
-    'workshop',
-    'meeting',
-    'sport',
-    'health'
-  ];
-
-  final List<String> _statusOptions = [
-    'pending-approval',
-    'active',
-    'canceled',
-    'suspended'
-  ];
-
-  final List<String> _recurringOptions = [
-    'none',
-    'daily',
-    'weekly',
-    'monthly',
-    'yearly',
-    'custom'
-  ];
+  // Use constants from AppConfig for consistency
+  List<String> get _eventTypes => AppConfig.eventTypes;
+  List<String> get _statusOptions => AppConfig.eventStatusOptions;
+  List<String> get _recurringOptions => AppConfig.eventRecurringOptions;
 
   @override
   void initState() {
     super.initState();
+    _loadRooms();
     if (widget.event != null) {
       _populateFields();
     }
@@ -88,7 +75,47 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _selectedDateTime = event.dateTime;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
-    _recurringPatternController.text = event.recurringPattern ?? '';
+    _selectedRoomName = event.location; // For existing events, set the room from location
+  }
+
+  Future<void> _loadRooms() async {
+    try {
+      setState(() {
+        _isLoadingRooms = true;
+      });
+
+      final homeId = await UserSessionService.gethomeID();
+      if (homeId == null) {
+        setState(() {
+          _isLoadingRooms = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms/public'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': homeId.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> roomsData = json.decode(response.body);
+        setState(() {
+          _rooms = roomsData.cast<Map<String, dynamic>>();
+          _isLoadingRooms = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingRooms = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingRooms = false;
+      });
+    }
   }
 
   @override
@@ -99,7 +126,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _maxParticipantsController.dispose();
     _currentParticipantsController.dispose();
     _imageUrlController.dispose();
-    _recurringPatternController.dispose();
     super.dispose();
   }
 
@@ -215,7 +241,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     if (widget.event == null) return true;
     
     // Existing events are only editable if status is "pending-approval"
-    return _selectedStatus == 'pending-approval';
+    return _selectedStatus == AppConfig.eventStatusPendingApproval;
   }
 
   bool get _isFieldEditable {
@@ -223,11 +249,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
     if (widget.event == null) return true;
     
     // For existing events, depends on status
-    return _selectedStatus == 'pending-approval';
+    return _selectedStatus == AppConfig.eventStatusPendingApproval;
   }
 
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Additional validation for recurring events
+    if (_selectedRecurring != 'none' && _recurringEndDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('End date is required for recurring events'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     final l10n = context.l10n;
 
@@ -251,13 +288,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
         type: _selectedType,
         status: _selectedStatus,
         dateTime: _selectedDateTime,
-        location: _locationController.text.trim(),
+        location: _selectedRoomName ?? _locationController.text.trim(),
         maxParticipants: int.parse(_maxParticipantsController.text),
         currentParticipants: widget.event == null ? 0 : int.parse(_currentParticipantsController.text),
         imageUrl: imageUrl,
         recurring: _selectedRecurring,
         recurringEndDate: _recurringEndDate,
-        recurringPattern: _selectedRecurring == 'custom' ? _recurringPatternController.text.trim() : null,
+        recurringPattern: null, // No longer using custom patterns
       );
 
       final Event? result = widget.event == null
@@ -319,38 +356,25 @@ class _EventFormScreenState extends State<EventFormScreen> {
     final l10n = context.l10n;
     
     switch (type) {
-      case 'class': return l10n.eventTypeClass;
-      case 'performance': return l10n.eventTypePerformance;
-      case 'cultural': return l10n.eventTypeCultural;
-      case 'leisure': return l10n.eventTypeLeisure;
-      case 'workshop': return l10n.eventTypeWorkshop;
-      case 'meeting': return l10n.eventTypeMeeting;
-      case 'sport': return l10n.eventTypeSport;
-      case 'health': return l10n.eventTypeHealth;
+      case AppConfig.eventTypeClass: return l10n.eventTypeClass;
+      case AppConfig.eventTypePerformance: return l10n.eventTypePerformance;
+      case AppConfig.eventTypeCultural: return l10n.eventTypeCultural;
+      case AppConfig.eventTypeLeisure: return l10n.eventTypeLeisure;
+      case AppConfig.eventTypeWorkshop: return l10n.eventTypeWorkshop;
+      case AppConfig.eventTypeMeeting: return l10n.eventTypeMeeting;
+      case AppConfig.eventTypeSport: return l10n.eventTypeSport;
+      case AppConfig.eventTypeHealth: return l10n.eventTypeHealth;
       default: return type;
     }
   }
 
   String _getRecurringDisplayName(String recurring) {
-    switch (recurring) {
-      case 'none': return 'One-time event';
-      case 'daily': return 'Daily';
-      case 'weekly': return 'Weekly';
-      case 'monthly': return 'Monthly';
-      case 'yearly': return 'Yearly';
-      case 'custom': return 'Custom';
-      default: return recurring;
-    }
+    return DisplayNameUtils.getRecurringDisplayName(recurring, context);
   }
 
+  // Use AppConfig method for consistency
   String _getStatusDisplayName(String status) {
-    switch (status) {
-      case 'pending-approval': return 'Pending Approval';
-      case 'active': return 'Active';
-      case 'canceled': return 'Canceled';
-      case 'suspended': return 'Suspended';
-      default: return status;
-    }
+    return DisplayNameUtils.getEventStatusDisplayName(status, context);
   }
 
   @override
@@ -487,74 +511,47 @@ class _EventFormScreenState extends State<EventFormScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Date and Time
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
-                    children: [
-                      InkWell(
-                        onTap: _isFieldEditable ? _selectDateTime : null,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                          child: Column(
-                            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: _isFieldEditable ? AppColors.primary : Colors.grey,
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: Text(
-                                      '${l10n.dateTime}: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                                      style: AppTextStyles.bodyMedium.copyWith(
-                                        color: _isFieldEditable ? null : Colors.grey,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (!_isFieldEditable)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 4.0),
-                                  child: Text(
-                                    'Read-only - status is not pending-approval',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
 
-              // Location
+              // Room Selection
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  child: TextFormField(
-                    controller: _locationController,
-                    enabled: _isFieldEditable,
-                    decoration: InputDecoration(
-                      labelText: l10n.location,
-                      hintText: l10n.enterEventLocation,
-                      helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.pleaseEnterEventLocation;
-                      }
-                      return null;
-                    },
-                  ),
+                  child: _isLoadingRooms
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : DropdownButtonFormField<String>(
+                          value: _selectedRoomName,
+                          decoration: InputDecoration(
+                            labelText: l10n.location,
+                            hintText: 'Select a room',
+                            helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
+                          ),
+                          items: _rooms.map((room) {
+                            final roomName = room['room_name'] as String;
+                            return DropdownMenuItem<String>(
+                              value: roomName,
+                              child: Text(roomName),
+                            );
+                          }).toList(),
+                          onChanged: _isFieldEditable ? (value) {
+                            setState(() {
+                              _selectedRoomName = value;
+                              if (value != null) {
+                                _locationController.text = value;
+                              }
+                            });
+                          } : null,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return l10n.pleaseEnterEventLocation;
+                            }
+                            return null;
+                          },
+                        ),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -650,16 +647,69 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               _selectedRecurring = value;
                               if (value == 'none') {
                                 _recurringEndDate = null;
-                                _recurringPatternController.clear();
                               }
                             });
                           }
                         } : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please select recurrence option';
+                          }
+                          return null;
+                        },
                       ),
+                      const SizedBox(height: AppSpacing.md),
+                      
+                      // Date and Time (moved here)
+                      InkWell(
+                        onTap: _isFieldEditable ? _selectDateTime : null,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            child: Column(
+                              crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      color: _isFieldEditable ? AppColors.primary : Colors.grey,
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Expanded(
+                                      child: Text(
+                                        '${l10n.dateTime} *: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          color: _isFieldEditable ? null : Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!_isFieldEditable)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      'Read-only - status is not pending-approval',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      
                       if (_selectedRecurring != 'none') ...[
                         const SizedBox(height: AppSpacing.md),
                         ListTile(
-                          title: Text('End Date: ${_recurringEndDate?.toString().split(' ')[0] ?? 'Not set'}'),
+                          title: Text('End Date *: ${_recurringEndDate?.toString().split(' ')[0] ?? 'Not set'}'),
+                          subtitle: const Text('Required for recurring events'),
                           trailing: Icon(
                             Icons.calendar_today,
                             color: _isFieldEditable ? null : Colors.grey,
@@ -678,19 +728,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             }
                           } : null,
                         ),
-                        if (_selectedRecurring == 'custom') ...[
-                          const SizedBox(height: AppSpacing.md),
-                          TextFormField(
-                            controller: _recurringPatternController,
-                            enabled: _isFieldEditable,
-                            decoration: InputDecoration(
-                              labelText: 'Custom Pattern',
-                              hintText: 'Enter custom recurring pattern (JSON format)',
-                              helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
-                            ),
-                            maxLines: 2,
-                          ),
-                        ],
                       ],
                     ],
                   ),

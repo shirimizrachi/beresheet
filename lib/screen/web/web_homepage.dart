@@ -66,7 +66,7 @@ class _WebHomePageState extends State<WebHomePage> {
 
   Future<void> loadEvents() async {
     try {
-      final loadedEvents = await EventService.loadEvents();
+      final loadedEvents = await EventService.loadApprovedEvents();
       setState(() {
         events = loadedEvents;
         isLoading = false;
@@ -107,30 +107,23 @@ class _WebHomePageState extends State<WebHomePage> {
               centerTitle: true,
             ),
             actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.md),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Check if user is authenticated
-                    if (WebAuthService.isLoggedIn) {
-                      // Navigate to management panel using URL hash
+              // Simple text link for management panel
+              if (WebAuthService.isLoggedIn)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.md),
+                  child: TextButton(
+                    onPressed: () {
                       html.window.location.hash = '#manage';
-                    } else {
-                      // Navigate to login page
-                      html.window.location.hash = '#login';
-                    }
-                  },
-                  icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
-                  label: Text(
-                    WebAuthService.isLoggedIn ? context.l10n.managementPanel : 'Login',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    elevation: 0,
+                    },
+                    child: Text(
+                      context.l10n.managementPanel,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
@@ -169,22 +162,12 @@ class _WebHomePageState extends State<WebHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.l10n.featuredEvents,
-                        style: AppTextStyles.heading2.copyWith(
-                          fontSize: 28,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _refreshEvents,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(context.l10n.refresh),
-                      ),
-                    ],
+                  Text(
+                    context.l10n.featuredEvents,
+                    style: AppTextStyles.heading2.copyWith(
+                      fontSize: 28,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   
@@ -464,23 +447,6 @@ class _WebHomePageState extends State<WebHomePage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.md,
-                          ),
-                          textStyle: AppTextStyles.buttonText.copyWith(fontSize: 16),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      OutlinedButton.icon(
-                        onPressed: _refreshEvents,
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        label: Text(
-                          context.l10n.refreshEvents,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white),
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.lg,
                             vertical: AppSpacing.md,

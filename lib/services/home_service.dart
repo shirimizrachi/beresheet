@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 /// Model for Home data
 class Home {
@@ -31,7 +32,7 @@ class Home {
 }
 
 class HomeService {
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = AppConfig.apiBaseUrl;
 
   /// Get all available homes
   static Future<List<Home>> getAvailableHomes() async {

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:html' as html;
 import '../../config/app_config.dart';
+import '../../utils/display_name_utils.dart';
 import '../../services/web_auth_service.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'web_login_web.dart';
 import 'users/create_user_web.dart';
 import 'events/events_registration_management_web.dart';
+import 'events/events_management_web.dart';
 import 'users/user_list_web.dart';
 import 'events/event_form_web.dart';
 import 'events/event_registrations_web.dart';
+import 'rooms_management_web.dart';
 
 class WebManagementPanel extends StatefulWidget {
   final String? initialTab;
@@ -89,55 +94,66 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
     List<String> availableTabs = [];
     
     // Home tab - available for all authenticated users
-    destinations.add(const NavigationRailDestination(
-      icon: Icon(Icons.home),
-      selectedIcon: Icon(Icons.home),
-      label: Text('Home'),
+    destinations.add(NavigationRailDestination(
+      icon: const Icon(Icons.home),
+      selectedIcon: const Icon(Icons.home),
+      label: Text(AppLocalizations.of(context)!.home),
     ));
     availableTabs.add('home');
     
-    // Event creation tab - available for manager, staff, and instructor
-    if (userRole == 'manager' || userRole == 'staff' || userRole == 'instructor') {
-      destinations.add(const NavigationRailDestination(
-        icon: Icon(Icons.event_note),
-        selectedIcon: Icon(Icons.event_note),
-        label: Text('Create Event'),
+    // EVENTS SECTION - available for manager, staff, and instructor
+    if (userRole == AppConfig.userRoleManager ||
+        userRole == AppConfig.userRoleStaff ||
+        userRole == AppConfig.userRoleInstructor) {
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.event_note),
+        selectedIcon: const Icon(Icons.event_note),
+        label: Text(AppLocalizations.of(context)!.webCreateEvent),
       ));
       availableTabs.add('create_event');
-    }
-    
-    // Event registrations tab - available for manager and staff
-    if (userRole == 'manager' || userRole == 'staff') {
-      destinations.add(const NavigationRailDestination(
-        icon: Icon(Icons.event_available),
-        selectedIcon: Icon(Icons.event_available),
-        label: Text('Event Registrations'),
-      ));
-      availableTabs.add('event_registrations');
       
-      destinations.add(const NavigationRailDestination(
-        icon: Icon(Icons.event),
-        selectedIcon: Icon(Icons.event),
-        label: Text('Events Management'),
+      // Events List (renamed from Events Management)
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.event),
+        selectedIcon: const Icon(Icons.event),
+        label: Text(AppLocalizations.of(context)!.webEventsList),
       ));
       availableTabs.add('events');
+      
+      // Event Registrations (only for manager and staff)
+      if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
+        destinations.add(NavigationRailDestination(
+          icon: const Icon(Icons.event_available),
+          selectedIcon: const Icon(Icons.event_available),
+          label: Text(AppLocalizations.of(context)!.webEventRegistrations),
+        ));
+        availableTabs.add('event_registrations');
+      }
     }
     
-    // User management tabs - only for managers
-    if (userRole == 'manager') {
-      destinations.add(const NavigationRailDestination(
-        icon: Icon(Icons.person_add),
-        selectedIcon: Icon(Icons.person_add),
-        label: Text('Create User'),
+    // USERS SECTION - only for managers
+    if (userRole == AppConfig.userRoleManager) {
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.person_add),
+        selectedIcon: const Icon(Icons.person_add),
+        label: Text(AppLocalizations.of(context)!.webCreateUser),
       ));
       availableTabs.add('create_user');
       
-      destinations.add(const NavigationRailDestination(
-        icon: Icon(Icons.people),
-        selectedIcon: Icon(Icons.people),
-        label: Text('User List'),
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.people),
+        selectedIcon: const Icon(Icons.people),
+        label: Text(AppLocalizations.of(context)!.webUserList),
       ));
       availableTabs.add('user_list');
+      
+      // SETTINGS SECTION
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.meeting_room),
+        selectedIcon: const Icon(Icons.meeting_room),
+        label: Text(AppLocalizations.of(context)!.webRooms),
+      ));
+      availableTabs.add('rooms_management');
     }
     
     // Find current selected index
@@ -168,15 +184,15 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       
       case 'create_event':
         // Check if user has manager, staff, or instructor role
-        if (userRole == 'manager' || userRole == 'staff' || userRole == 'instructor') {
+        if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff || userRole == AppConfig.userRoleInstructor) {
           return const EventFormWeb();
         } else {
-          return _buildAccessDeniedPage('Event creation requires manager, staff, or instructor role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.webEventCreationRequiresRole);
         }
       
       case 'event_registrations':
         // Check if user has manager or staff role
-        if (userRole == 'manager' || userRole == 'staff') {
+        if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
           return const EventRegistrationsWeb();
         } else {
           return _buildAccessDeniedPage('Event registrations management requires manager or staff role.');
@@ -184,15 +200,16 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       
       case 'events':
         // Check if user has manager or staff role
-        if (userRole == 'manager' || userRole == 'staff') {
-          return const EventsRegistrationManagementWeb();
+        if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
+          return const EventsManagementWeb();
         } else {
           return _buildAccessDeniedPage('Events management requires manager or staff role.');
         }
       
+      
       case 'create_user':
         // Check if user has manager role
-        if (userRole == 'manager') {
+        if (userRole == AppConfig.userRoleManager) {
           return const CreateUserWeb();
         } else {
           return _buildAccessDeniedPage('User creation requires manager role.');
@@ -200,10 +217,18 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       
       case 'user_list':
         // Check if user has manager role
-        if (userRole == 'manager') {
+        if (userRole == AppConfig.userRoleManager) {
           return const UserListWeb();
         } else {
           return _buildAccessDeniedPage('User management requires manager role.');
+        }
+      
+      case 'rooms_management':
+        // Check if user has manager role
+        if (userRole == AppConfig.userRoleManager) {
+          return const RoomsManagementWeb();
+        } else {
+          return _buildAccessDeniedPage('Rooms management requires manager role.');
         }
       
       default:
@@ -282,11 +307,11 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
     List<Widget> cards = [];
     
     // Event creation card - for manager, staff, and instructor
-    if (userRole == 'manager' || userRole == 'staff' || userRole == 'instructor') {
+    if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff || userRole == AppConfig.userRoleInstructor) {
       cards.add(
         _buildFeatureCard(
           icon: Icons.event_note,
-          title: 'Create Event',
+          title: AppLocalizations.of(context)!.webCreateEvent,
           description: 'Create new events and activities',
           onTap: () => setState(() => _selectedTab = 'create_event'),
           color: Colors.indigo,
@@ -295,11 +320,11 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
     }
     
     // Event registrations card - for manager and staff
-    if (userRole == 'manager' || userRole == 'staff') {
+    if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
       cards.add(
         _buildFeatureCard(
           icon: Icons.event_available,
-          title: 'Event Registrations',
+          title: AppLocalizations.of(context)!.webEventRegistrations,
           description: 'View and manage event registrations',
           onTap: () => setState(() => _selectedTab = 'event_registrations'),
           color: Colors.teal,
@@ -309,16 +334,26 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.event,
-          title: 'Events Management',
+          title: AppLocalizations.of(context)!.webEventsManagement,
           description: 'Manage existing events',
           onTap: () => setState(() => _selectedTab = 'events'),
           color: Colors.green,
         ),
       );
+      
+      cards.add(
+        _buildFeatureCard(
+          icon: Icons.people,
+          title: 'Event Registrations',
+          description: 'Manage event registrations',
+          onTap: () => setState(() => _selectedTab = 'event_registrations_management'),
+          color: Colors.purple,
+        ),
+      );
     }
     
     // User management cards - only for managers
-    if (userRole == 'manager') {
+    if (userRole == AppConfig.userRoleManager) {
       cards.add(
         _buildFeatureCard(
           icon: Icons.person_add,
@@ -336,6 +371,16 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           description: 'View and edit existing users',
           onTap: () => setState(() => _selectedTab = 'user_list'),
           color: Colors.purple,
+        ),
+      );
+      
+      cards.add(
+        _buildFeatureCard(
+          icon: Icons.meeting_room,
+          title: 'Rooms Management',
+          description: 'Manage event rooms and locations',
+          onTap: () => setState(() => _selectedTab = 'rooms_management'),
+          color: Colors.orange,
         ),
       );
     }
@@ -475,22 +520,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
   }
 
   String _formatRole(String role) {
-    switch (role) {
-      case 'manager':
-        return 'Manager';
-      case 'staff':
-        return 'Staff';
-      case 'instructor':
-        return 'Instructor';
-      case 'resident':
-        return 'Resident';
-      case 'caregiver':
-        return 'Caregiver';
-      case 'service':
-        return 'Service';
-      default:
-        return role.toUpperCase();
-    }
+    return DisplayNameUtils.getUserRoleDisplayName(role, context);
   }
 
   @override
@@ -536,12 +566,31 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Management Panel',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            TextButton(
+              onPressed: () {
+                // Navigate to homepage using proper URL
+                html.window.location.href = AppConfig.webHomepageUrl;
+              },
+              child: const Text(
+                'Homepage',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const Text(' | ', style: TextStyle(color: Colors.white)),
+            const Text(
+              'Management Panel',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.blue[700],
         actions: [

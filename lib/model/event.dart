@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 class Event {
   Event({
     required this.id,
@@ -9,8 +11,8 @@ class Event {
     required this.maxParticipants,
     required this.imageUrl,
     this.currentParticipants = 0,
-    this.status = "pending-approval",
-    this.recurring = "none",
+    this.status = AppConfig.eventStatusPendingApproval,
+    this.recurring = AppConfig.eventRecurringNone,
     this.recurringEndDate,
     this.recurringPattern,
   });
@@ -58,8 +60,8 @@ class Event {
       maxParticipants: json['maxParticipants'],
       imageUrl: json['image_url'],
       currentParticipants: json['currentParticipants'] ?? 0,
-      status: json['status'] ?? 'pending-approval',
-      recurring: json['recurring'] ?? 'none',
+      status: json['status'] ?? AppConfig.eventStatusPendingApproval,
+      recurring: json['recurring'] ?? AppConfig.eventRecurringNone,
       recurringEndDate: json['recurring_end_date'] != null
           ? DateTime.parse(json['recurring_end_date'])
           : null,

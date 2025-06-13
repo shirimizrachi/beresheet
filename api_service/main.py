@@ -108,20 +108,25 @@ async def health_check():
 async def get_events(
     type: Optional[str] = Query(None, description="Filter by event type"),
     upcoming: Optional[bool] = Query(False, description="Get only upcoming events"),
+    approved_only: Optional[bool] = Query(False, description="Get only approved events"),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Depends(get_firebase_token),
     user_id: Optional[str] = Depends(get_user_id)
 ):
-    """Get all events, optionally filtered by type or upcoming only"""
+    """Get events with various filtering options"""
     # Log headers for tracking (can be expanded for analytics/auditing)
     print(f"Request from homeID: {home_id}, userID: {user_id}")
     
-    if upcoming:
+    if approved_only:
+        # For homepage - show only approved events
+        events = event_db.get_approved_events(home_id)
+    elif upcoming:
         events = event_db.get_upcoming_events(home_id)
     elif type:
         events = event_db.get_events_by_type(type, home_id)
     else:
-        events = event_db.get_all_events(home_id)
+        # Show all events for everyone
+        events = event_db.get_all_events_ordered(home_id)
     
     return events
 
@@ -147,7 +152,7 @@ async def create_event(
 ):
     """Create a new event"""
     try:
-        new_event = event_db.create_event(event, home_id)
+        new_event = event_db.create_event(event, home_id, created_by=user_id)
         return new_event
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating event: {str(e)}")
@@ -287,9 +292,20 @@ async def get_available_homes():
 async def get_rooms(
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
-    permitted: bool = Depends(require_manager_role),
 ):
     """List all rooms - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    rooms = room_db.get_all_rooms(home_id)
+    return rooms
+
+
+@api_router.get("/rooms/public", response_model=List[Room])
+async def get_rooms_public(
+    home_id: int = Depends(get_home_id),
+):
+    """List all rooms - public access for event forms"""
     rooms = room_db.get_all_rooms(home_id)
     return rooms
 
@@ -299,9 +315,11 @@ async def create_room(
     room: RoomCreate,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
-    permitted: bool = Depends(require_manager_role),
 ):
     """Create a new room - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
     new_room = room_db.create_room(room, home_id)
     if not new_room:
         raise HTTPException(
@@ -315,9 +333,11 @@ async def delete_room(
     room_id: int,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
-    permitted: bool = Depends(require_manager_role),
 ):
     """Delete a room by ID - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
     success = room_db.delete_room(room_id, home_id)
     if not success:
         raise HTTPException(status_code=404, detail="Room not found")

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/config/app_config.dart';
 
 class EventRegistrationsWeb extends StatefulWidget {
   const EventRegistrationsWeb({Key? key}) : super(key: key);
@@ -47,7 +48,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('http://localhost:8000/api/events'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
         headers: headers,
       );
 
@@ -83,7 +84,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('http://localhost:8000/api/registrations/event/$eventId'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/event/$eventId'),
         headers: headers,
       );
 
@@ -133,7 +134,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.delete(
-        Uri.parse('http://localhost:8000/api/registrations/admin/$eventId/$userId'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/admin/$eventId/$userId'),
         headers: headers,
       );
 

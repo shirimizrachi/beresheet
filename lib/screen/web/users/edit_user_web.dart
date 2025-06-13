@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/user.dart';
+import 'package:beresheet_app/config/app_config.dart';
 
 class EditUserWeb extends StatefulWidget {
   final UserModel user;
@@ -112,7 +113,7 @@ class _EditUserWebState extends State<EditUserWeb> {
       };
 
       final response = await http.put(
-        Uri.parse('http://localhost:8000/api/users/${widget.user.id}'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
         headers: headers,
         body: json.encode(updateData),
       );

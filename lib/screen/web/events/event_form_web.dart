@@ -5,6 +5,9 @@ import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
+import 'package:beresheet_app/config/app_config.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EventFormWeb extends StatefulWidget {
   final Event? event; // null for creating new event
@@ -25,12 +28,11 @@ class _EventFormWebState extends State<EventFormWeb> {
   final TextEditingController _maxParticipantsController = TextEditingController();
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
-  final TextEditingController _recurringPatternController = TextEditingController();
   
   // Form variables
-  String _selectedType = 'class';
-  String _selectedStatus = 'pending-approval';
-  String _selectedRecurring = 'none';
+  String _selectedType = AppConfig.eventTypeClass;
+  String _selectedStatus = AppConfig.eventStatusPendingApproval;
+  String _selectedRecurring = AppConfig.eventRecurringNone;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   DateTime? _recurringEndDate;
   
@@ -40,39 +42,22 @@ class _EventFormWebState extends State<EventFormWeb> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  
+  // Rooms functionality
+  List<Map<String, dynamic>> _rooms = [];
+  bool _isLoadingRooms = true;
+  String? _selectedRoomName;
 
-  // Event type options
-  final List<String> _eventTypes = [
-    'class',
-    'performance',
-    'cultural',
-    'leisure',
-    'workshop',
-    'meeting',
-    'sport',
-    'health'
-  ];
-
-  final List<String> _statusOptions = [
-    'pending-approval',
-    'active',
-    'canceled',
-    'suspended'
-  ];
-
-  final List<String> _recurringOptions = [
-    'none',
-    'daily',
-    'weekly',
-    'monthly',
-    'yearly',
-    'custom'
-  ];
+  // Use constants from AppConfig for consistency
+  List<String> get _eventTypes => AppConfig.eventTypes;
+  List<String> get _statusOptions => AppConfig.eventStatusOptions;
+  List<String> get _recurringOptions => AppConfig.eventRecurringOptions;
 
   @override
   void initState() {
     super.initState();
     _checkPermissions();
+    _loadRooms();
     if (widget.event != null) {
       _populateFields();
     }
@@ -91,7 +76,39 @@ class _EventFormWebState extends State<EventFormWeb> {
     _selectedDateTime = event.dateTime;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
-    _recurringPatternController.text = event.recurringPattern ?? '';
+    _selectedRoomName = event.location; // For existing events, set the room from location
+  }
+
+  Future<void> _loadRooms() async {
+    try {
+      setState(() {
+        _isLoadingRooms = true;
+      });
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms/public'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': WebAuthService.homeId.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> roomsData = json.decode(response.body);
+        setState(() {
+          _rooms = roomsData.cast<Map<String, dynamic>>();
+          _isLoadingRooms = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingRooms = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingRooms = false;
+      });
+    }
   }
 
   @override
@@ -102,7 +119,6 @@ class _EventFormWebState extends State<EventFormWeb> {
     _maxParticipantsController.dispose();
     _currentParticipantsController.dispose();
     _imageUrlController.dispose();
-    _recurringPatternController.dispose();
     super.dispose();
   }
 
@@ -120,16 +136,16 @@ class _EventFormWebState extends State<EventFormWeb> {
     // New events are always editable
     if (widget.event == null) return true;
     
-    // Existing events are only editable if status is "pending-approval"
-    return _selectedStatus == 'pending-approval';
+    // Events are always editable for managers and staff
+    return true;
   }
 
   bool get _isFieldEditable {
     // For new events, all fields except status and currentParticipants are editable
     if (widget.event == null) return true;
     
-    // For existing events, depends on status
-    return _selectedStatus == 'pending-approval';
+    // Fields are always editable for managers and staff
+    return true;
   }
 
   Future<void> _validateImageUrl() async {
@@ -164,6 +180,15 @@ class _EventFormWebState extends State<EventFormWeb> {
       return;
     }
 
+    // Additional validation for recurring events
+    if (_selectedRecurring != 'none' && _recurringEndDate == null) {
+      setState(() {
+        _errorMessage = 'End date is required for recurring events';
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -178,23 +203,23 @@ class _EventFormWebState extends State<EventFormWeb> {
         'type': _selectedType,
         'description': _descriptionController.text.trim(),
         'dateTime': _selectedDateTime.toIso8601String(),
-        'location': _locationController.text.trim(),
+        'location': _selectedRoomName ?? _locationController.text.trim(),
         'maxParticipants': int.parse(_maxParticipantsController.text.trim()),
         'image_url': _imageUrlController.text.trim(),
         'currentParticipants': widget.event == null ? 0 : int.parse(_currentParticipantsController.text.trim()),
         'recurring': _selectedRecurring,
         'recurring_end_date': _recurringEndDate?.toIso8601String(),
-        'recurring_pattern': _selectedRecurring == 'custom' ? _recurringPatternController.text.trim() : null,
+        'recurring_pattern': null, // No longer using custom patterns
       };
 
       final response = widget.event == null
           ? await http.post(
-              Uri.parse('http://localhost:8000/api/events'),
+              Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
               headers: headers,
               body: json.encode(eventData),
             )
           : await http.put(
-              Uri.parse('http://localhost:8000/api/events/${widget.event!.id}'),
+              Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}'),
               headers: headers,
               body: json.encode(eventData),
             );
@@ -241,11 +266,10 @@ class _EventFormWebState extends State<EventFormWeb> {
     _maxParticipantsController.clear();
     _currentParticipantsController.clear();
     _imageUrlController.clear();
-    _recurringPatternController.clear();
     setState(() {
-      _selectedType = 'class';
-      _selectedStatus = 'pending-approval';
-      _selectedRecurring = 'none';
+      _selectedType = AppConfig.eventTypeClass;
+      _selectedStatus = AppConfig.eventStatusPendingApproval;
+      _selectedRecurring = AppConfig.eventRecurringNone;
       _selectedDateTime = DateTime.now().add(const Duration(days: 1));
       _recurringEndDate = null;
       _imageSource = 'url';
@@ -272,6 +296,90 @@ class _EventFormWebState extends State<EventFormWeb> {
         });
       }
     });
+  }
+
+  Future<void> _deleteEvent() async {
+    if (widget.event == null) return;
+
+    // First confirmation
+    final firstConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete the event "${widget.event!.name}"?\n\nThis action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (firstConfirmed != true) return;
+
+    // Second confirmation about removing from all users
+    final secondConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Final Confirmation'),
+        content: const Text('You approve removing the event from all users?\n\nThis will permanently delete all registrations and cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Yes, Remove from All Users'),
+          ),
+        ],
+      ),
+    );
+
+    if (secondConfirmed != true) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      final response = await http.delete(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': WebAuthService.homeId.toString(),
+          'userId': WebAuthService.userId ?? '',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          Navigator.of(context).pop(true); // Return true to indicate successful deletion
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Event "${widget.event!.name}" deleted successfully')),
+          );
+        }
+      } else {
+        _showMessage('Failed to delete event: ${response.statusCode}', isError: true);
+      }
+    } catch (e) {
+      _showMessage('Error deleting event: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _selectDate() async {
@@ -314,18 +422,9 @@ class _EventFormWebState extends State<EventFormWeb> {
     }
   }
 
+  // Use AppConfig method for consistency
   String _formatEventType(String type) {
-    switch (type) {
-      case 'class': return 'Class';
-      case 'performance': return 'Performance';
-      case 'cultural': return 'Cultural';
-      case 'leisure': return 'Leisure';
-      case 'workshop': return 'Workshop';
-      case 'meeting': return 'Meeting';
-      case 'sport': return 'Sport';
-      case 'health': return 'Health';
-      default: return type.toUpperCase();
-    }
+    return DisplayNameUtils.getEventTypeDisplayName(type, context);
   }
 
   String _getStatusDisplayName(String status) {
@@ -338,30 +437,25 @@ class _EventFormWebState extends State<EventFormWeb> {
     }
   }
 
+  // Use AppConfig method for consistency
   String _getRecurringDisplayName(String recurring) {
-    switch (recurring) {
-      case 'none': return 'One-time event';
-      case 'daily': return 'Daily';
-      case 'weekly': return 'Weekly';
-      case 'monthly': return 'Monthly';
-      case 'yearly': return 'Yearly';
-      case 'custom': return 'Custom';
-      default: return recurring;
-    }
+    return DisplayNameUtils.getRecurringDisplayName(recurring, context);
   }
 
   @override
   Widget build(BuildContext context) {
     // Check permissions first
     final userRole = WebAuthService.userRole ?? '';
-    if (userRole != 'manager' && userRole != 'staff' && userRole != 'instructor') {
+    if (userRole != AppConfig.userRoleManager &&
+        userRole != AppConfig.userRoleStaff &&
+        userRole != AppConfig.userRoleInstructor) {
       return _buildAccessDeniedPage();
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.event == null ? 'Create New Event' : 'Edit Event',
+          widget.event == null ? AppLocalizations.of(context)!.webCreateEvent : AppLocalizations.of(context)!.editEvent,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -387,9 +481,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         children: [
                           const Icon(Icons.event, color: Colors.blue),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Event Details',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.eventDetails,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -403,7 +497,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                         controller: _nameController,
                         enabled: _isFieldEditable,
                         decoration: InputDecoration(
-                          labelText: 'Event Name',
+                          labelText: AppLocalizations.of(context)!.eventName,
                           border: const OutlineInputBorder(),
                           helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
@@ -420,7 +514,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                       DropdownButtonFormField<String>(
                         value: _selectedType,
                         decoration: InputDecoration(
-                          labelText: 'Event Type',
+                          labelText: AppLocalizations.of(context)!.eventType,
                           border: const OutlineInputBorder(),
                           helperText: widget.event != null ? 'Read-only field' : null,
                         ),
@@ -441,10 +535,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                       // Status (read-only)
                       DropdownButtonFormField<String>(
                         value: _selectedStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'Status',
-                          border: OutlineInputBorder(),
-                          helperText: 'Read-only field - default: pending-approval',
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.webStatus,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _statusOptions.map((String status) {
                           return DropdownMenuItem<String>(
@@ -461,7 +554,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                         controller: _descriptionController,
                         enabled: _isFieldEditable,
                         decoration: InputDecoration(
-                          labelText: 'Description',
+                          labelText: AppLocalizations.of(context)!.description,
                           border: const OutlineInputBorder(),
                           helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
@@ -475,103 +568,43 @@ class _EventFormWebState extends State<EventFormWeb> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Location
-                      TextFormField(
-                        controller: _locationController,
-                        enabled: _isFieldEditable,
-                        decoration: InputDecoration(
-                          labelText: 'Location',
-                          border: const OutlineInputBorder(),
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter event location';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Date & Time Card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.schedule, color: Colors.green),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Date & Time',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          // Date Picker
-                          Expanded(
-                            child: InkWell(
-                              onTap: _isFieldEditable ? _selectDate : null,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Event Date',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: Icon(
-                                    Icons.calendar_today,
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                  helperText: !_isFieldEditable ? 'Read-only' : null,
-                                ),
-                                child: Text(
-                                  '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year}',
-                                  style: TextStyle(
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                ),
+                      // Room Selection
+                      _isLoadingRooms
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          
-                          // Time Picker
-                          Expanded(
-                            child: InkWell(
-                              onTap: _isFieldEditable ? _selectTime : null,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Event Time',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: Icon(
-                                    Icons.access_time,
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                  helperText: !_isFieldEditable ? 'Read-only' : null,
-                                ),
-                                child: Text(
-                                  '${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                                  style: TextStyle(
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                ),
+                            )
+                          : DropdownButtonFormField<String>(
+                              value: _selectedRoomName,
+                              decoration: InputDecoration(
+                                labelText: 'Location / Room',
+                                border: const OutlineInputBorder(),
+                                helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                               ),
+                              items: _rooms.map((room) {
+                                final roomName = room['room_name'] as String;
+                                return DropdownMenuItem<String>(
+                                  value: roomName,
+                                  child: Text(roomName),
+                                );
+                              }).toList(),
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _selectedRoomName = value;
+                                  if (value != null) {
+                                    _locationController.text = value;
+                                  }
+                                });
+                              } : null,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please select a room/location';
+                                }
+                                return null;
+                              },
                             ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -692,11 +725,72 @@ class _EventFormWebState extends State<EventFormWeb> {
                               _selectedRecurring = value;
                               if (value == 'none') {
                                 _recurringEndDate = null;
-                                _recurringPatternController.clear();
                               }
                             });
                           }
                         } : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please select recurrence option';
+                          }
+                          return null;
+                        },
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Date & Time section (moved here)
+                      Row(
+                        children: [
+                          // Date Picker
+                          Expanded(
+                            child: InkWell(
+                              onTap: _isFieldEditable ? _selectDate : null,
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: 'Event Date *',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: Icon(
+                                    Icons.calendar_today,
+                                    color: _isFieldEditable ? null : Colors.grey,
+                                  ),
+                                  helperText: !_isFieldEditable ? 'Read-only' : null,
+                                ),
+                                child: Text(
+                                  '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year}',
+                                  style: TextStyle(
+                                    color: _isFieldEditable ? null : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          
+                          // Time Picker
+                          Expanded(
+                            child: InkWell(
+                              onTap: _isFieldEditable ? _selectTime : null,
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: 'Event Time *',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: Icon(
+                                    Icons.access_time,
+                                    color: _isFieldEditable ? null : Colors.grey,
+                                  ),
+                                  helperText: !_isFieldEditable ? 'Read-only' : null,
+                                ),
+                                child: Text(
+                                  '${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                    color: _isFieldEditable ? null : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       
                       if (_selectedRecurring != 'none') ...[
@@ -717,13 +811,13 @@ class _EventFormWebState extends State<EventFormWeb> {
                           } : null,
                           child: InputDecorator(
                             decoration: InputDecoration(
-                              labelText: 'End Date',
+                              labelText: 'End Date *',
                               border: const OutlineInputBorder(),
                               suffixIcon: Icon(
                                 Icons.calendar_today,
                                 color: _isFieldEditable ? null : Colors.grey,
                               ),
-                              helperText: !_isFieldEditable ? 'Read-only' : null,
+                              helperText: !_isFieldEditable ? 'Read-only' : 'Required for recurring events',
                             ),
                             child: Text(
                               _recurringEndDate?.toString().split(' ')[0] ?? 'Not set',
@@ -733,21 +827,6 @@ class _EventFormWebState extends State<EventFormWeb> {
                             ),
                           ),
                         ),
-                        
-                        if (_selectedRecurring == 'custom') ...[
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _recurringPatternController,
-                            enabled: _isFieldEditable,
-                            decoration: InputDecoration(
-                              labelText: 'Custom Pattern',
-                              hintText: 'Enter custom recurring pattern (JSON format)',
-                              border: const OutlineInputBorder(),
-                              helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
-                            ),
-                            maxLines: 2,
-                          ),
-                        ],
                       ],
                     ],
                   ),
@@ -947,30 +1026,6 @@ class _EventFormWebState extends State<EventFormWeb> {
                   ),
                 ),
 
-              // Show status warning for non-editable events
-              if (widget.event != null && !_isEditable)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    border: Border.all(color: Colors.orange[300]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'This event cannot be edited because its status is "${_getStatusDisplayName(_selectedStatus)}". Only events with "Pending Approval" status can be modified.',
-                          style: TextStyle(color: Colors.orange[700]),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               
               // Action Buttons
               Row(
@@ -988,11 +1043,12 @@ class _EventFormWebState extends State<EventFormWeb> {
                       ),
                     ),
                   if (widget.event == null) const SizedBox(width: 16),
+                  // Update/Create button (comes first)
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: (_isLoading || !_isEditable) ? null : _saveEvent,
+                      onPressed: _isLoading ? null : _saveEvent,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isEditable ? Colors.blue : Colors.grey,
+                        backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -1006,14 +1062,27 @@ class _EventFormWebState extends State<EventFormWeb> {
                               ),
                             )
                           : Text(
-                              widget.event == null 
-                                  ? 'Create Event' 
-                                  : _isEditable 
-                                      ? 'Update Event'
-                                      : 'Cannot Edit - Status not Pending Approval',
+                              widget.event == null
+                                  ? 'Create Event'
+                                  : 'Update Event',
                             ),
                     ),
                   ),
+                  // Delete button (only for existing events, comes after update)
+                  if (widget.event != null) ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _deleteEvent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text('Delete Event'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],

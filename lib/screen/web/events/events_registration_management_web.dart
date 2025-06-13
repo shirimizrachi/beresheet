@@ -1,5 +1,7 @@
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
+import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
@@ -34,11 +36,11 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     try {
       // Get all registrations
       final response = await http.get(
-        Uri.parse('${EventService.baseUrl}/registrations/all'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/all'),
         headers: {
           'Content-Type': 'application/json',
-          'homeID': '1', // You may need to get this dynamically
-          'currentUserId': 'admin', // You may need to get this from user session
+          'homeID': WebAuthService.homeId.toString(),
+          'currentUserId': WebAuthService.userId ?? '',
         },
       );
 
@@ -65,14 +67,26 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
 
   Future<void> _loadEventNames() async {
     try {
-      final events = await EventService.loadEvents();
-      final Map<String, String> names = {};
-      for (final event in events) {
-        names[event.id] = event.name;
+      // Load all events for managers to get event names
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': WebAuthService.homeId.toString(),
+          'userId': WebAuthService.userId ?? '',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final Map<String, String> names = {};
+        for (final eventData in data) {
+          names[eventData['id']] = eventData['name'];
+        }
+        setState(() {
+          eventNames = names;
+        });
       }
-      setState(() {
-        eventNames = names;
-      });
     } catch (e) {
       print('Error loading event names: $e');
     }
@@ -101,11 +115,11 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     if (confirmed == true) {
       try {
         final response = await http.delete(
-          Uri.parse('${EventService.baseUrl}/registrations/admin/$eventId/$userId'),
+          Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/admin/$eventId/$userId'),
           headers: {
             'Content-Type': 'application/json',
-            'homeID': '1', // You may need to get this dynamically
-            'currentUserId': 'admin', // You may need to get this from user session
+            'homeID': WebAuthService.homeId.toString(),
+            'currentUserId': WebAuthService.userId ?? '',
           },
         );
 

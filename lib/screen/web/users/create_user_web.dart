@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html;
+import 'package:beresheet_app/config/app_config.dart';
 
 class CreateUserWeb extends StatefulWidget {
   const CreateUserWeb({Key? key}) : super(key: key);
@@ -81,7 +82,7 @@ class _CreateUserWebState extends State<CreateUserWeb> {
       };
       
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/users'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/users'),
         headers: headers,
         body: json.encode(minimalData),
       );

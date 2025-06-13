@@ -5,12 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:beresheet_app/config/app_config.dart';
 
 class EventService {
   // Use different URLs for web vs mobile platforms
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000/api'; // Web can use localhost
+      return '${AppConfig.apiBaseUrl}/api'; // Web can use localhost
     } else {
       return 'http://10.0.2.2:8000/api'; // Android emulator uses 10.0.2.2
     }
@@ -49,6 +50,38 @@ class EventService {
       return [];
     }
   }
+
+  // Load approved events for homepage
+  static Future<List<Event>> loadApprovedEvents() async {
+    try {
+      print('EventService: Attempting to load approved events from $baseUrl/events');
+      final headers = await UserSessionService.getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events?approved_only=true'),
+        headers: headers,
+      );
+
+      print('EventService: Response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('EventService: Parsed ${data.length} approved events from API');
+        
+        final List<Event> events = data.map((eventJson) {
+          return Event.fromJson(eventJson);
+        }).toList();
+        
+        print('EventService: Successfully loaded ${events.length} approved events');
+        return events;
+      } else {
+        throw Exception('Failed to load approved events: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('EventService: Error loading approved events from API: $e');
+      return [];
+    }
+  }
+
 
   // Fallback method to load from assets if API is not available
   static Future<List<Event>> _loadEventsFromAssets() async {
