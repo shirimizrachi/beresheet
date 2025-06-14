@@ -7,6 +7,7 @@ import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EventsRegistrationManagementWeb extends StatefulWidget {
   const EventsRegistrationManagementWeb({Key? key}) : super(key: key);
@@ -60,7 +61,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMessage = 'Error loading registrations: $e';
+        errorMessage = AppLocalizations.of(context)!.errorMessage(e.toString());
       });
     }
   }
@@ -96,17 +97,17 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Unregister User'),
-        content: Text('Are you sure you want to unregister $userName from this event?'),
+        title: Text(AppLocalizations.of(context)!.unregisterUser),
+        content: Text(AppLocalizations.of(context)!.areYouSureUnregisterUser(userName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('Unregister'),
+            child: Text(AppLocalizations.of(context)!.unregister),
           ),
         ],
       ),
@@ -126,7 +127,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('User unregistered successfully'),
+              content: Text(AppLocalizations.of(context)!.userUnregisteredSuccessfully),
               backgroundColor: Colors.green,
             ),
           );
@@ -137,7 +138,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(AppLocalizations.of(context)!.errorMessage(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -146,7 +147,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
   }
 
   String _formatDateTime(String? dateTimeString) {
-    if (dateTimeString == null) return 'N/A';
+    if (dateTimeString == null) return AppLocalizations.of(context)!.notAvailable;
     try {
       final dateTime = DateTime.parse(dateTimeString);
       return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
@@ -160,7 +161,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Event Registrations Management',
+          AppLocalizations.of(context)!.eventRegistrationsManagementTitle,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -172,7 +173,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadRegistrations,
-            tooltip: 'Refresh',
+            tooltip: AppLocalizations.of(context)!.refreshTooltip,
           ),
         ],
       ),
@@ -193,21 +194,21 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadRegistrations,
-                        child: Text('Retry'),
+                        child: Text(AppLocalizations.of(context)!.retryButton),
                       ),
                     ],
                   ),
                 )
               : registrations.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.event_busy, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
+                          const Icon(Icons.event_busy, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
                           Text(
-                            'No registrations found',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.noRegistrationsFound,
+                            style: const TextStyle(
                               fontSize: 18,
                               color: Colors.grey,
                               fontWeight: FontWeight.w500,
@@ -230,7 +231,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'Total Registrations: ${registrations.length}',
+                                      AppLocalizations.of(context)!.totalRegistrations(registrations.length),
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -246,18 +247,18 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: DataTable(
-                                columns: const [
-                                  DataColumn(label: Text('Event')),
-                                  DataColumn(label: Text('User Name')),
-                                  DataColumn(label: Text('Phone')),
-                                  DataColumn(label: Text('Registration Date')),
-                                  DataColumn(label: Text('Status')),
-                                  DataColumn(label: Text('Actions')),
+                                columns: [
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.eventColumn)),
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.userNameColumn)),
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.phoneColumn)),
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.registrationDateColumn)),
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.statusColumn)),
+                                  DataColumn(label: Text(AppLocalizations.of(context)!.actionsColumn)),
                                 ],
                                 rows: registrations.map((registration) {
-                                  final eventName = eventNames[registration['event_id']] ?? 'Unknown Event';
-                                  final userName = registration['user_name'] ?? 'Unknown User';
-                                  final userPhone = registration['user_phone'] ?? 'N/A';
+                                  final eventName = eventNames[registration['event_id']] ?? AppLocalizations.of(context)!.unknownEvent;
+                                  final userName = registration['user_name'] ?? AppLocalizations.of(context)!.unknownUser;
+                                  final userPhone = registration['user_phone'] ?? AppLocalizations.of(context)!.notAvailable;
                                   final registrationDate = _formatDateTime(registration['registration_date']);
                                   final status = registration['status'] ?? 'unknown';
                                   

@@ -126,7 +126,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     final userRole = WebAuthService.userRole ?? '';
     if (userRole != 'manager' && userRole != 'staff' && userRole != 'instructor') {
       setState(() {
-        _errorMessage = 'Access denied: Manager, Staff, or Instructor role required';
+        _errorMessage = AppLocalizations.of(context)!.webEventCreationRequiresRole;
         _isLoading = false;
       });
     }
@@ -150,7 +150,7 @@ class _EventFormWebState extends State<EventFormWeb> {
 
   Future<void> _validateImageUrl() async {
     if (_imageUrlController.text.trim().isEmpty) {
-      _showMessage('Please enter an image URL first', isError: true);
+      _showMessage(AppLocalizations.of(context)!.pleaseEnterImageUrl, isError: true);
       return;
     }
 
@@ -162,12 +162,12 @@ class _EventFormWebState extends State<EventFormWeb> {
       final response = await http.get(Uri.parse(_imageUrlController.text.trim()));
       
       if (response.statusCode == 200) {
-        _showMessage('Image URL validated successfully', isError: false);
+        _showMessage('${AppLocalizations.of(context)!.imageUrl} validated successfully', isError: false);
       } else {
         throw Exception('Failed to load image from URL');
       }
     } catch (e) {
-      _showMessage('Error validating image: $e', isError: true);
+      _showMessage('${AppLocalizations.of(context)!.error} validating image: $e', isError: true);
     } finally {
       setState(() {
         _isLoading = false;
@@ -183,7 +183,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     // Additional validation for recurring events
     if (_selectedRecurring != 'none' && _recurringEndDate == null) {
       setState(() {
-        _errorMessage = 'End date is required for recurring events';
+        _errorMessage = '${AppLocalizations.of(context)!.endDate} is required for recurring events';
         _isLoading = false;
       });
       return;
@@ -207,6 +207,7 @@ class _EventFormWebState extends State<EventFormWeb> {
         'maxParticipants': int.parse(_maxParticipantsController.text.trim()),
         'image_url': _imageUrlController.text.trim(),
         'currentParticipants': widget.event == null ? 0 : int.parse(_currentParticipantsController.text.trim()),
+        'status': _selectedStatus,
         'recurring': _selectedRecurring,
         'recurring_end_date': _recurringEndDate?.toIso8601String(),
         'recurring_pattern': null, // No longer using custom patterns
@@ -226,9 +227,9 @@ class _EventFormWebState extends State<EventFormWeb> {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         setState(() {
-          _successMessage = widget.event == null 
-              ? 'Event created successfully!' 
-              : 'Event updated successfully!';
+          _successMessage = widget.event == null
+              ? AppLocalizations.of(context)!.eventCreated
+              : AppLocalizations.of(context)!.eventUpdated;
           _isLoading = false;
         });
         
@@ -247,13 +248,13 @@ class _EventFormWebState extends State<EventFormWeb> {
       } else {
         final errorData = json.decode(response.body);
         setState(() {
-          _errorMessage = 'Failed to save event: ${errorData['detail'] ?? response.statusCode}';
+          _errorMessage = '${AppLocalizations.of(context)!.operationFailed}: ${errorData['detail'] ?? response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error saving event: $e';
+        _errorMessage = '${AppLocalizations.of(context)!.error} saving event: $e';
         _isLoading = false;
       });
     }
@@ -305,17 +306,17 @@ class _EventFormWebState extends State<EventFormWeb> {
     final firstConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete the event "${widget.event!.name}"?\n\nThis action cannot be undone.'),
+        title: Text(AppLocalizations.of(context)!.webConfirmDelete),
+        content: Text(AppLocalizations.of(context)!.webDeleteConfirmMessage(widget.event!.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -327,17 +328,17 @@ class _EventFormWebState extends State<EventFormWeb> {
     final secondConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Final Confirmation'),
-        content: const Text('You approve removing the event from all users?\n\nThis will permanently delete all registrations and cannot be undone.'),
+        title: Text(AppLocalizations.of(context)!.webFinalConfirmation),
+        content: Text(AppLocalizations.of(context)!.webFinalConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Yes, Remove from All Users'),
+            child: Text(AppLocalizations.of(context)!.webYesRemoveFromAllUsers),
           ),
         ],
       ),
@@ -365,14 +366,14 @@ class _EventFormWebState extends State<EventFormWeb> {
         if (mounted) {
           Navigator.of(context).pop(true); // Return true to indicate successful deletion
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Event "${widget.event!.name}" deleted successfully')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.eventDeletedSuccessfully(widget.event!.name))),
           );
         }
       } else {
-        _showMessage('Failed to delete event: ${response.statusCode}', isError: true);
+        _showMessage('${AppLocalizations.of(context)!.operationFailed}: ${response.statusCode}', isError: true);
       }
     } catch (e) {
-      _showMessage('Error deleting event: $e', isError: true);
+      _showMessage('${AppLocalizations.of(context)!.error} deleting event: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -428,13 +429,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   }
 
   String _getStatusDisplayName(String status) {
-    switch (status) {
-      case 'pending-approval': return 'Pending Approval';
-      case 'active': return 'Active';
-      case 'canceled': return 'Canceled';
-      case 'suspended': return 'Suspended';
-      default: return status;
-    }
+    return DisplayNameUtils.getEventStatusDisplayName(status, context);
   }
 
   // Use AppConfig method for consistency
@@ -499,11 +494,10 @@ class _EventFormWebState extends State<EventFormWeb> {
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.eventName,
                           border: const OutlineInputBorder(),
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter event name';
+                            return AppLocalizations.of(context)!.pleaseEnterEventName;
                           }
                           return null;
                         },
@@ -516,7 +510,6 @@ class _EventFormWebState extends State<EventFormWeb> {
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.eventType,
                           border: const OutlineInputBorder(),
-                          helperText: widget.event != null ? 'Read-only field' : null,
                         ),
                         items: _eventTypes.map((String type) {
                           return DropdownMenuItem<String>(
@@ -545,7 +538,13 @@ class _EventFormWebState extends State<EventFormWeb> {
                             child: Text(_getStatusDisplayName(status)),
                           );
                         }).toList(),
-                        onChanged: null, // Always read-only
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedStatus = value;
+                            });
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
                       
@@ -556,12 +555,11 @@ class _EventFormWebState extends State<EventFormWeb> {
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.description,
                           border: const OutlineInputBorder(),
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
                         maxLines: 3,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter event description';
+                            return AppLocalizations.of(context)!.pleaseEnterEventDescription;
                           }
                           return null;
                         },
@@ -579,9 +577,8 @@ class _EventFormWebState extends State<EventFormWeb> {
                           : DropdownButtonFormField<String>(
                               value: _selectedRoomName,
                               decoration: InputDecoration(
-                                labelText: 'Location / Room',
+                                labelText: AppLocalizations.of(context)!.locationRoom,
                                 border: const OutlineInputBorder(),
-                                helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                               ),
                               items: _rooms.map((room) {
                                 final roomName = room['room_name'] as String;
@@ -590,17 +587,17 @@ class _EventFormWebState extends State<EventFormWeb> {
                                   child: Text(roomName),
                                 );
                               }).toList(),
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _selectedRoomName = value;
                                   if (value != null) {
                                     _locationController.text = value;
                                   }
                                 });
-                              } : null,
+                              },
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Please select a room/location';
+                                  return AppLocalizations.of(context)!.pleaseEnterEventLocation;
                                 }
                                 return null;
                               },
@@ -623,9 +620,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         children: [
                           const Icon(Icons.people, color: Colors.orange),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Participants',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.participants,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -642,18 +639,17 @@ class _EventFormWebState extends State<EventFormWeb> {
                               controller: _maxParticipantsController,
                               enabled: _isFieldEditable,
                               decoration: InputDecoration(
-                                labelText: 'Max Participants',
+                                labelText: AppLocalizations.of(context)!.maxParticipants,
                                 border: const OutlineInputBorder(),
-                                helperText: !_isFieldEditable ? 'Read-only' : null,
                               ),
                               keyboardType: TextInputType.number,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter max participants';
+                                  return AppLocalizations.of(context)!.pleaseEnterMaximumParticipants;
                                 }
                                 final number = int.tryParse(value.trim());
                                 if (number == null || number <= 0) {
-                                  return 'Please enter a valid number';
+                                  return AppLocalizations.of(context)!.pleaseEnterValidPositiveNumber;
                                 }
                                 return null;
                               },
@@ -667,10 +663,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                               child: TextFormField(
                                 controller: _currentParticipantsController,
                                 enabled: false, // Always read-only
-                                decoration: const InputDecoration(
-                                  labelText: 'Current Participants',
-                                  border: OutlineInputBorder(),
-                                  helperText: 'Read-only - default to 0',
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.currentParticipants,
+                                  border: const OutlineInputBorder(),
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
@@ -695,9 +690,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         children: [
                           const Icon(Icons.repeat, color: Colors.purple),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Recurring Settings',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.recurringSettings,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -709,9 +704,8 @@ class _EventFormWebState extends State<EventFormWeb> {
                       DropdownButtonFormField<String>(
                         value: _selectedRecurring,
                         decoration: InputDecoration(
-                          labelText: 'Recurrence',
+                          labelText: AppLocalizations.of(context)!.recurrence,
                           border: const OutlineInputBorder(),
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
                         items: _recurringOptions.map((recurring) {
                           return DropdownMenuItem(
@@ -731,7 +725,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                         } : null,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please select recurrence option';
+                            return AppLocalizations.of(context)!.fieldRequired;
                           }
                           return null;
                         },
@@ -745,22 +739,16 @@ class _EventFormWebState extends State<EventFormWeb> {
                           // Date Picker
                           Expanded(
                             child: InkWell(
-                              onTap: _isFieldEditable ? _selectDate : null,
+                              onTap: _selectDate,
                               child: InputDecorator(
                                 decoration: InputDecoration(
-                                  labelText: 'Event Date *',
+                                  labelText: '${AppLocalizations.of(context)!.eventDate} *',
                                   border: const OutlineInputBorder(),
-                                  suffixIcon: Icon(
-                                    Icons.calendar_today,
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                  helperText: !_isFieldEditable ? 'Read-only' : null,
+                                  suffixIcon: const Icon(Icons.calendar_today),
                                 ),
                                 child: Text(
                                   '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year}',
-                                  style: TextStyle(
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
+                                  style: const TextStyle(),
                                 ),
                               ),
                             ),
@@ -770,22 +758,16 @@ class _EventFormWebState extends State<EventFormWeb> {
                           // Time Picker
                           Expanded(
                             child: InkWell(
-                              onTap: _isFieldEditable ? _selectTime : null,
+                              onTap: _selectTime,
                               child: InputDecorator(
                                 decoration: InputDecoration(
-                                  labelText: 'Event Time *',
+                                  labelText: '${AppLocalizations.of(context)!.eventTime} *',
                                   border: const OutlineInputBorder(),
-                                  suffixIcon: Icon(
-                                    Icons.access_time,
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
-                                  helperText: !_isFieldEditable ? 'Read-only' : null,
+                                  suffixIcon: const Icon(Icons.access_time),
                                 ),
                                 child: Text(
                                   '${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                                  style: TextStyle(
-                                    color: _isFieldEditable ? null : Colors.grey,
-                                  ),
+                                  style: const TextStyle(),
                                 ),
                               ),
                             ),
@@ -796,7 +778,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                       if (_selectedRecurring != 'none') ...[
                         const SizedBox(height: 16),
                         InkWell(
-                          onTap: _isFieldEditable ? () async {
+                          onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
                               initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 30)),
@@ -808,22 +790,16 @@ class _EventFormWebState extends State<EventFormWeb> {
                                 _recurringEndDate = picked;
                               });
                             }
-                          } : null,
+                          },
                           child: InputDecorator(
                             decoration: InputDecoration(
-                              labelText: 'End Date *',
+                              labelText: '${AppLocalizations.of(context)!.endDate} *',
                               border: const OutlineInputBorder(),
-                              suffixIcon: Icon(
-                                Icons.calendar_today,
-                                color: _isFieldEditable ? null : Colors.grey,
-                              ),
-                              helperText: !_isFieldEditable ? 'Read-only' : 'Required for recurring events',
+                              suffixIcon: const Icon(Icons.calendar_today),
                             ),
                             child: Text(
-                              _recurringEndDate?.toString().split(' ')[0] ?? 'Not set',
-                              style: TextStyle(
-                                color: _isFieldEditable ? null : Colors.grey,
-                              ),
+                              _recurringEndDate?.toString().split(' ')[0] ?? AppLocalizations.of(context)!.webSelectDate,
+                              style: const TextStyle(),
                             ),
                           ),
                         ),
@@ -846,9 +822,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         children: [
                           const Icon(Icons.image, color: Colors.teal),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Event Image',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.eventImage,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -864,41 +840,41 @@ class _EventFormWebState extends State<EventFormWeb> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('URL'),
+                              title: Text(AppLocalizations.of(context)!.url),
                               value: 'url',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('Upload'),
+                              title: Text(AppLocalizations.of(context)!.upload),
                               value: 'upload',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('Unsplash'),
+                              title: Text(AppLocalizations.of(context)!.unsplash),
                               value: 'unsplash',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _imageUrlController.clear();
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                         ],
@@ -922,27 +898,26 @@ class _EventFormWebState extends State<EventFormWeb> {
                         controller: _imageUrlController,
                         enabled: _isFieldEditable,
                         decoration: InputDecoration(
-                          labelText: 'Image URL',
-                          hintText: 'Enter image URL',
+                          labelText: AppLocalizations.of(context)!.imageUrl,
+                          hintText: AppLocalizations.of(context)!.webEnterImageUrl,
                           border: const OutlineInputBorder(),
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter image URL';
+                            return AppLocalizations.of(context)!.pleaseEnterImageUrl;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       
-                      if (_isFieldEditable)
+                      if (true)
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: _validateImageUrl,
                             icon: const Icon(Icons.download),
-                            label: const Text('Validate Image URL'),
+                            label: Text(AppLocalizations.of(context)!.validateImageUrl),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -951,9 +926,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         ),
                       
                       const SizedBox(height: 16),
-                      const Text(
-                        'Image Preview:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        '${AppLocalizations.of(context)!.imagePreview}:',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       if (_imageUrlController.text.isNotEmpty)
@@ -969,12 +944,12 @@ class _EventFormWebState extends State<EventFormWeb> {
                             child: Image.network(
                               _imageUrlController.text,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => const Column(
+                              errorBuilder: (context, error, stackTrace) => Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.error, color: Colors.red),
-                                  SizedBox(height: 8),
-                                  Text('Invalid image URL'),
+                                  const Icon(Icons.error, color: Colors.red),
+                                  const SizedBox(height: 8),
+                                  Text(AppLocalizations.of(context)!.invalidImageUrl),
                                 ],
                               ),
                               loadingBuilder: (context, child, loadingProgress) {
@@ -1039,7 +1014,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Clear Form'),
+                        child: Text(AppLocalizations.of(context)!.clearForm),
                       ),
                     ),
                   if (widget.event == null) const SizedBox(width: 16),
@@ -1063,8 +1038,8 @@ class _EventFormWebState extends State<EventFormWeb> {
                             )
                           : Text(
                               widget.event == null
-                                  ? 'Create Event'
-                                  : 'Update Event',
+                                  ? AppLocalizations.of(context)!.createEvent
+                                  : AppLocalizations.of(context)!.updateEvent,
                             ),
                     ),
                   ),
@@ -1079,7 +1054,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Delete Event'),
+                        child: Text(AppLocalizations.of(context)!.deleteEvent),
                       ),
                     ),
                   ],
@@ -1095,7 +1070,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   Widget _buildAccessDeniedPage() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Event Form'),
+        title: Text(AppLocalizations.of(context)!.webEventForm),
         backgroundColor: Colors.red[700],
       ),
       body: Center(
@@ -1111,18 +1086,18 @@ class _EventFormWebState extends State<EventFormWeb> {
                   color: Colors.red,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Access Denied',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.webAccessDenied,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Event management requires Manager, Staff, or Instructor role.',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.webEventCreationRequiresRole,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
                   ),

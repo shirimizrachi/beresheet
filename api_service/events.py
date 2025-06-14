@@ -91,7 +91,7 @@ class EventDatabase:
             with self.engine.connect() as conn:
                 results = conn.execute(
                     events_table.select()
-                    .where(events_table.c.status == 'active')
+                    .where(events_table.c.status == 'approved')
                     .order_by(events_table.c.dateTime.desc())
                 ).fetchall()
                 

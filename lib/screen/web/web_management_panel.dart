@@ -14,6 +14,7 @@ import 'users/user_list_web.dart';
 import 'events/event_form_web.dart';
 import 'events/event_registrations_web.dart';
 import 'rooms_management_web.dart';
+import 'service_provider_types_management_web.dart';
 
 class WebManagementPanel extends StatefulWidget {
   final String? initialTab;
@@ -59,7 +60,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           });
         } else {
           setState(() {
-            _errorMessage = 'Access denied: Manager role required';
+            _errorMessage = AppLocalizations.of(context)!.accessDeniedManagerRole;
             _isLoading = false;
           });
         }
@@ -154,6 +155,13 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         label: Text(AppLocalizations.of(context)!.webRooms),
       ));
       availableTabs.add('rooms_management');
+      
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.work),
+        selectedIcon: const Icon(Icons.work),
+        label: Text(AppLocalizations.of(context)!.serviceProviderTypes),
+      ));
+      availableTabs.add('service_provider_types');
     }
     
     // Find current selected index
@@ -195,7 +203,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
           return const EventRegistrationsWeb();
         } else {
-          return _buildAccessDeniedPage('Event registrations management requires manager or staff role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.eventRegistrationsManagementRequiresRole);
         }
       
       case 'events':
@@ -203,7 +211,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
           return const EventsManagementWeb();
         } else {
-          return _buildAccessDeniedPage('Events management requires manager or staff role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.eventsManagementRequiresRole);
         }
       
       
@@ -212,7 +220,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         if (userRole == AppConfig.userRoleManager) {
           return const CreateUserWeb();
         } else {
-          return _buildAccessDeniedPage('User creation requires manager role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.userCreationRequiresRole);
         }
       
       case 'user_list':
@@ -220,7 +228,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         if (userRole == AppConfig.userRoleManager) {
           return const UserListWeb();
         } else {
-          return _buildAccessDeniedPage('User management requires manager role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.userManagementRequiresRole);
         }
       
       case 'rooms_management':
@@ -228,7 +236,15 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         if (userRole == AppConfig.userRoleManager) {
           return const RoomsManagementWeb();
         } else {
-          return _buildAccessDeniedPage('Rooms management requires manager role.');
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.roomsManagementRequiresRole);
+        }
+      
+      case 'service_provider_types':
+        // Check if user has manager role
+        if (userRole == AppConfig.userRoleManager) {
+          return const ServiceProviderTypesManagementWeb();
+        } else {
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.serviceProviderTypesManagementRequiresRole);
         }
       
       default:
@@ -262,7 +278,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome, $userFullName!',
+                          AppLocalizations.of(context)!.welcomeUser(userFullName),
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -270,7 +286,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Role: ${_formatRole(userRole)}',
+                          AppLocalizations.of(context)!.roleLabel(_formatRole(userRole)),
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.grey,
@@ -287,9 +303,9 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           const SizedBox(height: 24),
           
           // Available Features
-          const Text(
-            'Available Features',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.availableFeatures,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -312,7 +328,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         _buildFeatureCard(
           icon: Icons.event_note,
           title: AppLocalizations.of(context)!.webCreateEvent,
-          description: 'Create new events and activities',
+          description: AppLocalizations.of(context)!.createNewEventsAndActivities,
           onTap: () => setState(() => _selectedTab = 'create_event'),
           color: Colors.indigo,
         ),
@@ -325,7 +341,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         _buildFeatureCard(
           icon: Icons.event_available,
           title: AppLocalizations.of(context)!.webEventRegistrations,
-          description: 'View and manage event registrations',
+          description: AppLocalizations.of(context)!.viewAndManageEventRegistrations,
           onTap: () => setState(() => _selectedTab = 'event_registrations'),
           color: Colors.teal,
         ),
@@ -335,7 +351,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
         _buildFeatureCard(
           icon: Icons.event,
           title: AppLocalizations.of(context)!.webEventsManagement,
-          description: 'Manage existing events',
+          description: AppLocalizations.of(context)!.manageExistingEvents,
           onTap: () => setState(() => _selectedTab = 'events'),
           color: Colors.green,
         ),
@@ -344,8 +360,8 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.people,
-          title: 'Event Registrations',
-          description: 'Manage event registrations',
+          title: AppLocalizations.of(context)!.eventRegistrations,
+          description: AppLocalizations.of(context)!.manageEventRegistrations,
           onTap: () => setState(() => _selectedTab = 'event_registrations_management'),
           color: Colors.purple,
         ),
@@ -357,8 +373,8 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.person_add,
-          title: 'Create User',
-          description: 'Add new users to the system',
+          title: AppLocalizations.of(context)!.createUser,
+          description: AppLocalizations.of(context)!.addNewUsersToTheSystem,
           onTap: () => setState(() => _selectedTab = 'create_user'),
           color: Colors.blue,
         ),
@@ -367,8 +383,8 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.people,
-          title: 'User Management',
-          description: 'View and edit existing users',
+          title: AppLocalizations.of(context)!.userManagement,
+          description: AppLocalizations.of(context)!.viewAndEditExistingUsers,
           onTap: () => setState(() => _selectedTab = 'user_list'),
           color: Colors.purple,
         ),
@@ -377,10 +393,20 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.meeting_room,
-          title: 'Rooms Management',
-          description: 'Manage event rooms and locations',
+          title: AppLocalizations.of(context)!.roomsManagement,
+          description: AppLocalizations.of(context)!.manageEventRoomsAndLocations,
           onTap: () => setState(() => _selectedTab = 'rooms_management'),
           color: Colors.orange,
+        ),
+      );
+      
+      cards.add(
+        _buildFeatureCard(
+          icon: Icons.work,
+          title: AppLocalizations.of(context)!.serviceProviderTypesManagement,
+          description: AppLocalizations.of(context)!.manageServiceProviderTypeCategories,
+          onTap: () => setState(() => _selectedTab = 'service_provider_types'),
+          color: Colors.deepPurple,
         ),
       );
     }
@@ -399,16 +425,16 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                   color: Colors.orange,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Limited Access',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.limitedAccess,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your current role (${_formatRole(userRole)}) has limited access to management features.',
+                  AppLocalizations.of(context)!.yourCurrentRoleHasLimitedAccess(_formatRole(userRole)),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey),
                 ),
@@ -490,9 +516,9 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                 color: Colors.red,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Access Denied',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.accessDeniedTitle,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.red,
@@ -510,7 +536,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => setState(() => _selectedTab = 'home'),
-                child: const Text('Return to Home'),
+                child: Text(AppLocalizations.of(context)!.returnToHome),
               ),
             ],
           ),
@@ -546,7 +572,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
               ),
               const SizedBox(height: 16),
               Text(
-                _errorMessage ?? 'Authentication failed',
+                _errorMessage ?? AppLocalizations.of(context)!.authenticationFailed,
                 style: const TextStyle(
                   fontSize: 18,
                   color: Colors.red,
@@ -556,7 +582,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _redirectToLogin,
-                child: const Text('Return to Login'),
+                child: Text(AppLocalizations.of(context)!.returnToLogin),
               ),
             ],
           ),
@@ -573,9 +599,9 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                 // Navigate to homepage using proper URL
                 html.window.location.href = AppConfig.webHomepageUrl;
               },
-              child: const Text(
-                'Homepage',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.homepage,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   decoration: TextDecoration.underline,
@@ -583,9 +609,9 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
               ),
             ),
             const Text(' | ', style: TextStyle(color: Colors.white)),
-            const Text(
-              'Management Panel',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.managementPanelLabel,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -633,7 +659,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
-            tooltip: 'Logout',
+            tooltip: AppLocalizations.of(context)!.logoutTooltip,
           ),
         ],
       ),

@@ -338,6 +338,7 @@ class EventService {
     int? maxParticipants,
     String? imageUrl,
     int? currentParticipants,
+    String? status,
     String? recurring,
     DateTime? recurringEndDate,
     String? recurringPattern,
@@ -353,6 +354,7 @@ class EventService {
       if (maxParticipants != null) updateData['maxParticipants'] = maxParticipants;
       if (imageUrl != null) updateData['image_url'] = imageUrl;
       if (currentParticipants != null) updateData['currentParticipants'] = currentParticipants;
+      if (status != null) updateData['status'] = status;
       if (recurring != null) updateData['recurring'] = recurring;
       if (recurringEndDate != null) updateData['recurring_end_date'] = recurringEndDate.toIso8601String();
       if (recurringPattern != null) updateData['recurring_pattern'] = recurringPattern;

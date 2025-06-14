@@ -177,3 +177,5 @@ If you see errors like `MissingPluginException` for `getApplicationDocumentsDire
 - Chrome browser (for web development)
 
 Server=localhost\SQLEXPRESS;Database=master;Trusted_Connection=True;
+
+flutter gen-l10n

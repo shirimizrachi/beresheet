@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../config/app_config.dart';
 import '../../services/web_auth_service.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class RoomsManagementWeb extends StatefulWidget {
   const RoomsManagementWeb({Key? key}) : super(key: key);
@@ -54,13 +55,13 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load rooms: ${response.statusCode}';
+          _errorMessage = AppLocalizations.of(context)!.failedToLoadRooms(response.statusCode.toString());
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading rooms: $e';
+        _errorMessage = AppLocalizations.of(context)!.errorLoadingRooms(e.toString());
         _isLoading = false;
       });
     }
@@ -69,7 +70,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
   Future<void> _createRoom() async {
     if (_roomNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a room name')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseEnterRoomName)),
       );
       return;
     }
@@ -94,11 +95,11 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
       if (response.statusCode == 201) {
         _roomNameController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Room created successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.roomCreatedSuccessfully)),
         );
         await _loadRooms();
       } else {
-        String errorMessage = 'Failed to create room';
+        String errorMessage = AppLocalizations.of(context)!.failedToCreateRoom;
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['detail'] ?? errorMessage;
@@ -112,7 +113,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating room: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorCreatingRoom(e.toString()))),
       );
     } finally {
       setState(() {
@@ -125,17 +126,17 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete the room "$roomName"?'),
+        title: Text(AppLocalizations.of(context)!.confirmDeleteRoom),
+        content: Text(AppLocalizations.of(context)!.areYouSureDeleteRoom(roomName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -155,11 +156,11 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Room "$roomName" deleted successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.roomDeletedSuccessfully(roomName))),
         );
         await _loadRooms();
       } else {
-        String errorMessage = 'Failed to delete room';
+        String errorMessage = AppLocalizations.of(context)!.failedToDeleteRoom;
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['detail'] ?? errorMessage;
@@ -173,7 +174,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting room: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorDeletingRoom(e.toString()))),
       );
     }
   }
@@ -191,15 +192,15 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
               children: [
                 const Icon(Icons.meeting_room, size: 32, color: Colors.blue),
                 const SizedBox(width: 16),
-                const Text(
-                  'Rooms Management',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                Text(
+                  AppLocalizations.of(context)!.roomsManagement,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 ElevatedButton.icon(
                   onPressed: _loadRooms,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
+                  label: Text(AppLocalizations.of(context)!.refresh),
                 ),
               ],
             ),
@@ -212,9 +213,9 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Create New Room',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      AppLocalizations.of(context)!.createNewRoom,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -222,10 +223,10 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
                         Expanded(
                           child: TextField(
                             controller: _roomNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Room Name',
-                              hintText: 'Enter room name',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context)!.roomName,
+                              hintText: AppLocalizations.of(context)!.enterRoomName,
+                              border: const OutlineInputBorder(),
                             ),
                             onSubmitted: (_) => _createRoom(),
                           ),
@@ -240,7 +241,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.add),
-                          label: Text(_isCreating ? 'Creating...' : 'Create Room'),
+                          label: Text(_isCreating ? AppLocalizations.of(context)!.creatingRoom : AppLocalizations.of(context)!.createRoom),
                         ),
                       ],
                     ),
@@ -259,7 +260,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Existing Rooms (${_rooms.length})',
+                        AppLocalizations.of(context)!.existingRoomsCount(_rooms.length),
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
@@ -290,7 +291,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              'Error',
+              AppLocalizations.of(context)!.errorTitle,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -298,7 +299,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadRooms,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retryButton),
             ),
           ],
         ),
@@ -306,18 +307,18 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
     }
 
     if (_rooms.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.meeting_room_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.meeting_room_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No Rooms Found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              AppLocalizations.of(context)!.noRoomsFound,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
-            Text('Create your first room using the form above.'),
+            const SizedBox(height: 8),
+            Text(AppLocalizations.of(context)!.createFirstRoom),
           ],
         ),
       );
@@ -335,17 +336,17 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
               child: Icon(Icons.meeting_room, color: Colors.white),
             ),
             title: Text(
-              room['room_name'] ?? 'Unknown Room',
+              room['room_name'] ?? AppLocalizations.of(context)!.unknownRoom,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text('Room ID: ${room['id']}'),
+            subtitle: Text(AppLocalizations.of(context)!.roomId(room['id'].toString())),
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteRoom(
                 room['id'] ?? 0,
-                room['room_name'] ?? 'Unknown Room',
+                room['room_name'] ?? AppLocalizations.of(context)!.unknownRoom,
               ),
-              tooltip: 'Delete Room',
+              tooltip: AppLocalizations.of(context)!.deleteRoom,
             ),
           ),
         );

@@ -976,9 +976,9 @@
   "@webDirectUrl": {
     "description": "Web direct URL option"
   },
-  "webUnsplash": "Unsplash",
+  "webUnsplash": "Photobank",
   "@webUnsplash": {
-    "description": "Web Unsplash option"
+    "description": "Web Photobank option"
   },
   "webUpload": "Upload",
   "@webUpload": {
@@ -988,9 +988,9 @@
   "@webEnterImageUrl": {
     "description": "Web enter image URL placeholder"
   },
-  "webSearchUnsplash": "Search on Unsplash",
+  "webSearchUnsplash": "Search on Photobank",
   "@webSearchUnsplash": {
-    "description": "Web search Unsplash placeholder"
+    "description": "Web search Photobank placeholder"
   },
   "webUploadImage": "Upload Image",
   "@webUploadImage": {
@@ -1207,5 +1207,522 @@
   "status": "Status",
   "@status": {
     "description": "Status label"
+  },
+  "url": "URL",
+  "@url": {
+    "description": "URL label"
+  },
+  "unsplash": "Photobank",
+  "@unsplash": {
+    "description": "Photobank label"
+  },
+  "notSet": "Not set",
+  "@notSet": {
+    "description": "Not set label"
+  },
+  
+  "serviceProviderTypes": "Service Provider Types",
+  "@serviceProviderTypes": {
+    "description": "Service Provider Types navigation label"
+  },
+  "welcomeUser": "Welcome, {userName}!",
+  "@welcomeUser": {
+    "description": "Welcome message with user name",
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleLabel": "Role: {roleName}",
+  "@roleLabel": {
+    "description": "Role display with role name",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
+  },
+  "availableFeatures": "Available Features",
+  "@availableFeatures": {
+    "description": "Available Features section title"
+  },
+  "createNewEventsAndActivities": "Create new events and activities",
+  "@createNewEventsAndActivities": {
+    "description": "Create new events and activities description"
+  },
+  "viewAndManageEventRegistrations": "View and manage event registrations",
+  "@viewAndManageEventRegistrations": {
+    "description": "View and manage event registrations description"
+  },
+  "manageExistingEvents": "Manage existing events",
+  "@manageExistingEvents": {
+    "description": "Manage existing events description"
+  },
+  "eventRegistrations": "Event Registrations",
+  "@eventRegistrations": {
+    "description": "Event Registrations label"
+  },
+  "manageEventRegistrations": "Manage event registrations",
+  "@manageEventRegistrations": {
+    "description": "Manage event registrations description"
+  },
+  "createUser": "Create User",
+  "@createUser": {
+    "description": "Create User label"
+  },
+  "addNewUsersToTheSystem": "Add new users to the system",
+  "@addNewUsersToTheSystem": {
+    "description": "Add new users to the system description"
+  },
+  "userManagement": "User Management",
+  "@userManagement": {
+    "description": "User Management label"
+  },
+  "viewAndEditExistingUsers": "View and edit existing users",
+  "@viewAndEditExistingUsers": {
+    "description": "View and edit existing users description"
+  },
+  "roomsManagement": "Rooms Management",
+  "@roomsManagement": {
+    "description": "Rooms Management label"
+  },
+  "manageEventRoomsAndLocations": "Manage event rooms and locations",
+  "@manageEventRoomsAndLocations": {
+    "description": "Manage event rooms and locations description"
+  },
+  "serviceProviderTypesManagement": "Service Provider Types",
+  "@serviceProviderTypesManagement": {
+    "description": "Service Provider Types Management label"
+  },
+  "manageServiceProviderTypeCategories": "Manage service provider type categories",
+  "@manageServiceProviderTypeCategories": {
+    "description": "Manage service provider type categories description"
+  },
+  "limitedAccess": "Limited Access",
+  "@limitedAccess": {
+    "description": "Limited Access title"
+  },
+  "yourCurrentRoleHasLimitedAccess": "Your current role ({roleName}) has limited access to management features.",
+  "@yourCurrentRoleHasLimitedAccess": {
+    "description": "Limited access message with role name",
+    "placeholders": {
+      "roleName": {
+        "type": "String"
+      }
+    }
+  },
+  "accessDeniedTitle": "Access Denied",
+  "@accessDeniedTitle": {
+    "description": "Access Denied title"
+  },
+  "returnToHome": "Return to Home",
+  "@returnToHome": {
+    "description": "Return to Home button"
+  },
+  "authenticationFailed": "Authentication failed",
+  "@authenticationFailed": {
+    "description": "Authentication failed message"
+  },
+  "returnToLogin": "Return to Login",
+  "@returnToLogin": {
+    "description": "Return to Login button"
+  },
+  "homepage": "Homepage",
+  "@homepage": {
+    "description": "Homepage label"
+  },
+  "managementPanelLabel": "Management Panel",
+  "@managementPanelLabel": {
+    "description": "Management Panel label"
+  },
+  "logoutTooltip": "Logout",
+  "@logoutTooltip": {
+    "description": "Logout tooltip"
+  },
+  "accessDeniedManagerRole": "Access denied: Manager role required",
+  "@accessDeniedManagerRole": {
+    "description": "Access denied message for manager role requirement"
+  },
+  "eventRegistrationsManagementRequiresRole": "Event registrations management requires manager or staff role.",
+  "@eventRegistrationsManagementRequiresRole": {
+    "description": "Event registrations management requires role message"
+  },
+  "eventsManagementRequiresRole": "Events management requires manager or staff role.",
+  "@eventsManagementRequiresRole": {
+    "description": "Events management requires role message"
+  },
+  "userCreationRequiresRole": "User creation requires manager role.",
+  "@userCreationRequiresRole": {
+    "description": "User creation requires role message"
+  },
+  "userManagementRequiresRole": "User management requires manager role.",
+  "@userManagementRequiresRole": {
+    "description": "User management requires role message"
+  },
+  "roomsManagementRequiresRole": "Rooms management requires manager role.",
+  "@roomsManagementRequiresRole": {
+    "description": "Rooms management requires role message"
+  },
+  "serviceProviderTypesManagementRequiresRole": "Service provider types management requires manager role.",
+  "@serviceProviderTypesManagementRequiresRole": {
+    "description": "Service provider types management requires role message"
+  },
+  "eventStatusUpdatedTo": "Event status updated to {status}",
+  "@eventStatusUpdatedTo": {
+    "description": "Event status updated message",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToUpdateEventStatus": "Failed to update event status",
+  "@failedToUpdateEventStatus": {
+    "description": "Failed to update event status message"
+  },
+  "errorUpdatingEvent": "Error updating event: {error}",
+  "@errorUpdatingEvent": {
+    "description": "Error updating event message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filterLabel": "Filter: ",
+  "@filterLabel": {
+    "description": "Filter label with colon"
+  },
+  "all": "All",
+  "@all": {
+    "description": "All filter option"
+  },
+  "approved": "Approved",
+  "@approved": {
+    "description": "Approved filter option"
+  },
+  "pendingApproval": "Pending Approval",
+  "@pendingApproval": {
+    "description": "Pending Approval filter option"
+  },
+  "eventsCount": "{eventType} ({count})",
+  "@eventsCount": {
+    "description": "Events count with type",
+    "placeholders": {
+      "eventType": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorTitle": "Error",
+  "@errorTitle": {
+    "description": "Error title"
+  },
+  "retryButton": "Retry",
+  "@retryButton": {
+    "description": "Retry button"
+  },
+  "noPendingApprovalEvents": "No PENDING APPROVAL Events",
+  "@noPendingApprovalEvents": {
+    "description": "No pending approval events message"
+  },
+  "noApprovedEvents": "No APPROVED Events",
+  "@noApprovedEvents": {
+    "description": "No approved events message"
+  },
+  "eventsWillAppearHere": "Events will appear here when they are created.",
+  "@eventsWillAppearHere": {
+    "description": "Events will appear message"
+  },
+  "editButton": "Edit",
+  "@editButton": {
+    "description": "Edit button label"
+  },
+  "eventDeletedSuccessfully": "Event \"{eventName}\" deleted successfully",
+  "@eventDeletedSuccessfully": {
+    "description": "Event deleted successfully message",
+    "placeholders": {
+      "eventName": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "pleaseEnterRoomName": "Please enter a room name",
+  "@pleaseEnterRoomName": {
+    "description": "Please enter room name validation"
+  },
+  "roomCreatedSuccessfully": "Room created successfully",
+  "@roomCreatedSuccessfully": {
+    "description": "Room created successfully message"
+  },
+  "failedToCreateRoom": "Failed to create room",
+  "@failedToCreateRoom": {
+    "description": "Failed to create room message"
+  },
+  "errorCreatingRoom": "Error creating room: {error}",
+  "@errorCreatingRoom": {
+    "description": "Error creating room message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteRoom": "Confirm Delete",
+  "@confirmDeleteRoom": {
+    "description": "Confirm delete room dialog title"
+  },
+  "areYouSureDeleteRoom": "Are you sure you want to delete the room \"{roomName}\"?",
+  "@areYouSureDeleteRoom": {
+    "description": "Confirm delete room message",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "roomDeletedSuccessfully": "Room \"{roomName}\" deleted successfully",
+  "@roomDeletedSuccessfully": {
+    "description": "Room deleted successfully message",
+    "placeholders": {
+      "roomName": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToDeleteRoom": "Failed to delete room",
+  "@failedToDeleteRoom": {
+    "description": "Failed to delete room message"
+  },
+  "errorDeletingRoom": "Error deleting room: {error}",
+  "@errorDeletingRoom": {
+    "description": "Error deleting room message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "createNewRoom": "Create New Room",
+  "@createNewRoom": {
+    "description": "Create new room section title"
+  },
+  "roomName": "Room Name",
+  "@roomName": {
+    "description": "Room name field label"
+  },
+  "enterRoomName": "Enter room name",
+  "@enterRoomName": {
+    "description": "Enter room name hint"
+  },
+  "createRoom": "Create Room",
+  "@createRoom": {
+    "description": "Create room button"
+  },
+  "creatingRoom": "Creating...",
+  "@creatingRoom": {
+    "description": "Creating room status"
+  },
+  "existingRoomsCount": "Existing Rooms ({count})",
+  "@existingRoomsCount": {
+    "description": "Existing rooms count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noRoomsFound": "No Rooms Found",
+  "@noRoomsFound": {
+    "description": "No rooms found message"
+  },
+  "createFirstRoom": "Create your first room using the form above.",
+  "@createFirstRoom": {
+    "description": "Create first room instruction"
+  },
+  "unknownRoom": "Unknown Room",
+  "@unknownRoom": {
+    "description": "Unknown room fallback text"
+  },
+  "roomId": "Room ID: {roomId}",
+  "@roomId": {
+    "description": "Room ID label",
+    "placeholders": {
+      "roomId": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteRoom": "Delete Room",
+  "@deleteRoom": {
+    "description": "Delete room tooltip"
+  },
+  "failedToLoadRooms": "Failed to load rooms: {statusCode}",
+  "@failedToLoadRooms": {
+    "description": "Failed to load rooms message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingRooms": "Error loading rooms: {error}",
+  "@errorLoadingRooms": {
+    "description": "Error loading rooms message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "usersManagementTitle": "Users Management",
+  "@usersManagementTitle": {
+    "description": "Users management page title"
+  },
+  "accessDeniedManagerRoleUserList": "Access denied: Manager role required to view user list",
+  "@accessDeniedManagerRoleUserList": {
+    "description": "Access denied message for user list"
+  },
+  "failedToLoadUsers": "Failed to load users: {statusCode}",
+  "@failedToLoadUsers": {
+    "description": "Failed to load users message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingUsers": "Error loading users: {error}",
+  "@errorLoadingUsers": {
+    "description": "Error loading users message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "totalUsers": "Total Users: {count}",
+  "@totalUsers": {
+    "description": "Total users count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noUsersFound": "No Users Found",
+  "@noUsersFound": {
+    "description": "No users found message"
+  },
+  "searchUsers": "Search users...",
+  "@searchUsers": {
+    "description": "Search users hint"
+  },
+  "editUser": "Edit User",
+  "@editUser": {
+    "description": "Edit user button"
+  },
+  "apartment": "Apartment: {apartmentNumber}",
+  "@apartment": {
+    "description": "Apartment number display",
+    "placeholders": {
+      "apartmentNumber": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "eventRegistrationsManagementTitle": "Event Registrations Management",
+  "@eventRegistrationsManagementTitle": {
+    "description": "Event registrations management page title"
+  },
+  "refreshTooltip": "Refresh",
+  "@refreshTooltip": {
+    "description": "Refresh tooltip"
+  },
+  "unregisterUser": "Unregister User",
+  "@unregisterUser": {
+    "description": "Unregister user dialog title"
+  },
+  "areYouSureUnregisterUser": "Are you sure you want to unregister {userName} from this event?",
+  "@areYouSureUnregisterUser": {
+    "description": "Unregister user confirmation message",
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "userUnregisteredSuccessfully": "User unregistered successfully",
+  "@userUnregisteredSuccessfully": {
+    "description": "User unregistered successfully message"
+  },
+  "errorMessage": "Error: {error}",
+  "@errorMessage": {
+    "description": "Error message with error details",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noRegistrationsFound": "No registrations found",
+  "@noRegistrationsFound": {
+    "description": "No registrations found message"
+  },
+  "totalRegistrations": "Total Registrations: {count}",
+  "@totalRegistrations": {
+    "description": "Total registrations count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventColumn": "Event",
+  "@eventColumn": {
+    "description": "Event column header"
+  },
+  "userNameColumn": "User Name",
+  "@userNameColumn": {
+    "description": "User name column header"
+  },
+  "phoneColumn": "Phone",
+  "@phoneColumn": {
+    "description": "Phone column header"
+  },
+  "registrationDateColumn": "Registration Date",
+  "@registrationDateColumn": {
+    "description": "Registration date column header"
+  },
+  "statusColumn": "Status",
+  "@statusColumn": {
+    "description": "Status column header"
+  },
+  "actionsColumn": "Actions",
+  "@actionsColumn": {
+    "description": "Actions column header"
+  },
+  "unknownEvent": "Unknown Event",
+  "@unknownEvent": {
+    "description": "Unknown event fallback text"
+  },
+  "unknownUser": "Unknown User",
+  "@unknownUser": {
+    "description": "Unknown user fallback text"
+  },
+  "notAvailable": "N/A",
+  "@notAvailable": {
+    "description": "Not available fallback text"
+  },
+  "unregisterTooltip": "Unregister",
+  "@unregisterTooltip": {
+    "description": "Unregister tooltip"
   }
 }

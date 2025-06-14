@@ -16,11 +16,21 @@ from models import (
     SessionInfo,
     Room,
     RoomCreate,
+    ServiceProviderType,
+    ServiceProviderTypeCreate,
+    ServiceProviderTypeUpdate,
+    Request,
+    RequestCreate,
+    RequestUpdate,
+    RequestStatusUpdate,
+    ChatMessage,
 )
 from events import event_db
 from rooms import room_db
 from events_registration import events_registration_db
 from users import user_db
+from service_provider_types import service_provider_type_db
+from requests import request_db
 import uvicorn
 import os
 
@@ -342,6 +352,364 @@ async def delete_room(
     if not success:
         raise HTTPException(status_code=404, detail="Room not found")
     return {"message": "Room deleted successfully"}
+
+
+# ------------------------- Service Provider Types Endpoints ------------------------- #
+@api_router.get("/service-provider-types", response_model=List[ServiceProviderType])
+async def get_service_provider_types(
+    home_id: int = Depends(get_home_id),
+):
+    """List all service provider types - public access"""
+    types = service_provider_type_db.get_all_service_provider_types(home_id)
+    return types
+
+
+@api_router.get("/service-provider-types/{type_id}", response_model=ServiceProviderType)
+async def get_service_provider_type(
+    type_id: int,
+    home_id: int = Depends(get_home_id),
+):
+    """Get a specific service provider type by ID"""
+    provider_type = service_provider_type_db.get_service_provider_type_by_id(type_id, home_id)
+    if not provider_type:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return provider_type
+
+
+@api_router.post("/service-provider-types", response_model=ServiceProviderType, status_code=201)
+async def create_service_provider_type(
+    provider_type: ServiceProviderTypeCreate,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Create a new service provider type - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    new_type = service_provider_type_db.create_service_provider_type(provider_type, home_id)
+    if not new_type:
+        raise HTTPException(
+            status_code=400, detail="Unable to create service provider type (duplicate name?)"
+        )
+    return new_type
+
+
+@api_router.put("/service-provider-types/{type_id}", response_model=ServiceProviderType)
+async def update_service_provider_type(
+    type_id: int,
+    provider_type: ServiceProviderTypeUpdate,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Update a service provider type (only description) - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    updated_type = service_provider_type_db.update_service_provider_type(type_id, provider_type, home_id)
+    if not updated_type:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return updated_type
+
+
+@api_router.delete("/service-provider-types/{type_id}")
+async def delete_service_provider_type(
+    type_id: int,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Delete a service provider type by ID - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    success = service_provider_type_db.delete_service_provider_type(type_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return {"message": "Service provider type deleted successfully"}
+
+
+# ------------------------- Requests Endpoints ------------------------- #
+@api_router.post("/requests", response_model=Request, status_code=201)
+async def create_request(
+    request: RequestCreate,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Create a new request from resident to service provider"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    new_request = request_db.create_request(request, user_id, home_id)
+    if not new_request:
+        raise HTTPException(status_code=400, detail="Unable to create request")
+    return new_request
+
+
+@api_router.get("/requests", response_model=List[Request])
+async def get_requests(
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    status: Optional[str] = Query(None, description="Filter by request status"),
+    role_filter: Optional[str] = Query(None, description="Filter by user role: 'resident', 'service_provider', or 'all'"),
+):
+    """Get requests - filtered by user role and status"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    # Get user role to determine what requests they can see
+    user_role = await get_user_role(user_id, home_id)
+    
+    if role_filter == "all" and user_role in ["manager", "staff"]:
+        # Managers and staff can see all requests
+        requests = request_db.get_all_requests(home_id, status)
+    elif role_filter == "service_provider" or user_role == "service":
+        # Service providers see requests assigned to them
+        requests = request_db.get_requests_by_service_provider(user_id, home_id, status)
+    elif role_filter == "resident" or user_role == "resident":
+        # Residents see requests they created
+        requests = request_db.get_requests_by_resident(user_id, home_id, status)
+    else:
+        # Default: show user's relevant requests based on their role
+        if user_role == "service":
+            requests = request_db.get_requests_by_service_provider(user_id, home_id, status)
+        elif user_role == "resident":
+            requests = request_db.get_requests_by_resident(user_id, home_id, status)
+        else:
+            requests = request_db.get_all_requests(home_id, status)
+    
+    return requests
+
+
+@api_router.get("/requests/{request_id}", response_model=Request)
+async def get_request(
+    request_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Get a specific request by ID"""
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Check if user has permission to view this request
+    user_role = await get_user_role(user_id, home_id)
+    if (user_role not in ["manager", "staff"] and
+        request.resident_id != user_id and
+        request.service_provider_id != user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return request
+
+
+@api_router.put("/requests/{request_id}", response_model=Request)
+async def update_request(
+    request_id: str,
+    request_update: RequestUpdate,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Update a request"""
+    # Check if request exists and user has permission
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    user_role = await get_user_role(user_id, home_id)
+    if (user_role not in ["manager", "staff"] and
+        request.resident_id != user_id and
+        request.service_provider_id != user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    updated_request = request_db.update_request(request_id, request_update, home_id)
+    if not updated_request:
+        raise HTTPException(status_code=400, detail="Unable to update request")
+    return updated_request
+
+
+@api_router.put("/requests/{request_id}/status", response_model=Request)
+async def update_request_status(
+    request_id: str,
+    status_update: RequestStatusUpdate,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Update request status with timestamps"""
+    # Check if request exists and user has permission
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    user_role = await get_user_role(user_id, home_id)
+    if (user_role not in ["manager", "staff"] and
+        request.resident_id != user_id and
+        request.service_provider_id != user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    updated_request = request_db.update_request_status(request_id, status_update, home_id)
+    if not updated_request:
+        raise HTTPException(status_code=400, detail="Unable to update request status")
+    return updated_request
+
+
+@api_router.post("/requests/{request_id}/chat", response_model=Request)
+async def add_chat_message(
+    request_id: str,
+    chat_message: dict,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Add a chat message to a request"""
+    message = chat_message.get("message", "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    
+    # Check if request exists and user has permission
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Determine sender type
+    sender_type = "resident" if request.resident_id == user_id else "service_provider"
+    
+    if request.resident_id != user_id and request.service_provider_id != user_id:
+        user_role = await get_user_role(user_id, home_id)
+        if user_role not in ["manager", "staff"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        sender_type = "admin"
+    
+    updated_request = request_db.add_chat_message(request_id, user_id, sender_type, message, home_id)
+    if not updated_request:
+        raise HTTPException(status_code=400, detail="Unable to add chat message")
+    return updated_request
+
+
+@api_router.get("/requests/{request_id}/chat")
+async def get_chat_messages(
+    request_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Get all chat messages for a request"""
+    # Check if request exists and user has permission
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    user_role = await get_user_role(user_id, home_id)
+    if (user_role not in ["manager", "staff"] and
+        request.resident_id != user_id and
+        request.service_provider_id != user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    chat_messages = request_db.get_chat_messages(request_id, home_id)
+    return {"request_id": request_id, "chat_messages": chat_messages}
+
+
+@api_router.put("/requests/{request_id}/chat")
+async def update_chat_messages(
+    request_id: str,
+    chat_data: dict,
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Update the entire chat messages array for a request"""
+    # Check if request exists and user has permission
+    request = request_db.get_request_by_id(request_id, home_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    user_role = await get_user_role(user_id, home_id)
+    if (user_role not in ["manager", "staff"] and
+        request.resident_id != user_id and
+        request.service_provider_id != user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Validate chat messages format
+    chat_messages = chat_data.get("chat_messages", [])
+    if not isinstance(chat_messages, list):
+        raise HTTPException(status_code=400, detail="chat_messages must be an array")
+    
+    # Validate each message format
+    for i, message in enumerate(chat_messages):
+        if not isinstance(message, dict):
+            raise HTTPException(status_code=400, detail=f"Message {i} must be an object")
+        if "message" not in message or "created_time" not in message:
+            raise HTTPException(status_code=400, detail=f"Message {i} must have 'message' and 'created_time' fields")
+    
+    updated_request = request_db.update_chat_messages(request_id, chat_messages, home_id)
+    if not updated_request:
+        raise HTTPException(status_code=400, detail="Unable to update chat messages")
+    
+    return {"request_id": request_id, "message": "Chat messages updated successfully", "chat_messages": chat_messages}
+
+
+@api_router.get("/requests/resident/{resident_id}", response_model=List[Request])
+async def get_requests_by_resident(
+    resident_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Depends(get_user_id),
+    status: Optional[str] = Query(None, description="Filter by request status"),
+):
+    """Get all requests by a specific resident (admin or self only)"""
+    user_role = await get_user_role(current_user_id, home_id)
+    
+    # Only allow access if user is admin or requesting their own requests
+    if user_role not in ["manager", "staff"] and current_user_id != resident_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    requests = request_db.get_requests_by_resident(resident_id, home_id, status)
+    return requests
+
+
+@api_router.get("/requests/service-provider/{service_provider_id}", response_model=List[Request])
+async def get_requests_by_service_provider(
+    service_provider_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Depends(get_user_id),
+    status: Optional[str] = Query(None, description="Filter by request status"),
+):
+    """Get all requests for a specific service provider (admin or self only)"""
+    user_role = await get_user_role(current_user_id, home_id)
+    
+    # Only allow access if user is admin or requesting their own requests
+    if user_role not in ["manager", "staff"] and current_user_id != service_provider_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    requests = request_db.get_requests_by_service_provider(service_provider_id, home_id, status)
+    return requests
+
+
+@api_router.get("/requests/service-provider-type/{service_provider_type}", response_model=List[Request])
+async def get_requests_by_service_provider_type(
+    service_provider_type: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Depends(get_user_id),
+    status: Optional[str] = Query(None, description="Filter by request status"),
+):
+    """Get all requests for a specific service provider type (admin only)"""
+    user_role = await get_user_role(current_user_id, home_id)
+    
+    # Only allow access for managers and staff
+    if user_role not in ["manager", "staff"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    requests = request_db.get_requests_by_service_provider_type(service_provider_type, home_id, status)
+    return requests
+
+
+@api_router.delete("/requests/{request_id}")
+async def delete_request(
+    request_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Delete a request (admin only)"""
+    # Only managers can delete requests
+    await require_manager_role(current_user_id, home_id)
+    
+    success = request_db.delete_request(request_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return {"message": "Request deleted successfully"}
 
 # User Profile CRUD endpoints
 @api_router.get("/users", response_model=List[UserProfile])

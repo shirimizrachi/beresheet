@@ -38,6 +38,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
   String _selectedRecurring = 'none';
   DateTime? _recurringEndDate;
   
+  // User role for determining edit permissions
+  String? _userRole;
+  
   // Image handling
   String _imageSource = 'url'; // 'url', 'gallery', or 'unsplash'
   File? _selectedImageFile;
@@ -56,9 +59,21 @@ class _EventFormScreenState extends State<EventFormScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
     _loadRooms();
     if (widget.event != null) {
       _populateFields();
+    }
+  }
+
+  Future<void> _loadUserRole() async {
+    try {
+      final role = await UserSessionService.getRole();
+      setState(() {
+        _userRole = role;
+      });
+    } catch (e) {
+      print('Error loading user role: $e');
     }
   }
 
@@ -248,8 +263,18 @@ class _EventFormScreenState extends State<EventFormScreen> {
     // For new events, all fields except status and currentParticipants are editable
     if (widget.event == null) return true;
     
-    // For existing events, depends on status
-    return _selectedStatus == AppConfig.eventStatusPendingApproval;
+    // For existing events, allow editing if status is pending-approval OR user has manager/staff role
+    return _selectedStatus == AppConfig.eventStatusPendingApproval || _canUserEditAllFields;
+  }
+
+  bool get _canUserEditAllFields {
+    // Users with manager or staff roles can edit all fields
+    return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
+  }
+
+  bool get _canUserEditStatusAndLocation {
+    // Users with manager or staff roles can edit status and location
+    return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
   }
 
   Future<void> _saveEvent() async {
@@ -320,6 +345,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
               maxParticipants: event.maxParticipants,
               imageUrl: event.imageUrl,
               currentParticipants: event.currentParticipants,
+              status: event.status,
               recurring: event.recurring,
               recurringEndDate: event.recurringEndDate,
               recurringPattern: event.recurringPattern,
@@ -445,7 +471,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     value: _selectedType,
                     decoration: InputDecoration(
                       labelText: l10n.eventType,
-                      helperText: widget.event != null ? 'Read-only field' : null,
                     ),
                     items: _eventTypes.map((type) {
                       return DropdownMenuItem(
@@ -471,9 +496,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: DropdownButtonFormField<String>(
                     value: _selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      helperText: 'Read-only field - default: pending-approval',
+                    decoration: InputDecoration(
+                      labelText: l10n.status,
                     ),
                     items: _statusOptions.map((status) {
                       return DropdownMenuItem(
@@ -481,7 +505,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         child: Text(_getStatusDisplayName(status)),
                       );
                     }).toList(),
-                    onChanged: null, // Always read-only
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedStatus = value;
+                        });
+                      }
+                    },
                   ),
                 ),
               ),
@@ -498,7 +528,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     decoration: InputDecoration(
                       labelText: l10n.description,
                       hintText: l10n.enterEventDescription,
-                      helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -527,8 +556,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           value: _selectedRoomName,
                           decoration: InputDecoration(
                             labelText: l10n.location,
-                            hintText: 'Select a room',
-                            helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
+                            hintText: l10n.webSelectRoom,
                           ),
                           items: _rooms.map((room) {
                             final roomName = room['room_name'] as String;
@@ -537,14 +565,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               child: Text(roomName),
                             );
                           }).toList(),
-                          onChanged: _isFieldEditable ? (value) {
+                          onChanged: (value) {
                             setState(() {
                               _selectedRoomName = value;
                               if (value != null) {
                                 _locationController.text = value;
                               }
                             });
-                          } : null,
+                          },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return l10n.pleaseEnterEventLocation;
@@ -567,7 +595,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     decoration: InputDecoration(
                       labelText: l10n.maxParticipants,
                       hintText: l10n.enterMaximumParticipants,
-                      helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -596,7 +623,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       decoration: InputDecoration(
                         labelText: l10n.currentParticipants,
                         hintText: l10n.enterCurrentParticipants,
-                        helperText: 'Read-only - default to 0',
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -625,15 +651,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
                     children: [
                       Text(
-                        'Recurring Settings',
+                        l10n.recurringSettings,
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       DropdownButtonFormField<String>(
                         value: _selectedRecurring,
                         decoration: InputDecoration(
-                          labelText: 'Recurrence',
-                          helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
+                          labelText: l10n.recurrence,
                         ),
                         items: _recurringOptions.map((recurring) {
                           return DropdownMenuItem(
@@ -653,7 +678,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         } : null,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please select recurrence option';
+                            return l10n.fieldRequired;
                           }
                           return null;
                         },
@@ -662,7 +687,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       
                       // Date and Time (moved here)
                       InkWell(
-                        onTap: _isFieldEditable ? _selectDateTime : null,
+                        onTap: _selectDateTime,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                           decoration: BoxDecoration(
@@ -678,27 +703,17 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                   children: [
                                     Icon(
                                       Icons.calendar_today,
-                                      color: _isFieldEditable ? AppColors.primary : Colors.grey,
+                                      color: AppColors.primary,
                                     ),
                                     const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
                                         '${l10n.dateTime} *: ${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: _isFieldEditable ? null : Colors.grey,
-                                        ),
+                                        style: AppTextStyles.bodyMedium,
                                       ),
                                     ),
                                   ],
                                 ),
-                                if (!_isFieldEditable)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 4.0),
-                                    child: Text(
-                                      'Read-only - status is not pending-approval',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
@@ -708,13 +723,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       if (_selectedRecurring != 'none') ...[
                         const SizedBox(height: AppSpacing.md),
                         ListTile(
-                          title: Text('End Date *: ${_recurringEndDate?.toString().split(' ')[0] ?? 'Not set'}'),
-                          subtitle: const Text('Required for recurring events'),
-                          trailing: Icon(
-                            Icons.calendar_today,
-                            color: _isFieldEditable ? null : Colors.grey,
-                          ),
-                          onTap: _isFieldEditable ? () async {
+                          title: Text('${l10n.endDate} *: ${_recurringEndDate?.toString().split(' ')[0] ?? l10n.notSet}'),
+                          subtitle: Text('Required for recurring events'),
+                          trailing: const Icon(Icons.calendar_today),
+                          onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
                               initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 30)),
@@ -726,7 +738,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                 _recurringEndDate = picked;
                               });
                             }
-                          } : null,
+                          },
                         ),
                       ],
                     ],
@@ -743,7 +755,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
                     children: [
                       Text(
-                        'Event Image',
+                        l10n.eventImage,
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -755,42 +767,42 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('Gallery'),
+                              title: Text(l10n.webUpload),
                               value: 'gallery',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('URL'),
+                              title: Text(l10n.url),
                               value: 'url',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('Unsplash'),
+                              title: Text(l10n.unsplash),
                               value: 'unsplash',
                               groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
+                              onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _selectedImageFile = null;
                                   _imageUrlController.clear();
                                 });
-                              } : null,
+                              },
                             ),
                           ),
                         ],
@@ -817,9 +829,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _isFieldEditable ? _selectImageFromGallery : null,
+                                onPressed: _selectImageFromGallery,
                                 icon: const Icon(Icons.photo_library),
-                                label: const Text('Select from Gallery'),
+                                label: Text(l10n.webUploadImage),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -849,11 +861,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       ] else ...[
                         TextFormField(
                           controller: _imageUrlController,
-                          enabled: _isFieldEditable,
+                          enabled: true,
                           decoration: InputDecoration(
                             labelText: l10n.imageUrl,
                             hintText: l10n.enterImageUrl,
-                            helperText: !_isFieldEditable ? 'Read-only - status is not pending-approval' : null,
                           ),
                           validator: (value) {
                             if (_imageSource == 'url' && (value == null || value.trim().isEmpty)) {
@@ -867,9 +878,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _isFieldEditable ? _downloadImageFromUrl : null,
+                                onPressed: _downloadImageFromUrl,
                                 icon: const Icon(Icons.download),
-                                label: const Text('Validate URL'),
+                                label: Text(l10n.validateImageUrl),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
@@ -914,14 +925,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           ),
                       ],
                       
-                      if (!_isFieldEditable)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Image selection disabled - status is not pending-approval',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ),
                     ],
                   ),
                 ),

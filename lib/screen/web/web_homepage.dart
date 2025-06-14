@@ -1,7 +1,9 @@
+import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
@@ -34,6 +36,21 @@ class _WebHomePageState extends State<WebHomePage> {
   Future<void> _initializeSession() async {
     // Initialize web auth service to check existing session
     await WebAuthService.initializeSession();
+    
+    // Synchronize session data with UserSessionService for API calls
+    if (WebAuthService.isLoggedIn && WebAuthService.homeId != null) {
+      await UserSessionService.sethomeID(WebAuthService.homeId!);
+      if (WebAuthService.userId != null) {
+        await UserSessionService.setUserId(WebAuthService.userId!);
+      }
+      if (WebAuthService.userRole != null) {
+        await UserSessionService.setRole(WebAuthService.userRole!);
+      }
+    } else {
+      // Set default home ID for public access (homepage viewing)
+      await UserSessionService.sethomeID(AppConfig.defaultHomeId);
+    }
+    
     // Refresh the UI after session check
     if (mounted) {
       setState(() {});

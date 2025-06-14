@@ -93,17 +93,17 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Event status updated to $newStatus')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.eventStatusUpdatedTo(newStatus))),
         );
         await _loadEvents(); // Refresh the list
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update event status')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateEventStatus)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating event: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorUpdatingEvent(e.toString()))),
       );
     }
   }
@@ -197,10 +197,10 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
             // Filter Row
             Row(
               children: [
-                const Text('Filter: ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.filterLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 16),
                 ChoiceChip(
-                  label: const Text('All'),
+                  label: Text(AppLocalizations.of(context)!.all),
                   selected: _filterStatus == 'all',
                   onSelected: (selected) {
                     if (selected) setState(() => _filterStatus = 'all');
@@ -208,7 +208,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('Approved'),
+                  label: Text(AppLocalizations.of(context)!.approved),
                   selected: _filterStatus == 'approved',
                   onSelected: (selected) {
                     if (selected) setState(() => _filterStatus = 'approved');
@@ -216,7 +216,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: const Text('Pending Approval'),
+                  label: Text(AppLocalizations.of(context)!.pendingApproval),
                   selected: _filterStatus == 'pending-approval',
                   onSelected: (selected) {
                     if (selected) setState(() => _filterStatus = 'pending-approval');
@@ -265,16 +265,16 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            const Text(
-              'Error',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.errorTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(_errorMessage!),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadEvents,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retryButton),
             ),
           ],
         ),
@@ -294,12 +294,14 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
               _filterStatus == 'all'
                   ? AppLocalizations.of(context)!.noEventsFound
                   : _filterStatus == 'pending-approval'
-                      ? 'No PENDING APPROVAL Events'
-                      : 'No ${_filterStatus.toUpperCase()} Events',
+                      ? AppLocalizations.of(context)!.noPendingApprovalEvents
+                      : _filterStatus == 'approved'
+                          ? AppLocalizations.of(context)!.noApprovedEvents
+                          : 'No ${_filterStatus.toUpperCase()} Events',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text('Events will appear here when they are created.'),
+            Text(AppLocalizations.of(context)!.eventsWillAppearHere),
           ],
         ),
       );
@@ -474,7 +476,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                         ElevatedButton.icon(
                           onPressed: () => _editEvent(event),
                           icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Edit'),
+                          label: Text(AppLocalizations.of(context)!.editButton),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
