@@ -41,6 +41,30 @@
   "@login": {
     "description": "Login button"
   },
+  "loginTitle": "Login",
+  "@loginTitle": {
+    "description": "Login screen title"
+  },
+  "enterMobileNumberForOTP": "Enter your Mobile Number to get OTP",
+  "@enterMobileNumberForOTP": {
+    "description": "Enter mobile number instruction"
+  },
+  "mobileNumber": "Mobile Number",
+  "@mobileNumber": {
+    "description": "Mobile number field label"
+  },
+  "sendOTP": "Send OTP",
+  "@sendOTP": {
+    "description": "Send OTP button"
+  },
+  "pleaseEnterValidPhoneNumber": "Please enter a valid phone number",
+  "@pleaseEnterValidPhoneNumber": {
+    "description": "Please enter valid phone number validation"
+  },
+  "termsAndConditionsAcceptance": "By Clicking, I accept the Terms & Conditions and Privacy Policy",
+  "@termsAndConditionsAcceptance": {
+    "description": "Terms and conditions acceptance text"
+  },
   "logout": "Logout",
   "@logout": {
     "description": "Logout button"

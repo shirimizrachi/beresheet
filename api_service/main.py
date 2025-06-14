@@ -214,7 +214,7 @@ async def register_for_event(
     # Get user info for registration
     user_profile = user_db.get_user_profile(user_id, home_id)
     user_name = user_profile.full_name if user_profile else None
-    user_phone = user_profile.phone if user_profile else None
+    user_phone = user_profile.phone_number if user_profile else None
     
     success = events_registration_db.register_for_event(
         event_id=event_id,

@@ -886,6 +886,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                           height: 400,
                           child: UnsplashImagePicker(
                             eventType: _selectedType,
+                            crossAxisCount: 6,
                             onImageSelected: (imageUrl) {
                               setState(() {
                                 _imageUrlController.text = imageUrl;

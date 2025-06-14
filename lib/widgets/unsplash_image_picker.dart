@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -8,11 +9,13 @@ import 'package:beresheet_app/config/app_config.dart';
 class UnsplashImagePicker extends StatefulWidget {
   final String eventType;
   final Function(String) onImageSelected;
+  final int? crossAxisCount;
 
   const UnsplashImagePicker({
     Key? key,
     required this.eventType,
     required this.onImageSelected,
+    this.crossAxisCount,
   }) : super(key: key);
 
   @override
@@ -82,8 +85,8 @@ class _UnsplashImagePickerState extends State<UnsplashImagePicker> {
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: widget.crossAxisCount ?? (kIsWeb ? 4 : 2),
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),

@@ -272,10 +272,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
     return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
   }
 
-  bool get _canUserEditStatusAndLocation {
-    // Users with manager or staff roles can edit status and location
-    return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
-  }
 
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) return;
@@ -817,6 +813,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           height: 400,
                           child: UnsplashImagePicker(
                             eventType: _selectedType,
+                            crossAxisCount: 2,
                             onImageSelected: (imageUrl) {
                               setState(() {
                                 _imageUrlController.text = imageUrl;

@@ -1,5 +1,6 @@
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,8 +31,8 @@ class _LoginPageState extends State<LoginPage> {
       AuthRepo.verifyPhoneNumber(context, phoneNumber);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid phone number"),
+        SnackBar(
+          content: Text(context.l10n.pleaseEnterValidPhoneNumber),
         ),
       );
     }
@@ -46,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
         automaticallyImplyLeading: false,
         backgroundColor: theme.colorScheme.primary, // Using primary color from theme
         title: Text(
-          'Login',
+          context.l10n.loginTitle,
           style: theme.textTheme.titleLarge?.copyWith(
             color: theme.colorScheme.onPrimary, // Ensuring text color is readable on primary color
             fontStyle: FontStyle.italic,
@@ -67,35 +68,51 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             const SizedBox(height: 50),
             Text(
-              "Enter your Mobile Number to get OTP",
+              context.l10n.enterMobileNumberForOTP,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 40),
-            TextField(
-              controller: phoneController,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(15)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    context.l10n.mobileNumber,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(15)),
-                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: TextField(
+                    controller: phoneController,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(15)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: const BorderRadius.all(Radius.circular(15)),
+                        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: const BorderRadius.all(Radius.circular(15)),
+                        borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                      ),
+                      prefix: const Text(
+                        "+972  |  ",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      counterText: "",
+                    ),
+                    maxLength: 9,
+                    keyboardType: TextInputType.number,
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(Radius.circular(15)),
-                  borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
-                ),
-                labelText: "Mobile Number",
-                prefix: const Text(
-                  "+972  |  ",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                counterText: "",
-              ),
-              maxLength: 9,
-              keyboardType: TextInputType.number,
+              ],
             ),
             const SizedBox(height: 10),
             SizedBox(
@@ -111,17 +128,17 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: getOTP ,  // Enable the button only if isButtonEnabled is true
                 child:  Padding(
                   padding: const EdgeInsets.all(12.0),
-                  child: !isgettingOTP?  const Text(
-                    "Send OTP",
+                  child: !isgettingOTP?  Text(
+                    context.l10n.sendOTP,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ) : const Center(child: CircularProgressIndicator(color: Colors.white,),),
                 ),
               ),
             ),
             const SizedBox(height: 20,),
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text("By Clicking, I accept the Terms & Conditions and Privacy Policy"),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(context.l10n.termsAndConditionsAcceptance),
             ),
           ],
         ),
