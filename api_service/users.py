@@ -287,6 +287,40 @@ class UserDatabase:
             print(f"Error deleting user profile {user_id}: {e}")
             return False
 
+    def update_user_fcm_token(self, user_id: str, fcm_token: str, home_id: int) -> bool:
+        """Update only the Firebase FCM token for a user"""
+        try:
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return False
+
+            # Get the users table
+            users_table = self.get_user_table(schema_name)
+            if users_table is None:
+                return False
+
+            # Update only the FCM token and updated timestamp
+            update_data = {
+                'firebase_fcm_token': fcm_token,
+                'updated_at': datetime.now().isoformat()
+            }
+
+            # Update user using schema-specific engine
+            schema_engine = get_schema_engine(schema_name)
+            with schema_engine.connect() as conn:
+                result = conn.execute(
+                    users_table.update()
+                    .where(users_table.c.id == user_id)
+                    .values(**update_data)
+                )
+                conn.commit()
+                return result.rowcount > 0
+
+        except Exception as e:
+            print(f"Error updating FCM token for user {user_id}: {e}")
+            return False
+
     def get_all_users(self, home_id: int) -> List[UserProfile]:
         """Get all users from the appropriate schema"""
         try:

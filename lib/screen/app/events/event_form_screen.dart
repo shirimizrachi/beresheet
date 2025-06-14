@@ -294,67 +294,96 @@ class _EventFormScreenState extends State<EventFormScreen> {
     });
 
     try {
-      // Determine the image URL to use
-      String imageUrl = _imageUrlController.text.trim();
-      if (_imageSource == 'gallery' && _selectedImageFile != null) {
-        // In a real app, you would upload the file to a server and get the URL
-        // For now, we'll use a placeholder or the file path
-        imageUrl = _selectedImageFile!.path;
+      final homeId = await UserSessionService.gethomeID();
+      final userId = await UserSessionService.getUserId();
+      
+      if (homeId == null || userId == null) {
+        throw Exception('User session not found');
       }
 
-      final event = Event(
-        id: widget.event?.id ?? '',
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        type: _selectedType,
-        status: _selectedStatus,
-        dateTime: _selectedDateTime,
-        location: _selectedRoomName ?? _locationController.text.trim(),
-        maxParticipants: int.parse(_maxParticipantsController.text),
-        currentParticipants: widget.event == null ? 0 : int.parse(_currentParticipantsController.text),
-        imageUrl: imageUrl,
-        recurring: _selectedRecurring,
-        recurringEndDate: _recurringEndDate,
-        recurringPattern: null, // No longer using custom patterns
-      );
+      // Create multipart request
+      final uri = widget.event == null
+          ? Uri.parse('${AppConfig.apiBaseUrl}/api/events')
+          : Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}');
+      
+      final request = widget.event == null
+          ? http.MultipartRequest('POST', uri)
+          : http.MultipartRequest('PUT', uri);
 
-      final Event? result = widget.event == null
-          ? await EventService.createEvent(
-              name: event.name,
-              type: event.type,
-              description: event.description,
-              dateTime: event.dateTime,
-              location: event.location,
-              maxParticipants: event.maxParticipants,
-              imageUrl: event.imageUrl,
-              recurring: event.recurring,
-              recurringEndDate: event.recurringEndDate,
-              recurringPattern: event.recurringPattern,
-            )
-          : await EventService.updateEvent(
-              eventId: event.id,
-              name: event.name,
-              type: event.type,
-              description: event.description,
-              dateTime: event.dateTime,
-              location: event.location,
-              maxParticipants: event.maxParticipants,
-              imageUrl: event.imageUrl,
-              currentParticipants: event.currentParticipants,
-              status: event.status,
-              recurring: event.recurring,
-              recurringEndDate: event.recurringEndDate,
-              recurringPattern: event.recurringPattern,
+      // Add headers
+      request.headers.addAll({
+        'homeID': homeId.toString(),
+        'userId': userId,
+      });
+
+      // Add form fields
+      request.fields.addAll({
+        'name': _nameController.text.trim(),
+        'type': _selectedType,
+        'description': _descriptionController.text.trim(),
+        'dateTime': _selectedDateTime.toIso8601String(),
+        'location': _selectedRoomName ?? _locationController.text.trim(),
+        'maxParticipants': _maxParticipantsController.text.trim(),
+        'currentParticipants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
+        'status': _selectedStatus,
+        'recurring': _selectedRecurring,
+      });
+
+      if (_recurringEndDate != null) {
+        request.fields['recurring_end_date'] = _recurringEndDate!.toIso8601String();
+      }
+
+      // Handle image based on source
+      if (_imageSource == 'gallery' && _selectedImageFile != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'image',
+          _selectedImageFile!.path,
+        ));
+      } else if (_imageSource == 'unsplash' && _imageUrlController.text.isNotEmpty) {
+        // For Unsplash images, download and upload as bytes
+        try {
+          final imageResponse = await http.get(Uri.parse(_imageUrlController.text.trim()));
+          if (imageResponse.statusCode == 200) {
+            request.files.add(http.MultipartFile.fromBytes(
+              'image',
+              imageResponse.bodyBytes,
+              filename: 'unsplash_image.jpg',
+            ));
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error downloading Unsplash image: $e'),
+                backgroundColor: Colors.red,
+              ),
             );
+          }
+          setState(() { _isSaving = false; });
+          return;
+        }
+      }
 
-      if (result != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.event == null ? l10n.eventCreated : l10n.eventUpdated),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(true);
+      final response = await request.send();
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(widget.event == null ? l10n.eventCreated : l10n.eventUpdated),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        final responseBody = await response.stream.bytesToString();
+        try {
+          final errorData = json.decode(responseBody);
+          throw Exception(errorData['detail'] ?? 'Unknown error');
+        } catch (e) {
+          throw Exception('Server error: ${response.statusCode}');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -892,7 +921,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        if (_imageUrlController.text.isNotEmpty)
+                        if (_selectedImageFile != null || _imageUrlController.text.isNotEmpty)
                           Container(
                             height: 200,
                             width: double.infinity,
@@ -902,22 +931,27 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(AppSpacing.sm),
-                              child: Image.network(
-                                _imageUrlController.text,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.error, color: Colors.red),
-                                    const SizedBox(height: AppSpacing.sm),
-                                    Text(l10n.invalidImageUrl),
-                                  ],
-                                ),
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const Center(child: CircularProgressIndicator());
-                                },
-                              ),
+                              child: _selectedImageFile != null
+                                  ? Image.file(
+                                      _selectedImageFile!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.network(
+                                      _imageUrlController.text,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.error, color: Colors.red),
+                                          const SizedBox(height: AppSpacing.sm),
+                                          Text(l10n.invalidImageUrl),
+                                        ],
+                                      ),
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(child: CircularProgressIndicator());
+                                      },
+                                    ),
                             ),
                           ),
                       ],

@@ -7,6 +7,7 @@ import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:beresheet_app/services/firebase_messaging_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,9 @@ void main() async {
   
   // Setup Firebase Auth for debug mode
   setupFirebaseAuth();
+  
+  // Initialize Firebase Messaging
+  await FirebaseMessagingService.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -97,6 +101,9 @@ class MyApp extends StatelessWidget {
         if (storedUserId != null) {
           final userProfile = await ApiUserService.getUserProfile(storedUserId);
           if (userProfile != null) {
+            // Check and update Firebase FCM token if needed
+            ApiUserService.checkAndUpdateFcmToken(storedUserId);
+            
             // Check if profile data is complete
             if (userProfile.fullName.isEmpty) {
               // Profile exists but is incomplete - direct to profile setup

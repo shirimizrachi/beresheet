@@ -1,5 +1,6 @@
 import 'package:beresheet_app/auth/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key, required this.number});
@@ -21,7 +22,7 @@ class _OtpScreenState extends State<OtpScreen> {
       appBar: AppBar(
         backgroundColor: theme.colorScheme.primary,
         title: Text(
-          'OTP',
+          context.l10n.otpTitle,
           style: theme.textTheme.titleLarge?.copyWith(
             // Adjusting the style to match the theme
             color:
@@ -44,7 +45,7 @@ class _OtpScreenState extends State<OtpScreen> {
           children: [
             const SizedBox(height: 50),
             Text(
-              "Verify With OTP Sent to ${widget.number}",
+              context.l10n.verifyWithOTPSentTo('0${widget.number}'),
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -69,7 +70,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     borderSide: BorderSide(
                         color: theme.colorScheme.secondary, width: 2),
                   ),
-                  labelText: "Enter OTP",
+                  labelText: context.l10n.enterOTP,
                 ),
               ),
             ),
@@ -97,9 +98,9 @@ class _OtpScreenState extends State<OtpScreen> {
                   child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: !isVerifying
-                          ? const Text(
-                              "Continue",
-                              style: TextStyle(
+                          ? Text(
+                              context.l10n.continueButton,
+                              style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             )
                           : const Center(

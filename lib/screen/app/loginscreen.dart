@@ -10,53 +10,28 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  List<TextEditingController> phoneControllers = List.generate(10, (index) => TextEditingController());
-  List<FocusNode> focusNodes = List.generate(10, (index) => FocusNode());
+  TextEditingController phoneController = TextEditingController();
   bool isgettingOTP = false; // State to manage button enable/disable
 
 
   @override
   void dispose() {
-    for (var controller in phoneControllers) {
-      controller.dispose();
-    }
-    for (var focusNode in focusNodes) {
-      focusNode.dispose();
-    }
+    phoneController.dispose();
     super.dispose();
   }
 
-  String getFullPhoneNumber() {
-    return phoneControllers.map((controller) => controller.text).join();
-  }
 
-  String getPhoneNumberForFirebase() {
-    String fullNumber = getFullPhoneNumber();
-    // Remove leading zero and add country code for Firebase
-    if (fullNumber.startsWith('0') && fullNumber.length == 10) {
-      return '972${fullNumber.substring(1)}'; // Remove 0, add 972
-    }
-    return fullNumber;
-  }
-
-  void onDigitChanged(String value, int index) {
-    if (value.isNotEmpty && index < 9) {
-      // Move to next field
-      FocusScope.of(context).requestFocus(focusNodes[index + 1]);
-    } else if (value.isEmpty && index > 0) {
-      // Move to previous field on backspace
-      FocusScope.of(context).requestFocus(focusNodes[index - 1]);
-    }
-  }
 
   void getOTP() {
-    String phoneNumber = getFullPhoneNumber();
+    String phoneNumber = phoneController.text;
+    // Validate: 10 digits starting with 0
     if (RegExp(r'^0[0-9]{9}$').hasMatch(phoneNumber)) {
       setState(() {
         isgettingOTP = true;
       });
-      String firebasePhoneNumber = getPhoneNumberForFirebase();
-      AuthRepo.verifyPhoneNumber(context, firebasePhoneNumber);
+      // Remove the leading zero before sending to AuthRepo
+      String processedNumber = phoneNumber.substring(1);
+      AuthRepo.verifyPhoneNumber(context, processedNumber);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -104,50 +79,24 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 40),
             Directionality(
               textDirection: TextDirection.ltr,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(10, (index) {
-                  return Container(
-                    width: 40,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.primary,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: TextField(
-                      controller: phoneControllers[index],
-                      focusNode: focusNodes[index],
-                      textAlign: TextAlign.center,
-                      maxLength: 1,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        counterText: "",
-                      ),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      onChanged: (value) {
-                        if (value.length == 1 && RegExp(r'[0-9]').hasMatch(value)) {
-                          onDigitChanged(value, index);
-                        } else if (value.isEmpty) {
-                          onDigitChanged(value, index);
-                        } else {
-                          // Clear invalid input
-                          phoneControllers[index].clear();
-                        }
-                      },
-                      onTap: () {
-                        // Clear field when tapped
-                        phoneControllers[index].clear();
-                      },
-                    ),
-                  );
-                }),
+              child: TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+                  ),
+                  counterText: "",
+                ),
+                maxLength: 10,
+                keyboardType: TextInputType.number,
               ),
             ),
             const SizedBox(height: 10),

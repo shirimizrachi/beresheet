@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
@@ -8,6 +9,8 @@ import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http_parser/http_parser.dart';
 
 class EventFormWeb extends StatefulWidget {
   final Event? event; // null for creating new event
@@ -37,7 +40,9 @@ class _EventFormWebState extends State<EventFormWeb> {
   DateTime? _recurringEndDate;
   
   // Image handling
-  String _imageSource = 'url'; // 'url', 'unsplash', or 'upload'
+  String _imageSource = 'upload'; // 'upload', 'gallery', or 'unsplash'
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
   
   bool _isLoading = false;
   String? _errorMessage;
@@ -175,6 +180,25 @@ class _EventFormWebState extends State<EventFormWeb> {
     }
   }
 
+  Future<void> _pickImageFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _selectedImageBytes = result.files.single.bytes;
+          _selectedImageName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      _showMessage('Error picking image: $e', isError: true);
+    }
+  }
+
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -196,34 +220,67 @@ class _EventFormWebState extends State<EventFormWeb> {
     });
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      // Create multipart request
+      final uri = widget.event == null
+          ? Uri.parse('${AppConfig.apiBaseUrl}/api/events')
+          : Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}');
       
-      final eventData = {
+      final request = widget.event == null
+          ? http.MultipartRequest('POST', uri)
+          : http.MultipartRequest('PUT', uri);
+
+      // Add headers
+      request.headers.addAll({
+        'homeID': WebAuthService.homeId.toString(),
+        'userId': WebAuthService.userId ?? '',
+      });
+
+      // Add form fields
+      request.fields.addAll({
         'name': _nameController.text.trim(),
         'type': _selectedType,
         'description': _descriptionController.text.trim(),
         'dateTime': _selectedDateTime.toIso8601String(),
         'location': _selectedRoomName ?? _locationController.text.trim(),
-        'maxParticipants': int.parse(_maxParticipantsController.text.trim()),
-        'image_url': _imageUrlController.text.trim(),
-        'currentParticipants': widget.event == null ? 0 : int.parse(_currentParticipantsController.text.trim()),
+        'maxParticipants': _maxParticipantsController.text.trim(),
+        'currentParticipants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
-        'recurring_end_date': _recurringEndDate?.toIso8601String(),
-        'recurring_pattern': null, // No longer using custom patterns
-      };
+      });
 
-      final response = widget.event == null
-          ? await http.post(
-              Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
-              headers: headers,
-              body: json.encode(eventData),
-            )
-          : await http.put(
-              Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}'),
-              headers: headers,
-              body: json.encode(eventData),
-            );
+      if (_recurringEndDate != null) {
+        request.fields['recurring_end_date'] = _recurringEndDate!.toIso8601String();
+      }
+
+      // Handle image based on source
+      if (_imageSource == 'upload' && _selectedImageBytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'image',
+          _selectedImageBytes!,
+          filename: _selectedImageName ?? 'event_image.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ));
+      } else if (_imageSource == 'unsplash' && _imageUrlController.text.isNotEmpty) {
+        // For Unsplash images, download and upload as bytes
+        try {
+          final imageResponse = await http.get(Uri.parse(_imageUrlController.text.trim()));
+          if (imageResponse.statusCode == 200) {
+            request.files.add(http.MultipartFile.fromBytes(
+              'image',
+              imageResponse.bodyBytes,
+              filename: 'unsplash_image.jpg',
+              contentType: MediaType('image', 'jpeg'),
+            ));
+          }
+        } catch (e) {
+          _showMessage('Error downloading Unsplash image: $e', isError: true);
+          setState(() { _isLoading = false; });
+          return;
+        }
+      }
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         setState(() {
@@ -246,11 +303,18 @@ class _EventFormWebState extends State<EventFormWeb> {
           }
         });
       } else {
-        final errorData = json.decode(response.body);
-        setState(() {
-          _errorMessage = '${AppLocalizations.of(context)!.operationFailed}: ${errorData['detail'] ?? response.statusCode}';
-          _isLoading = false;
-        });
+        try {
+          final errorData = json.decode(responseBody);
+          setState(() {
+            _errorMessage = '${AppLocalizations.of(context)!.operationFailed}: ${errorData['detail'] ?? response.statusCode}';
+            _isLoading = false;
+          });
+        } catch (e) {
+          setState(() {
+            _errorMessage = '${AppLocalizations.of(context)!.operationFailed}: ${response.statusCode}';
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -273,7 +337,9 @@ class _EventFormWebState extends State<EventFormWeb> {
       _selectedRecurring = AppConfig.eventRecurringNone;
       _selectedDateTime = DateTime.now().add(const Duration(days: 1));
       _recurringEndDate = null;
-      _imageSource = 'url';
+      _imageSource = 'upload';
+      _selectedImageBytes = null;
+      _selectedImageName = null;
     });
   }
 
@@ -840,12 +906,14 @@ class _EventFormWebState extends State<EventFormWeb> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: Text(AppLocalizations.of(context)!.url),
-                              value: 'url',
+                              title: Text(AppLocalizations.of(context)!.upload),
+                              value: 'upload',
                               groupValue: _imageSource,
                               onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
+                                  _selectedImageBytes = null;
+                                  _selectedImageName = null;
                                 });
                               },
                             ),
@@ -853,12 +921,14 @@ class _EventFormWebState extends State<EventFormWeb> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: Text(AppLocalizations.of(context)!.upload),
-                              value: 'upload',
+                              title: const Text('Gallery (Phone only)'),
+                              value: 'gallery',
                               groupValue: _imageSource,
                               onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
+                                  _selectedImageBytes = null;
+                                  _selectedImageName = null;
                                 });
                               },
                             ),
@@ -873,6 +943,8 @@ class _EventFormWebState extends State<EventFormWeb> {
                                 setState(() {
                                   _imageSource = value!;
                                   _imageUrlController.clear();
+                                  _selectedImageBytes = null;
+                                  _selectedImageName = null;
                                 });
                               },
                             ),
@@ -894,37 +966,59 @@ class _EventFormWebState extends State<EventFormWeb> {
                             },
                           ),
                         ),
-                      ] else
-                        TextFormField(
-                        controller: _imageUrlController,
-                        enabled: _isFieldEditable,
-                        decoration: InputDecoration(
-                          labelText: AppLocalizations.of(context)!.imageUrl,
-                          hintText: AppLocalizations.of(context)!.webEnterImageUrl,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return AppLocalizations.of(context)!.pleaseEnterImageUrl;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      if (true)
+                      ] else ...[
+                        // File upload section for 'upload' and 'gallery'
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _validateImageUrl,
-                            icon: const Icon(Icons.download),
-                            label: Text(AppLocalizations.of(context)!.validateImageUrl),
+                            onPressed: _pickImageFile,
+                            icon: const Icon(Icons.upload_file),
+                            label: Text(_imageSource == 'upload'
+                                ? 'Upload Image from Computer'
+                                : 'Select Image from Gallery (Phone only)'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        
+                        // Show selected file info
+                        if (_selectedImageName != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              border: Border.all(color: Colors.green[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Selected: $_selectedImageName',
+                                    style: TextStyle(color: Colors.green[700]),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedImageBytes = null;
+                                      _selectedImageName = null;
+                                    });
+                                  },
+                                  child: const Text('Remove'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
                       
                       const SizedBox(height: 16),
                       Text(
@@ -932,7 +1026,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      if (_imageUrlController.text.isNotEmpty)
+                      if (_selectedImageBytes != null || _imageUrlController.text.isNotEmpty)
                         Container(
                           height: 200,
                           width: double.infinity,
@@ -942,22 +1036,27 @@ class _EventFormWebState extends State<EventFormWeb> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              _imageUrlController.text,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error, color: Colors.red),
-                                  const SizedBox(height: 8),
-                                  Text(AppLocalizations.of(context)!.invalidImageUrl),
-                                ],
-                              ),
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const Center(child: CircularProgressIndicator());
-                              },
-                            ),
+                            child: _selectedImageBytes != null
+                                ? Image.memory(
+                                    _selectedImageBytes!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.network(
+                                    _imageUrlController.text,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.error, color: Colors.red),
+                                        const SizedBox(height: 8),
+                                        Text(AppLocalizations.of(context)!.invalidImageUrl),
+                                      ],
+                                    ),
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const Center(child: CircularProgressIndicator());
+                                    },
+                                  ),
                           ),
                         ),
                     ],
@@ -1006,20 +1105,7 @@ class _EventFormWebState extends State<EventFormWeb> {
               // Action Buttons
               Row(
                 children: [
-                  if (widget.event == null)
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _clearForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(AppLocalizations.of(context)!.clearForm),
-                      ),
-                    ),
-                  if (widget.event == null) const SizedBox(width: 16),
-                  // Update/Create button (comes first)
+                  // Update/Create button
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _saveEvent,

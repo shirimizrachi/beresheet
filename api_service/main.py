@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Header, Depends
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Header, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Optional
+from datetime import datetime
 from models import (
     Event,
     EventCreate,
@@ -30,9 +31,11 @@ from rooms import room_db
 from events_registration import events_registration_db
 from users import user_db
 from service_provider_types import service_provider_type_db
-from requests import request_db
+from request_service import request_db
+from azure_storage_service import azure_storage_service
 import uvicorn
 import os
+import json
 
 # Create FastAPI app
 app = FastAPI(
@@ -155,31 +158,185 @@ async def get_event(
 
 @api_router.post("/events", response_model=Event, status_code=201)
 async def create_event(
-    event: EventCreate,
+    name: str = Form(...),
+    type: str = Form(...),
+    description: str = Form(...),
+    dateTime: str = Form(...),
+    location: str = Form(...),
+    maxParticipants: int = Form(...),
+    currentParticipants: int = Form(0),
+    status: str = Form("pending-approval"),
+    recurring: str = Form("none"),
+    recurring_end_date: Optional[str] = Form(None),
+    recurring_pattern: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Depends(get_firebase_token),
     user_id: Optional[str] = Depends(get_user_id)
 ):
-    """Create a new event"""
+    """Create a new event with image upload"""
     try:
-        new_event = event_db.create_event(event, home_id, created_by=user_id)
+        # Parse dateTime
+        try:
+            event_datetime = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid dateTime format")
+        
+        # Parse optional datetime fields
+        parsed_recurring_end_date = None
+        if recurring_end_date:
+            try:
+                parsed_recurring_end_date = datetime.fromisoformat(recurring_end_date.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid recurring_end_date format")
+        
+        # First create event without image
+        event_data = EventCreate(
+            name=name,
+            type=type,
+            description=description,
+            dateTime=event_datetime,
+            location=location,
+            maxParticipants=maxParticipants,
+            image_url="",  # Will be updated after image upload
+            currentParticipants=currentParticipants,
+            status=status,
+            recurring=recurring,
+            recurring_end_date=parsed_recurring_end_date,
+            recurring_pattern=recurring_pattern
+        )
+        
+        # Create the event
+        new_event = event_db.create_event(event_data, home_id, created_by=user_id)
+        
+        # Handle image upload after event creation
+        if image:
+            # Validate image file
+            if not image.content_type or not image.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            
+            # Read image data
+            image_data = await image.read()
+            
+            # Upload to Azure Storage using event_id as filename
+            success, result = azure_storage_service.upload_event_image(
+                home_id=home_id,
+                event_id=new_event.id,
+                image_data=image_data,
+                original_filename=image.filename or "event_image.jpg",
+                content_type=image.content_type
+            )
+            
+            if not success:
+                raise HTTPException(status_code=400, detail=f"Image upload failed: {result}")
+            
+            # Update event with image URL
+            from models import EventUpdate
+            event_update = EventUpdate(image_url=result)
+            updated_event = event_db.update_event(new_event.id, event_update, home_id)
+            if updated_event:
+                new_event = updated_event
+        
         return new_event
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating event: {str(e)}")
 
 @api_router.put("/events/{event_id}", response_model=Event)
 async def update_event(
     event_id: str,
-    event: EventUpdate,
+    name: Optional[str] = Form(None),
+    type: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    dateTime: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    maxParticipants: Optional[int] = Form(None),
+    currentParticipants: Optional[int] = Form(None),
+    status: Optional[str] = Form(None),
+    recurring: Optional[str] = Form(None),
+    recurring_end_date: Optional[str] = Form(None),
+    recurring_pattern: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Depends(get_firebase_token),
     user_id: Optional[str] = Depends(get_user_id)
 ):
-    """Update an existing event"""
-    updated_event = event_db.update_event(event_id, event, home_id)
-    if not updated_event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return updated_event
+    """Update an existing event with image upload"""
+    try:
+        # Prepare update data
+        update_data = {}
+        
+        if name is not None:
+            update_data['name'] = name
+        if type is not None:
+            update_data['type'] = type
+        if description is not None:
+            update_data['description'] = description
+        if location is not None:
+            update_data['location'] = location
+        if maxParticipants is not None:
+            update_data['maxParticipants'] = maxParticipants
+        if currentParticipants is not None:
+            update_data['currentParticipants'] = currentParticipants
+        if status is not None:
+            update_data['status'] = status
+        if recurring is not None:
+            update_data['recurring'] = recurring
+        if recurring_pattern is not None:
+            update_data['recurring_pattern'] = recurring_pattern
+        
+        # Parse datetime fields
+        if dateTime is not None:
+            try:
+                update_data['dateTime'] = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid dateTime format")
+        
+        if recurring_end_date is not None:
+            try:
+                update_data['recurring_end_date'] = datetime.fromisoformat(recurring_end_date.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid recurring_end_date format")
+        
+        # Handle image update
+        if image:
+            # Validate image file
+            if not image.content_type or not image.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            
+            # Read image data
+            image_data = await image.read()
+            
+            # Upload to Azure Storage using event_id as filename
+            success, result = azure_storage_service.upload_event_image(
+                home_id=home_id,
+                event_id=event_id,
+                image_data=image_data,
+                original_filename=image.filename or "event_image.jpg",
+                content_type=image.content_type
+            )
+            
+            if not success:
+                raise HTTPException(status_code=400, detail=f"Image upload failed: {result}")
+            
+            update_data['image_url'] = result
+        
+        # Create EventUpdate object
+        event_update = EventUpdate(**update_data)
+        
+        # Update the event
+        updated_event = event_db.update_event(event_id, event_update, home_id)
+        if not updated_event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return updated_event
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating event: {str(e)}")
 
 @api_router.delete("/events/{event_id}")
 async def delete_event(
@@ -778,6 +935,33 @@ async def delete_user_profile(user_id: str, home_id: int = Depends(get_home_id))
     if not success:
         raise HTTPException(status_code=404, detail="User profile not found")
     return {"message": "User profile deleted successfully"}
+
+@api_router.patch("/users/{user_id}/fcm-token")
+async def update_user_fcm_token(
+    user_id: str,
+    token_data: dict,
+    home_id: int = Depends(get_home_id)
+):
+    """Update only the Firebase FCM token for a user"""
+    try:
+        # Get the FCM token from request body
+        fcm_token = token_data.get('firebase_fcm_token')
+        if not fcm_token:
+            raise HTTPException(status_code=400, detail="firebase_fcm_token is required")
+        
+        # Update the user's FCM token in the database
+        success = user_db.update_user_fcm_token(user_id, fcm_token, home_id)
+        
+        if success:
+            return {"message": "FCM token updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="User not found or update failed")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating FCM token: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update FCM token")
 
 # User photo endpoints
 @api_router.post("/users/{user_id}/photo")

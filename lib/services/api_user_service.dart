@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../model/user.dart';
 import 'user_session_service.dart';
 import '../config/app_config.dart';
+import 'firebase_messaging_service.dart';
 
 class ApiUserService {
   // Use different URLs for web vs mobile platforms
@@ -180,6 +181,52 @@ class ApiUserService {
     } catch (e) {
       print('Error updating user profile: $e');
       return null;
+    }
+  }
+
+  /// Update only the Firebase FCM token for a user
+  static Future<bool> updateFirebaseFcmToken(String userId, String fcmToken) async {
+    try {
+      final headers = await UserSessionService.getApiHeaders();
+      final response = await http.patch(
+        Uri.parse('$baseUrl/api/users/$userId/fcm-token'),
+        headers: headers,
+        body: json.encode({'firebase_fcm_token': fcmToken}),
+      );
+
+      if (response.statusCode == 200) {
+        print('FCM token updated successfully for user $userId');
+        return true;
+      } else {
+        print('Error updating FCM token: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error updating FCM token: $e');
+      return false;
+    }
+  }
+
+  /// Check and update Firebase FCM token if needed
+  static Future<void> checkAndUpdateFcmToken(String userId) async {
+    try {
+      // Get the current FCM token
+      final currentToken = await FirebaseMessagingService.getFcmToken();
+      
+      if (currentToken != null) {
+        // Get the user profile to check existing token
+        final userProfile = await getUserProfile(userId);
+        
+        if (userProfile != null) {
+          // Check if the token is different or missing
+          if (userProfile.firebaseFcmToken != currentToken) {
+            print('Updating FCM token for user $userId');
+            await updateFirebaseFcmToken(userId, currentToken);
+          }
+        }
+      }
+    } catch (e) {
+      print('Error checking and updating FCM token: $e');
     }
   }
 

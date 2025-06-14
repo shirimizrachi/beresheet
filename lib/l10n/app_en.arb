@@ -45,7 +45,7 @@
   "@loginTitle": {
     "description": "Login screen title"
   },
-  "enterMobileNumberForOTP": "Enter your Mobile Number to get OTP",
+  "enterMobileNumberForOTP": "Enter your Mobile Number",
   "@enterMobileNumberForOTP": {
     "description": "Enter mobile number instruction"
   },
@@ -64,6 +64,27 @@
   "termsAndConditionsAcceptance": "By Clicking, I accept the Terms & Conditions and Privacy Policy",
   "@termsAndConditionsAcceptance": {
     "description": "Terms and conditions acceptance text"
+  },
+  "otpTitle": "OTP",
+  "@otpTitle": {
+    "description": "OTP screen title"
+  },
+  "verifyWithOTPSentTo": "OTP Sent to {phoneNumber}",
+  "@verifyWithOTPSentTo": {
+    "description": "OTP verification instruction with phone number",
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "enterOTP": "Enter OTP",
+  "@enterOTP": {
+    "description": "Enter OTP field label"
+  },
+  "continueButton": "Continue",
+  "@continueButton": {
+    "description": "Continue button text"
   },
   "logout": "Logout",
   "@logout": {
@@ -1183,6 +1204,10 @@
   "upload": "Upload",
   "@upload": {
     "description": "Upload button"
+  },
+  "galleryPhoneOnly": "Gallery (Phone only)",
+  "@galleryPhoneOnly": {
+    "description": "Gallery option - phone only"
   },
   "imagePicker": "Image Picker",
   "@imagePicker": {

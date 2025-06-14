@@ -12,6 +12,7 @@ class UserModel {
   final int homeID; // Not displayed in profile page, used for internal operations
   final String id; // Unique user identifier (primary key)
   final String? photo;
+  final String? firebaseFcmToken;
   final String? createdAt;
   final String? updatedAt;
 
@@ -29,6 +30,7 @@ class UserModel {
     required this.homeID,
     required this.id,
     this.photo,
+    this.firebaseFcmToken,
     this.createdAt,
     this.updatedAt,
   });
@@ -49,6 +51,7 @@ class UserModel {
       homeID: json['home_id'] as int,
       id: json['id'] as String,
       photo: json['photo'] as String?,
+      firebaseFcmToken: json['firebase_fcm_token'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
     );
@@ -69,6 +72,7 @@ class UserModel {
       'home_id': homeID,
       'id': id,
       if (photo != null) 'photo': photo,
+      if (firebaseFcmToken != null) 'firebase_fcm_token': firebaseFcmToken,
     };
   }
 
@@ -91,6 +95,7 @@ class UserModel {
     int? homeID,
     String? id,
     String? photo,
+    String? firebaseFcmToken,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -108,6 +113,7 @@ class UserModel {
       homeID: homeID ?? this.homeID,
       id: id ?? this.id,
       photo: photo ?? this.photo,
+      firebaseFcmToken: firebaseFcmToken ?? this.firebaseFcmToken,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
