@@ -8,3 +8,4 @@ azure-core[aio]==1.30.2
 azure-storage-blob==12.19.0
 sqlalchemy==2.0.23
 pyodbc==5.1.0
+python-dotenv==1.0.0

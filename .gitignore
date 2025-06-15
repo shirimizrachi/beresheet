@@ -134,3 +134,7 @@ lint/tmp/
 
 # Android Profiling
 *.hprof
+
+# Environment variables
+.env
+api_service/.env

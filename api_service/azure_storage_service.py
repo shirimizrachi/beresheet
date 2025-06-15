@@ -11,11 +11,15 @@ from typing import Optional, Tuple
 from azure.storage.blob import BlobServiceClient, BlobClient, generate_blob_sas, BlobSasPermissions
 from azure.core.exceptions import AzureError
 import mimetypes
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class AzureStorageService:
     def __init__(self):
         """Initialize Azure Storage Service with connection string from environment"""
-        self.connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING','DefaultEndpointsProtocol=https;AccountName=residentsapp;AccountKey=Y+ARw26CxaO5y9ZmC8hxKbVaJ++WAeGYGoZwyGRS2J0PeMgZZjBaRaVew4sZGGlozTlqS7KcJ0GR+AStJi5ZzQ==;EndpointSuffix=core.windows.net')
+        self.connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
         self.container_name = os.getenv('AZURE_STORAGE_CONTAINER_NAME', 'beresheet-images')
         
         if not self.connection_string:
