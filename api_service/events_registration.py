@@ -116,22 +116,27 @@ class EventRegistrationDatabase:
                 
                 # Create registration record
                 registration_id = str(uuid.uuid4())
+                current_time = datetime.now()
                 registration_data = {
                     'id': registration_id,
                     'event_id': event_id,
                     'user_id': user_id,
-                    'user_name': user_name,
-                    'user_phone': user_phone,
-                    'registration_date': datetime.now(),
+                    'user_name': user_name or 'Unknown User',
+                    'user_phone': user_phone or '',
+                    'registration_date': current_time,
                     'status': 'registered',
-                    'created_at': datetime.now(),
-                    'updated_at': datetime.now()
+                    'notes': None,  # Can be updated later if needed
+                    'created_at': current_time,
+                    'updated_at': current_time
                 }
                 
+                print(f"Creating registration record: {registration_data}")
                 conn.execute(registration_table.insert().values(**registration_data))
+                print(f"Registration record created successfully for user {user_id} and event {event_id}")
                 
                 # Update event participant count
                 new_count = current_registrations.count + 1
+                print(f"Updating event {event_id} participant count from {current_registrations.count} to {new_count}")
                 conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
@@ -139,6 +144,7 @@ class EventRegistrationDatabase:
                 )
                 
                 conn.commit()
+                print(f"Event {event_id} participant count updated successfully to {new_count}")
                 return True
 
         except Exception as e:

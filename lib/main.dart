@@ -34,6 +34,10 @@ void main() async {
   // Initialize Firebase Messaging
   await FirebaseMessagingService.initialize();
 
+  // Initialize user session and setup Firebase Auth listener
+  await UserSessionService.initializeSession();
+  UserSessionService.setupFirebaseAuthListener();
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -92,41 +96,104 @@ class MyApp extends StatelessWidget {
   // Function to determine which page to navigate to based on user status
   Future<Widget> _getUserStatus() async {
     try {
-      // Use the new authentication check from AuthRepo
-      final isAuthenticated = await AuthRepo.checkAuthenticationStatus();
+      // First check if we have a valid session in cache/storage
+      final hasValidSession = await UserSessionService.hasValidSession();
       
-      if (isAuthenticated) {
-        // User is authenticated and has valid session data
+      if (hasValidSession) {
+        // Try to use cached session data first
         final storedUserId = await UserSessionService.getUserId();
         if (storedUserId != null) {
-          final userProfile = await ApiUserService.getUserProfile(storedUserId);
-          if (userProfile != null) {
-            // Check and update Firebase FCM token if needed
-            ApiUserService.checkAndUpdateFcmToken(storedUserId);
-            
-            // Check if profile data is complete
-            if (userProfile.fullName.isEmpty) {
-              // Profile exists but is incomplete - direct to profile setup
-              return const NewProfilePage();
+          try {
+            // Try to fetch user profile with existing session
+            final userProfile = await ApiUserService.getUserProfile(storedUserId);
+            if (userProfile != null) {
+              // Check and update Firebase FCM token if needed (non-blocking)
+              ApiUserService.checkAndUpdateFcmToken(storedUserId).catchError((e) {
+                print('Non-critical error updating FCM token: $e');
+              });
+              
+              // Check if profile data is complete
+              if (userProfile.fullName?.isEmpty ?? true) {
+                // Profile exists but is incomplete - direct to profile setup
+                return const NewProfilePage();
+              } else {
+                // User exists and profile is complete
+                return const HomePage();
+              }
             } else {
-              // User exists and profile is complete
+              // User profile not found - could be network issue or deleted user
+              // Don't immediately clear session, let authentication check handle it
+            }
+          } catch (e) {
+            if (UserSessionService.isNetworkError(e)) {
+              print('Network error fetching user profile, using cached session: $e');
+              // On network error, still allow user to continue with cached data
+              return const HomePage();
+            } else if (UserSessionService.isAuthenticationError(e)) {
+              print('Authentication error, clearing session: $e');
+              await UserSessionService.clearSession(reason: 'Authentication error');
+              await FirebaseAuth.instance.signOut();
+            } else {
+              print('Unknown error fetching user profile: $e');
+              // For unknown errors, don't immediately clear session
               return const HomePage();
             }
-          } else {
-            // User profile was deleted from database
-            await UserSessionService.clearSession();
-            await FirebaseAuth.instance.signOut();
           }
         }
       }
       
-      // Not authenticated or no valid session - clear session and show login
-      await UserSessionService.clearSession();
+      // Use the authentication check from AuthRepo as fallback
+      final isAuthenticated = await AuthRepo.checkAuthenticationStatus();
+      
+      if (isAuthenticated) {
+        // User is authenticated but session might be corrupted, try to rebuild
+        final storedUserId = await UserSessionService.getUserId();
+        if (storedUserId != null) {
+          try {
+            final userProfile = await ApiUserService.getUserProfile(storedUserId);
+            if (userProfile != null) {
+              // Rebuild session
+              await UserSessionService.initializeSession(fetchFreshData: true);
+              
+              if (userProfile.fullName?.isEmpty ?? true) {
+                return const NewProfilePage();
+              } else {
+                return const HomePage();
+              }
+            }
+          } catch (e) {
+            if (UserSessionService.isNetworkError(e)) {
+              print('Network error during session rebuild, showing login: $e');
+              // On network error during rebuild, show login but don't clear session
+              return const LoginPage();
+            }
+          }
+        }
+        
+        // Authentication exists but no user profile - clear session
+        await UserSessionService.clearSession(reason: 'No user profile found');
+        await FirebaseAuth.instance.signOut();
+      }
+      
+      // Not authenticated or session rebuild failed - show login
       return const LoginPage();
     } catch (e) {
       print('Error checking user status: $e');
-      // On error, clear session and show login
-      await UserSessionService.clearSession();
+      
+      // Enhanced error handling - don't always clear session
+      if (UserSessionService.isNetworkError(e)) {
+        print('Network error in _getUserStatus, trying to use cached session');
+        // Try to use cached session on network errors
+        final hasValidSession = await UserSessionService.hasValidSession();
+        if (hasValidSession) {
+          return const HomePage();
+        }
+      } else if (UserSessionService.isAuthenticationError(e)) {
+        print('Authentication error in _getUserStatus, clearing session');
+        await UserSessionService.clearSession(reason: 'Authentication error in _getUserStatus');
+      }
+      
+      // Fallback to login page
       return const LoginPage();
     }
   }

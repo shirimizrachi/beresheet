@@ -591,14 +591,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               child: Text(roomName),
                             );
                           }).toList(),
-                          onChanged: (value) {
+                          onChanged: _isFieldEditable ? (value) {
                             setState(() {
                               _selectedRoomName = value;
                               if (value != null) {
                                 _locationController.text = value;
                               }
                             });
-                          },
+                          } : null,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return l10n.pleaseEnterEventLocation;
@@ -886,36 +886,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           ),
                         ],
                       ] else ...[
-                        TextFormField(
-                          controller: _imageUrlController,
-                          enabled: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.imageUrl,
-                            hintText: l10n.enterImageUrl,
-                          ),
-                          validator: (value) {
-                            if (_imageSource == 'url' && (value == null || value.trim().isEmpty)) {
-                              return l10n.pleaseEnterImageUrl;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _downloadImageFromUrl,
-                                icon: const Icon(Icons.download),
-                                label: Text(l10n.validateImageUrl),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // URL input field is hidden as requested
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           '${l10n.imagePreview}:',

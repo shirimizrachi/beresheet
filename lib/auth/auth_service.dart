@@ -99,23 +99,45 @@ class AuthRepo {
   /// Handle user authentication after Firebase OTP verification
   static Future<void> _handleUserAuthentication(BuildContext context, UserCredential userCredential) async {
     try {
-      // Check if user_id exists in persistent storage (for returning users)
-      final existingUserId = await UserSessionService.getUserId();
-      final existingHomeId = await UserSessionService.gethomeID();
+      // Check if we have a valid session (for returning users)
+      final hasValidSession = await UserSessionService.hasValidSession();
       
-      if (existingUserId != null && existingHomeId != null) {
-        // Returning user - verify they still exist in database
-        final existingUser = await ApiUserService.getUserProfile(existingUserId);
-        if (existingUser != null) {
-          // User exists, redirect to home
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage())
-          );
-          return;
-        } else {
-          // User was deleted from database, clear session and treat as new user
-          await UserSessionService.clearSession();
+      if (hasValidSession) {
+        final existingUserId = await UserSessionService.getUserId();
+        final existingHomeId = await UserSessionService.gethomeID();
+        
+        if (existingUserId != null && existingHomeId != null) {
+          try {
+            // Returning user - verify they still exist in database
+            final existingUser = await ApiUserService.getUserProfile(existingUserId);
+            if (existingUser != null) {
+              // User exists, redirect to home
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage())
+              );
+              return;
+            } else {
+              // User was deleted from database, clear session and treat as new user
+              await UserSessionService.clearSession(reason: 'User deleted from database');
+            }
+          } catch (e) {
+            if (UserSessionService.isNetworkError(e)) {
+              print('Network error checking existing user, proceeding with session: $e');
+              // On network error, trust existing session
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage())
+              );
+              return;
+            } else if (UserSessionService.isAuthenticationError(e)) {
+              print('Authentication error, clearing session: $e');
+              await UserSessionService.clearSession(reason: 'Authentication error');
+            } else {
+              print('Unknown error checking existing user: $e');
+              // For unknown errors, still try to proceed
+            }
+          }
         }
       }
 
@@ -128,32 +150,64 @@ class AuthRepo {
           localPhoneNumber = phoneNumber.substring(4);
         }
 
-        // Use configured home ID from app config
-        final existingProfile = await ApiUserService.getUserProfileByPhone(localPhoneNumber, AppConfig.homeId);
-        
-        if (existingProfile != null) {
-          // Profile found, user session is already set by ApiUserService.getUserProfileByPhone
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage())
-          );
-        } else {
-          // No profile found - user doesn't exist in database
-          // Sign out and show error message
-          await _firebaseAuth.signOut();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Your profile was not found in the system. Please contact the administrator to create your profile first.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
-          // Navigate back to login screen
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false,
-          );
+        try {
+          // Use configured home ID from app config
+          final existingProfile = await ApiUserService.getUserProfileByPhone(localPhoneNumber, AppConfig.homeId);
+          
+          if (existingProfile != null) {
+            // Profile found, user session is already set by ApiUserService.getUserProfileByPhone
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage())
+            );
+          } else {
+            // No profile found - user doesn't exist in database
+            // Sign out and show error message
+            await _firebaseAuth.signOut();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your profile was not found in the system. Please contact the administrator to create your profile first.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            // Navigate back to login screen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
+          }
+        } catch (e) {
+          if (UserSessionService.isNetworkError(e)) {
+            print('Network error during phone lookup: $e');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Network error. Please check your connection and try again.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
+          } else {
+            // Other errors, show generic message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error during authentication: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
+          }
         }
       } else {
         // No phone number available (shouldn't happen with phone auth)
@@ -172,13 +226,29 @@ class AuthRepo {
       }
     } catch (e) {
       print('Error handling user authentication: $e');
-      // On error, navigate to profile page to be safe
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) {
-          return NewProfilePage(userCredential: userCredential);
-        })
-      );
+      
+      // Enhanced error handling
+      if (UserSessionService.isNetworkError(e)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Network error during authentication. Please try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      } else {
+        // On other errors, navigate to profile page to be safe
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) {
+            return NewProfilePage(userCredential: userCredential);
+          })
+        );
+      }
     }
   }
 
@@ -190,19 +260,50 @@ class AuthRepo {
         return false; // Not authenticated with Firebase
       }
 
-      // Check if user_id exists in persistent storage
+      // Check if we have a valid session
+      final hasValidSession = await UserSessionService.hasValidSession();
+      if (!hasValidSession) {
+        return false; // No session data
+      }
+
+      // Get session data
       final existingUserId = await UserSessionService.getUserId();
       final existingHomeId = await UserSessionService.gethomeID();
       
       if (existingUserId != null && existingHomeId != null) {
-        // Verify user still exists in database
-        final existingUser = await ApiUserService.getUserProfile(existingUserId);
-        return existingUser != null;
+        try {
+          // Verify user still exists in database
+          final existingUser = await ApiUserService.getUserProfile(existingUserId);
+          return existingUser != null;
+        } catch (e) {
+          if (UserSessionService.isNetworkError(e)) {
+            print('Network error checking authentication, assuming valid: $e');
+            // On network errors, trust the local session
+            return true;
+          } else if (UserSessionService.isAuthenticationError(e)) {
+            print('Authentication error in checkAuthenticationStatus: $e');
+            // Clear session on auth errors
+            await UserSessionService.clearSession(reason: 'Auth error in checkAuthenticationStatus');
+            return false;
+          } else {
+            print('Unknown error checking authentication status: $e');
+            // For unknown errors, trust local session temporarily
+            return true;
+          }
+        }
       }
       
       return false; // No user session data
     } catch (e) {
       print('Error checking authentication status: $e');
+      
+      // Enhanced error handling
+      if (UserSessionService.isNetworkError(e)) {
+        // On network errors, check if we have local session data
+        final hasValidSession = await UserSessionService.hasValidSession();
+        return hasValidSession;
+      }
+      
       return false;
     }
   }

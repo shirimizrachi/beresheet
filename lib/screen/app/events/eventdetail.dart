@@ -299,11 +299,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isRegistering ? null : _handleRegistration,
+                      onPressed: isRegistering || (!widget.event.isAvailable && !isRegistered) ? null : _handleRegistration,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isRegistered
-                            ? Colors.orange
-                            : theme.colorScheme.primary,
+                        backgroundColor: !widget.event.isAvailable && !isRegistered
+                            ? Colors.grey
+                            : isRegistered
+                                ? Colors.orange
+                                : theme.colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -320,7 +322,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               ),
                             )
                           : Text(
-                              isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
+                              !widget.event.isAvailable && !isRegistered
+                                  ? 'EVENT FULL'
+                                  : isRegistered
+                                      ? context.l10n.unregister
+                                      : context.l10n.registerEvent,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

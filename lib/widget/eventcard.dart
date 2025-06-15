@@ -296,11 +296,13 @@ class _EventCardState extends State<EventCard> {
                           child: SizedBox(
                             height: 24,
                             child: ElevatedButton(
-                              onPressed: isRegistering ? null : _handleRegistration,
+                              onPressed: isRegistering || (!widget.event.isAvailable && !isRegistered) ? null : _handleRegistration,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isRegistered
-                                    ? AppColors.accent
-                                    : AppColors.primary,
+                                backgroundColor: !widget.event.isAvailable && !isRegistered
+                                    ? Colors.grey
+                                    : isRegistered
+                                        ? AppColors.accent
+                                        : AppColors.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 4),
                                 shape: RoundedRectangleBorder(
@@ -318,7 +320,11 @@ class _EventCardState extends State<EventCard> {
                                       ),
                                     )
                                   : Text(
-                                      isRegistered ? context.l10n.unregister : context.l10n.registerEvent,
+                                      !widget.event.isAvailable && !isRegistered
+                                          ? 'FULL'
+                                          : isRegistered
+                                              ? context.l10n.unregister
+                                              : context.l10n.registerEvent,
                                       style: const TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,

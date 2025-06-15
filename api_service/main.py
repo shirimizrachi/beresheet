@@ -368,17 +368,23 @@ async def register_for_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Get user info for registration
+    # Get user info for registration - ensure all fields are populated
     user_profile = user_db.get_user_profile(user_id, home_id)
-    user_name = user_profile.full_name if user_profile else None
-    user_phone = user_profile.phone_number if user_profile else None
+    if not user_profile:
+        raise HTTPException(status_code=404, detail="User profile not found - cannot register for event")
+    
+    # Ensure we have the user's name and phone
+    user_name = user_profile.full_name or "Unknown User"
+    user_phone = user_profile.phone_number or ""
+    
+    print(f"Registering user {user_id} ({user_name}, {user_phone}) for event {event_id}")
     
     success = events_registration_db.register_for_event(
         event_id=event_id,
         user_id=user_id,
         user_name=user_name,
         user_phone=user_phone,
-        resident_id=home_id
+        home_id=home_id
     )
     
     if not success:
@@ -405,7 +411,7 @@ async def unregister_from_event(
     success = events_registration_db.unregister_from_event(
         event_id=event_id,
         user_id=user_id,
-        resident_id=home_id
+        home_id=home_id
     )
     
     if not success:

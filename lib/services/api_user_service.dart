@@ -40,13 +40,17 @@ class ApiUserService {
         return user;
       } else if (response.statusCode == 404) {
         return null; // User not found
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        print('Authentication error fetching user profile: ${response.statusCode}');
+        throw Exception('Authentication error: ${response.statusCode}');
       } else {
         print('Error fetching user profile: ${response.statusCode} - ${response.body}');
-        return null;
+        throw Exception('API error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching user profile: $e');
-      return null;
+      // Re-throw to allow caller to handle different error types
+      rethrow;
     }
   }
 
@@ -88,13 +92,17 @@ class ApiUserService {
         return user;
       } else if (response.statusCode == 404) {
         return null; // User not found
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        print('Authentication error fetching user profile by phone: ${response.statusCode}');
+        throw Exception('Authentication error: ${response.statusCode}');
       } else {
         print('Error fetching user profile by phone: ${response.statusCode} - ${response.body}');
-        return null;
+        throw Exception('API error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching user profile by phone: $e');
-      return null;
+      // Re-throw to allow caller to handle different error types
+      rethrow;
     }
   }
 

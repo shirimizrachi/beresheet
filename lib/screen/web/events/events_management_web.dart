@@ -80,29 +80,48 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
 
   Future<void> _updateEventStatus(String eventId, String newStatus) async {
     try {
-      final response = await http.put(
+      print('Updating event $eventId status to $newStatus'); // Debug log
+      
+      final request = http.MultipartRequest(
+        'PUT',
         Uri.parse('${AppConfig.apiBaseUrl}/api/events/$eventId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'userId': WebAuthService.userId ?? '',
-        },
-        body: json.encode({
-          'status': newStatus,
-        }),
       );
+      
+      // Add headers using WebAuthService method
+      final authHeaders = WebAuthService.getAuthHeaders();
+      authHeaders['userId'] = WebAuthService.userId ?? '';
+      request.headers.addAll(authHeaders);
+      
+      // Add form field for status
+      request.fields['status'] = newStatus;
+      
+      print('Request headers: ${request.headers}'); // Debug log
+      print('Request fields: ${request.fields}'); // Debug log
+      
+      final response = await request.send();
+      print('Response status code: ${response.statusCode}'); // Debug log
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.eventStatusUpdatedTo(newStatus))),
         );
         await _loadEvents(); // Refresh the list
       } else {
+        final responseBody = await response.stream.bytesToString();
+        print('Error response body: $responseBody'); // Debug log
+        String errorMessage = AppLocalizations.of(context)!.failedToUpdateEventStatus;
+        try {
+          final errorData = json.decode(responseBody);
+          errorMessage = errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // Use default error message
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateEventStatus)),
+          SnackBar(content: Text('$errorMessage (Status: ${response.statusCode})')),
         );
       }
     } catch (e) {
+      print('Exception updating event status: $e'); // Debug log
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.errorUpdatingEvent(e.toString()))),
       );
