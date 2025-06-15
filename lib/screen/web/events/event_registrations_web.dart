@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EventRegistrationsWeb extends StatefulWidget {
   const EventRegistrationsWeb({Key? key}) : super(key: key);
@@ -30,7 +31,8 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     final userRole = WebAuthService.userRole ?? '';
     if (userRole != 'manager' && userRole != 'staff') {
       setState(() {
-        _errorMessage = 'Access denied: Manager or Staff role required to view event registrations';
+        _errorMessage = AppLocalizations.of(context)?.eventRegistrationsManagementRequiresRole ??
+                       'Access denied: Manager or Staff role required to view event registrations';
         _isLoadingEvents = false;
       });
       return;
@@ -60,13 +62,13 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load events: ${response.statusCode}';
+          _errorMessage = '${AppLocalizations.of(context)?.failedToLoadEvents ?? 'Failed to load events'}: ${response.statusCode}';
           _isLoadingEvents = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading events: $e';
+        _errorMessage = '${AppLocalizations.of(context)?.error ?? 'Error'} loading events: $e';
         _isLoadingEvents = false;
       });
     }
@@ -96,33 +98,34 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load registrations: ${response.statusCode}';
+          _errorMessage = '${AppLocalizations.of(context)?.operationFailed ?? 'Failed to load registrations'}: ${response.statusCode}';
           _isLoadingRegistrations = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading registrations: $e';
+        _errorMessage = '${AppLocalizations.of(context)?.error ?? 'Error'} loading registrations: $e';
         _isLoadingRegistrations = false;
       });
     }
   }
 
   Future<void> _removeRegistration(String eventId, String userId, String userName) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Removal'),
-        content: Text('Remove $userName from this event?'),
+        title: Text(l10n.unregisterUser),
+        content: Text(l10n.areYouSureUnregisterUser(userName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Remove'),
+            child: Text(l10n.unregister),
           ),
         ],
       ),
@@ -146,14 +149,14 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$userName removed from event successfully'),
+            content: Text(l10n.userUnregisteredSuccessfully),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove registration: ${response.statusCode}'),
+            content: Text('${l10n.operationFailed}: ${response.statusCode}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -161,7 +164,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error removing registration: $e'),
+          content: Text(l10n.errorMessage(e.toString())),
           backgroundColor: Colors.red,
         ),
       );
@@ -216,9 +219,9 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Event Registrations',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.eventRegistrations,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -228,7 +231,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadEvents,
-            tooltip: 'Refresh',
+            tooltip: AppLocalizations.of(context)!.refresh,
           ),
         ],
       ),
@@ -278,7 +281,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
               const Icon(Icons.event, color: Colors.blue),
               const SizedBox(width: 8),
               Text(
-                'Events (${_events.length})',
+                '${AppLocalizations.of(context)!.events} (${_events.length})',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -290,10 +293,10 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
         
         Expanded(
           child: _events.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No events found',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    AppLocalizations.of(context)!.noEventsFound,
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 )
               : ListView.builder(
@@ -307,7 +310,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                       color: isSelected ? Colors.blue[50] : null,
                       child: ListTile(
                         title: Text(
-                          event['title'] ?? 'Untitled Event',
+                          event['name'] ?? event['title'] ?? AppLocalizations.of(context)!.unknownEvent,
                           style: TextStyle(
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
@@ -315,6 +318,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 4),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
@@ -331,13 +335,43 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(_formatDate(event['date_time'])),
-                            Text('${event['current_participants'] ?? 0}/${event['max_participants'] ?? 0} participants'),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(_formatDate(event['date_time'] ?? event['dateTime'])),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    event['location'] ?? AppLocalizations.of(context)!.notAvailable,
+                                    style: const TextStyle(fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                const Icon(Icons.people, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${event['current_participants'] ?? 0}/${event['max_participants'] ?? 0} ${AppLocalizations.of(context)!.participants.toLowerCase()}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         onTap: () => _loadEventRegistrations(
                           event['id'],
-                          event['title'] ?? 'Untitled Event',
+                          event['name'] ?? event['title'] ?? AppLocalizations.of(context)!.unknownEvent,
                         ),
                         trailing: isSelected
                             ? const Icon(Icons.arrow_forward_ios, color: Colors.blue)
@@ -353,19 +387,19 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
 
   Widget _buildRegistrationsList() {
     if (_selectedEventId == null) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.arrow_back,
               size: 64,
               color: Colors.grey,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Select an event to view registrations',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              AppLocalizations.of(context)!.eventRegistrations,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -387,14 +421,14 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Registrations for: $_selectedEventTitle',
+                      '${AppLocalizations.of(context)!.eventRegistrations}: $_selectedEventTitle',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      '${_registrations.length} participants',
+                      AppLocalizations.of(context)!.totalRegistrations(_registrations.length),
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -411,10 +445,10 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
           child: _isLoadingRegistrations
               ? const Center(child: CircularProgressIndicator())
               : _registrations.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'No registrations found for this event',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        AppLocalizations.of(context)!.noRegistrationsFound,
+                        style: const TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     )
                   : ListView.builder(
@@ -431,18 +465,28 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ),
-                            title: Text(registration['user_name'] ?? 'Unknown User'),
-                            subtitle: Text(
-                              'Registered: ${_formatDate(registration['registration_date'])}',
+                            title: Text(registration['user_name'] ?? AppLocalizations.of(context)!.unknownUser),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${AppLocalizations.of(context)!.registered}: ${_formatDate(registration['registration_date'])}',
+                                ),
+                                if (registration['phone'] != null)
+                                  Text(
+                                    '${AppLocalizations.of(context)!.phone}: ${registration['phone']}',
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                              ],
                             ),
                             trailing: IconButton(
                               icon: const Icon(Icons.remove_circle, color: Colors.red),
                               onPressed: () => _removeRegistration(
                                 registration['event_id'],
                                 registration['user_id'],
-                                registration['user_name'] ?? 'Unknown User',
+                                registration['user_name'] ?? AppLocalizations.of(context)!.unknownUser,
                               ),
-                              tooltip: 'Remove from event',
+                              tooltip: AppLocalizations.of(context)!.unregisterTooltip,
                             ),
                           ),
                         );
@@ -475,7 +519,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _loadEvents,
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context)!.retry),
           ),
         ],
       ),
@@ -485,7 +529,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
   Widget _buildAccessDeniedPage() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Event Registrations'),
+        title: Text(AppLocalizations.of(context)!.eventRegistrations),
         backgroundColor: Colors.red[700],
       ),
       body: Center(
@@ -501,18 +545,18 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                   color: Colors.red,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Access Denied',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.accessDenied,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Event registration management requires Manager or Staff role.',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.eventRegistrationsManagementRequiresRole,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
                   ),

@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 
 class EditUserWeb extends StatefulWidget {
   final UserModel user;
@@ -160,15 +162,7 @@ class _EditUserWebState extends State<EditUserWeb> {
   }
 
   String _formatRole(String role) {
-    switch (role) {
-      case 'manager': return 'Manager';
-      case 'staff': return 'Staff';
-      case 'instructor': return 'Instructor';
-      case 'resident': return 'Resident';
-      case 'caregiver': return 'Caregiver';
-      case 'service': return 'Service';
-      default: return role.toUpperCase();
-    }
+    return DisplayNameUtils.getUserRoleDisplayName(role, context);
   }
 
   String _formatMaritalStatus(String status) {

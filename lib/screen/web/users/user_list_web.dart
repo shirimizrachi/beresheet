@@ -5,6 +5,8 @@ import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'edit_user_web.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 
 class UserListWeb extends StatefulWidget {
   const UserListWeb({Key? key}) : super(key: key);
@@ -28,7 +30,8 @@ class _UserListWebState extends State<UserListWeb> {
     final userRole = WebAuthService.userRole ?? '';
     if (userRole != 'manager') {
       setState(() {
-        _errorMessage = 'Access denied: Manager role required to view user list';
+        _errorMessage = AppLocalizations.of(context)?.accessDeniedManagerRoleUserList ??
+                       'Access denied: Manager role required to view user list';
         _isLoading = false;
       });
       return;
@@ -58,13 +61,15 @@ class _UserListWebState extends State<UserListWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load users: ${response.statusCode}';
+          _errorMessage = AppLocalizations.of(context)?.failedToLoadUsers(response.statusCode.toString()) ??
+                         'Failed to load users: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading users: $e';
+        _errorMessage = AppLocalizations.of(context)?.errorLoadingUsers(e.toString()) ??
+                       'Error loading users: $e';
         _isLoading = false;
       });
     }
@@ -82,26 +87,11 @@ class _UserListWebState extends State<UserListWeb> {
   }
 
   String _formatRole(String role) {
-    switch (role) {
-      case 'manager':
-        return 'Manager';
-      case 'staff':
-        return 'Staff';
-      case 'instructor':
-        return 'Instructor';
-      case 'resident':
-        return 'Resident';
-      case 'caregiver':
-        return 'Caregiver';
-      case 'service':
-        return 'Service';
-      default:
-        return role.toUpperCase();
-    }
+    return DisplayNameUtils.getUserRoleDisplayName(role, context);
   }
 
   String _formatDate(String? dateString) {
-    if (dateString == null) return 'N/A';
+    if (dateString == null) return AppLocalizations.of(context)?.notAvailable ?? 'N/A';
     try {
       final date = DateTime.parse(dateString);
       return '${date.day}/${date.month}/${date.year}';
@@ -114,9 +104,9 @@ class _UserListWebState extends State<UserListWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'User Management',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)?.usersManagementTitle ?? 'User Management',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -126,7 +116,7 @@ class _UserListWebState extends State<UserListWeb> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadUsers,
-            tooltip: 'Refresh',
+            tooltip: AppLocalizations.of(context)?.refreshTooltip ?? 'Refresh',
           ),
         ],
       ),
@@ -163,7 +153,7 @@ class _UserListWebState extends State<UserListWeb> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadUsers,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
             ),
           ],
         ),
@@ -171,10 +161,10 @@ class _UserListWebState extends State<UserListWeb> {
     }
 
     if (_users.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No users found',
-          style: TextStyle(fontSize: 18, color: Colors.grey),
+          AppLocalizations.of(context)?.noUsersFound ?? 'No users found',
+          style: const TextStyle(fontSize: 18, color: Colors.grey),
         ),
       );
     }
@@ -192,7 +182,7 @@ class _UserListWebState extends State<UserListWeb> {
                   const Icon(Icons.people, color: Colors.blue),
                   const SizedBox(width: 8),
                   Text(
-                    'All Users (${_users.length})',
+                    AppLocalizations.of(context)?.totalUsers(_users.length) ?? 'All Users (${_users.length})',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -214,21 +204,21 @@ class _UserListWebState extends State<UserListWeb> {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columnSpacing: 20,
-        columns: const [
-          DataColumn(label: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Apartment', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Birthday', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Gender', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+        columns: [
+          DataColumn(label: Text(AppLocalizations.of(context)?.fullName ?? 'Full Name', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.phoneColumn ?? 'Phone', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.role ?? 'Role', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.apartmentNumber ?? 'Apartment', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.birthday ?? 'Birthday', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.gender ?? 'Gender', style: const TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text(AppLocalizations.of(context)?.actionsColumn ?? 'Actions', style: const TextStyle(fontWeight: FontWeight.bold))),
         ],
         rows: _users.map((user) {
           return DataRow(
             cells: [
               DataCell(
                 Text(
-                  user.fullName.isNotEmpty ? user.fullName : 'N/A',
+                  user.fullName.isNotEmpty ? user.fullName : (AppLocalizations.of(context)?.notAvailable ?? 'N/A'),
                   style: TextStyle(
                     fontWeight: user.fullName.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
                     color: user.fullName.isNotEmpty ? Colors.black : Colors.grey,
@@ -255,7 +245,7 @@ class _UserListWebState extends State<UserListWeb> {
               ),
               DataCell(
                 Text(
-                  user.apartmentNumber.isNotEmpty ? user.apartmentNumber : 'N/A',
+                  user.apartmentNumber.isNotEmpty ? user.apartmentNumber : (AppLocalizations.of(context)?.notAvailable ?? 'N/A'),
                   style: TextStyle(
                     color: user.apartmentNumber.isNotEmpty ? Colors.black : Colors.grey,
                   ),
@@ -264,7 +254,7 @@ class _UserListWebState extends State<UserListWeb> {
               DataCell(Text(_formatDate(user.birthday.toIso8601String()))),
               DataCell(
                 Text(
-                  user.gender.isNotEmpty ? user.gender : 'N/A',
+                  user.gender.isNotEmpty ? user.gender : (AppLocalizations.of(context)?.notAvailable ?? 'N/A'),
                   style: TextStyle(
                     color: user.gender.isNotEmpty ? Colors.black : Colors.grey,
                   ),
@@ -274,7 +264,7 @@ class _UserListWebState extends State<UserListWeb> {
                 ElevatedButton.icon(
                   onPressed: () => _editUser(user),
                   icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Edit'),
+                  label: Text(AppLocalizations.of(context)?.editUser ?? 'Edit'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
