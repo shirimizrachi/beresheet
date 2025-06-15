@@ -8,8 +8,9 @@ import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatefulWidget {
-  const EventCard({Key? key, required this.event}) : super(key: key);
+  const EventCard({Key? key, required this.event, this.onRegistrationChanged}) : super(key: key);
   final Event event;
+  final VoidCallback? onRegistrationChanged;
 
   @override
   State<EventCard> createState() => _EventCardState();
@@ -57,6 +58,8 @@ class _EventCardState extends State<EventCard> {
           setState(() {
             isRegistered = false;
           });
+          // Call the callback to refresh parent widget
+          widget.onRegistrationChanged?.call();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -85,6 +88,8 @@ class _EventCardState extends State<EventCard> {
           setState(() {
             isRegistered = true;
           });
+          // Call the callback to refresh parent widget
+          widget.onRegistrationChanged?.call();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

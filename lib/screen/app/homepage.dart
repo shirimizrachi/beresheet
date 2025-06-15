@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> loadEvents() async {
     try {
-      final loadedEvents = await EventService.loadEvents();
+      final loadedEvents = await EventService.loadApprovedEvents();
       final registeredEvents = await EventService.getRegisteredEvents();
       setState(() {
         events = loadedEvents;
@@ -158,11 +158,13 @@ class _HomePageState extends State<HomePage> {
           Container(
             margin: const EdgeInsets.only(right: AppSpacing.md),
             child: IconButton(
-              icon: Badge(
-                label: Text("$registeredEventsCount"),
-                backgroundColor: AppColors.accent,
-                child: const Icon(Icons.event_available)
-              ),
+              icon: registeredEventsCount > 0
+                ? Badge(
+                    label: Text("$registeredEventsCount"),
+                    backgroundColor: AppColors.accent,
+                    child: const Icon(Icons.event_available)
+                  )
+                : const Icon(Icons.event_available),
               color: Colors.white,
               onPressed: () async {
                 final result = await Navigator.push(
@@ -192,7 +194,10 @@ class _HomePageState extends State<HomePage> {
                     ),
                     itemCount: events.length,
                     itemBuilder: (context, index) {
-                      return EventCard(event: events[index]);
+                      return EventCard(
+                        event: events[index],
+                        onRegistrationChanged: _refreshEvents,
+                      );
                     },
                   ),
                 )

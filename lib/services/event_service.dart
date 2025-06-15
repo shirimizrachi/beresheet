@@ -407,18 +407,33 @@ class EventService {
 
   static Future<List<Event>> getRegisteredEvents() async {
     try {
-      if (kIsWeb) {
-        // For web, we can skip local storage since we're always online
-        return [];
+      // First try to get from API
+      final registrations = await getUserRegistrations();
+      if (registrations.isNotEmpty) {
+        final List<Event> registeredEvents = [];
+        for (final registration in registrations) {
+          final eventId = registration['event_id'] as String?;
+          if (eventId != null) {
+            final event = await getEventById(eventId);
+            if (event != null) {
+              registeredEvents.add(event);
+            }
+          }
+        }
+        return registeredEvents;
       }
       
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? eventsJson = prefs.getString(_registeredEventsKey);
-      
-      if (eventsJson != null) {
-        final List<dynamic> data = json.decode(eventsJson);
-        return data.map((eventJson) => Event.fromJson(eventJson)).toList();
+      // Fallback to local storage for mobile
+      if (!kIsWeb) {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final String? eventsJson = prefs.getString(_registeredEventsKey);
+        
+        if (eventsJson != null) {
+          final List<dynamic> data = json.decode(eventsJson);
+          return data.map((eventJson) => Event.fromJson(eventJson)).toList();
+        }
       }
+      
       return [];
     } catch (e) {
       print('Error loading registered events: $e');

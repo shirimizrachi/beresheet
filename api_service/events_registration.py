@@ -65,7 +65,7 @@ class EventRegistrationDatabase:
             print(f"Error reflecting events table for schema {schema_name}: {e}")
             return None
 
-    def register_for_event(self, event_id: str, user_id: str, user_name: str = None, 
+    def register_for_event(self, event_id: str, user_id: str, user_name: str = None,
                           user_phone: str = None, home_id: int = None) -> bool:
         """Register a user for an event"""
         try:
@@ -81,7 +81,7 @@ class EventRegistrationDatabase:
                 return False
 
             with self.engine.connect() as conn:
-                # Check if already registered
+                # Check if already registered with 'registered' status
                 existing_registration = conn.execute(
                     registration_table.select().where(
                         (registration_table.c.event_id == event_id) &
@@ -91,7 +91,16 @@ class EventRegistrationDatabase:
                 ).fetchone()
                 
                 if existing_registration:
-                    return False  # Already registered
+                    return False  # Already registered with 'registered' status
+                
+                # Check if there's a cancelled registration that we can reactivate
+                cancelled_registration = conn.execute(
+                    registration_table.select().where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.user_id == user_id) &
+                        (registration_table.c.status == 'cancelled')
+                    )
+                ).fetchone()
                 
                 # Get current event data
                 event_result = conn.execute(
@@ -104,8 +113,8 @@ class EventRegistrationDatabase:
                 # Check if event is full
                 current_registrations = conn.execute(
                     text(f"""
-                        SELECT COUNT(*) as count 
-                        FROM [{schema_name}].[events_registration] 
+                        SELECT COUNT(*) as count
+                        FROM [{schema_name}].[events_registration]
                         WHERE event_id = :event_id AND status = 'registered'
                     """),
                     {"event_id": event_id}
@@ -114,25 +123,46 @@ class EventRegistrationDatabase:
                 if current_registrations.count >= event_result.maxParticipants:
                     return False  # Event is full
                 
-                # Create registration record
-                registration_id = str(uuid.uuid4())
                 current_time = datetime.now()
-                registration_data = {
-                    'id': registration_id,
-                    'event_id': event_id,
-                    'user_id': user_id,
-                    'user_name': user_name or 'Unknown User',
-                    'user_phone': user_phone or '',
-                    'registration_date': current_time,
-                    'status': 'registered',
-                    'notes': None,  # Can be updated later if needed
-                    'created_at': current_time,
-                    'updated_at': current_time
-                }
                 
-                print(f"Creating registration record: {registration_data}")
-                conn.execute(registration_table.insert().values(**registration_data))
-                print(f"Registration record created successfully for user {user_id} and event {event_id}")
+                if cancelled_registration:
+                    # Reactivate cancelled registration
+                    print(f"Reactivating cancelled registration for user {user_id} and event {event_id}")
+                    conn.execute(
+                        registration_table.update()
+                        .where(
+                            (registration_table.c.event_id == event_id) &
+                            (registration_table.c.user_id == user_id) &
+                            (registration_table.c.status == 'cancelled')
+                        )
+                        .values(
+                            status='registered',
+                            registration_date=current_time,
+                            updated_at=current_time,
+                            user_name=user_name or cancelled_registration.user_name or 'Unknown User',
+                            user_phone=user_phone or cancelled_registration.user_phone or ''
+                        )
+                    )
+                    print(f"Registration reactivated successfully for user {user_id} and event {event_id}")
+                else:
+                    # Create new registration record
+                    registration_id = str(uuid.uuid4())
+                    registration_data = {
+                        'id': registration_id,
+                        'event_id': event_id,
+                        'user_id': user_id,
+                        'user_name': user_name or 'Unknown User',
+                        'user_phone': user_phone or '',
+                        'registration_date': current_time,
+                        'status': 'registered',
+                        'notes': None,  # Can be updated later if needed
+                        'created_at': current_time,
+                        'updated_at': current_time
+                    }
+                    
+                    print(f"Creating new registration record: {registration_data}")
+                    conn.execute(registration_table.insert().values(**registration_data))
+                    print(f"Registration record created successfully for user {user_id} and event {event_id}")
                 
                 # Update event participant count
                 new_count = current_registrations.count + 1
