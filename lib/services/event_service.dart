@@ -9,13 +9,7 @@ import 'package:beresheet_app/config/app_config.dart';
 
 class EventService {
   // Use different URLs for web vs mobile platforms
-  static String get baseUrl {
-    if (kIsWeb) {
-      return '${AppConfig.apiBaseUrl}/api'; // Web can use localhost
-    } else {
-      return 'http://10.0.2.2:8000/api'; // Android emulator uses 10.0.2.2
-    }
-  }
+  static String get baseUrl => '${AppConfig.apiBaseUrl}/api';
 
   // Load all events from API
   static Future<List<Event>> loadEvents() async {

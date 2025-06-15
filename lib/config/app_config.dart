@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 /// Application configuration constants
@@ -70,12 +71,22 @@ class AppConfig {
   /// API base URL for backend services
   /// This should be configured based on the deployment environment
   ///
-  /// For development: 'http://localhost:8000'
+  /// For development:
+  /// - Web: 'http://localhost:8000'
+  /// - Android emulator: 'http://10.0.2.2:8000'
   /// For production: 'https://your-production-api.com'
   /// For staging: 'https://your-staging-api.com'
-  static const String apiBaseUrl = 'http://localhost:8000';
   
-  /// Get the API base URL
+  /// Get the API base URL based on platform
+  static String get apiBaseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000';    // Web can use localhost
+    } else {
+      return 'http://10.0.2.2:8000';    // Android emulator uses 10.0.2.2
+    }
+  }
+
+  /// Get the API base URL (alias for compatibility)
   static String get baseUrl => apiBaseUrl;
   
   /// Get the web homepage URL

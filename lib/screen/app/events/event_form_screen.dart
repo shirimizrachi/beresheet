@@ -91,7 +91,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _selectedDateTime = event.dateTime;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
-    _selectedRoomName = event.location; // For existing events, set the room from location
+    
+    // Set the selected room name from the event location
+    // This will be updated after rooms are loaded to match existing room names
+    _selectedRoomName = event.location;
   }
 
   Future<void> _loadRooms() async {
@@ -108,26 +111,62 @@ class _EventFormScreenState extends State<EventFormScreen> {
         return;
       }
 
+      final url = '${AppConfig.apiBaseUrl}/api/rooms/public';
+      print('🔍 DEBUG: Making HTTP GET request to: $url');
+      print('🔍 DEBUG: Headers: homeID=${homeId.toString()}');
+      
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms/public'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),
         },
       );
 
+      print('🔍 DEBUG: Response received - Status Code: ${response.statusCode}');
+      print('🔍 DEBUG: Response Body: ${response.body}');
+      print('🔍 DEBUG: Response Headers: ${response.headers}');
+
       if (response.statusCode == 200) {
         final List<dynamic> roomsData = json.decode(response.body);
+        print('🔍 DEBUG: Successfully parsed ${roomsData.length} rooms');
         setState(() {
           _rooms = roomsData.cast<Map<String, dynamic>>();
           _isLoadingRooms = false;
+          
+          // If editing an existing event, try to match the room name from the location
+          if (widget.event != null && _selectedRoomName != null) {
+            print('Looking for room: $_selectedRoomName');
+            print('Available rooms: ${_rooms.map((r) => r['room_name']).toList()}');
+            
+            final matchingRoom = _rooms.firstWhere(
+              (room) => room['room_name'] == _selectedRoomName,
+              orElse: () => <String, dynamic>{},
+            );
+            
+            if (matchingRoom.isNotEmpty) {
+              _selectedRoomName = matchingRoom['room_name'];
+              print('Room matched: $_selectedRoomName');
+            } else {
+              print('No matching room found, setting first room as fallback');
+              if (_rooms.isNotEmpty) {
+                _selectedRoomName = _rooms.first['room_name'];
+              } else {
+                _selectedRoomName = null;
+              }
+            }
+          }
         });
       } else {
+        print('❌ DEBUG: HTTP request failed with status ${response.statusCode}');
+        print('❌ DEBUG: Error response body: ${response.body}');
         setState(() {
           _isLoadingRooms = false;
         });
       }
     } catch (e) {
+      print('❌ DEBUG: Exception occurred during HTTP request: $e');
+      print('❌ DEBUG: Exception type: ${e.runtimeType}');
       setState(() {
         _isLoadingRooms = false;
       });
@@ -253,19 +292,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
   }
 
   bool get _isEditable {
-    // New events are always editable
-    if (widget.event == null) return true;
-    
-    // Existing events are only editable if status is "pending-approval"
-    return _selectedStatus == AppConfig.eventStatusPendingApproval;
+    // Events are always editable (matching web behavior)
+    return true;
   }
 
   bool get _isFieldEditable {
-    // For new events, all fields except status and currentParticipants are editable
-    if (widget.event == null) return true;
-    
-    // For existing events, allow editing if status is pending-approval OR user has manager/staff role
-    return _selectedStatus == AppConfig.eventStatusPendingApproval || _canUserEditAllFields;
+    // Fields are always editable (matching web behavior)
+    return true;
   }
 
   bool get _canUserEditAllFields {
@@ -579,7 +612,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           ),
                         )
                       : DropdownButtonFormField<String>(
-                          value: _selectedRoomName,
+                          value: _rooms.any((room) => room['room_name'] == _selectedRoomName)
+                              ? _selectedRoomName
+                              : null,
                           decoration: InputDecoration(
                             labelText: l10n.location,
                             hintText: l10n.webSelectRoom,
@@ -591,14 +626,15 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               child: Text(roomName),
                             );
                           }).toList(),
-                          onChanged: _isFieldEditable ? (value) {
+                          onChanged: (value) {
+                            print('Room dropdown changed to: $value');
                             setState(() {
                               _selectedRoomName = value;
                               if (value != null) {
                                 _locationController.text = value;
                               }
                             });
-                          } : null,
+                          },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return l10n.pleaseEnterEventLocation;
@@ -936,9 +972,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: (_isSaving || !_isEditable) ? null : _saveEvent,
+                  onPressed: _isSaving ? null : _saveEvent,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isEditable ? AppColors.primary : Colors.grey,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.sm),
                     ),
@@ -948,38 +984,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       : Text(
                           widget.event == null
                               ? l10n.createEventButton
-                              : _isEditable
-                                  ? l10n.updateEventButton
-                                  : 'Cannot Edit - Status not Pending Approval',
+                              : l10n.updateEventButton,
                           style: AppTextStyles.buttonText,
                         ),
                 ),
               ),
               
-              // Show status warning for non-editable events
-              if (widget.event != null && !_isEditable) ...[
-                const SizedBox(height: AppSpacing.md),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    border: Border.all(color: Colors.orange),
-                    borderRadius: BorderRadius.circular(AppSpacing.sm),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.orange),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'This event cannot be edited because its status is "${_getStatusDisplayName(_selectedStatus)}". Only events with "Pending Approval" status can be modified.',
-                          style: const TextStyle(color: Colors.orange),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),

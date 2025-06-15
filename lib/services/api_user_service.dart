@@ -12,13 +12,7 @@ import 'firebase_messaging_service.dart';
 
 class ApiUserService {
   // Use different URLs for web vs mobile platforms
-  static String get baseUrl {
-    if (kIsWeb) {
-      return AppConfig.apiBaseUrl; // Web can use localhost
-    } else {
-      return 'http://10.0.2.2:8000'; // Android emulator uses 10.0.2.2
-    }
-  }
+  static String get baseUrl => AppConfig.apiBaseUrl;
 
   /// Get user profile by user ID
   static Future<UserModel?> getUserProfile(String userId) async {

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class WebAuthService {
-  static const String _baseUrl = AppConfig.apiBaseUrl;
+  static String get _baseUrl => AppConfig.apiBaseUrl;
   
   // SharedPreferences keys
   static const String _sessionIdKey = 'web_session_id';

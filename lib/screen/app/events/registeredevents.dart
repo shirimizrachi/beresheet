@@ -243,19 +243,9 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EventDetailPage(event: event),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
@@ -408,13 +398,34 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => EventDetailPage(event: event),
-                                            ),
-                                          );
+                                        onPressed: () async {
+                                          try {
+                                            // Validate event data before navigation
+                                            if (event.id.isEmpty || event.name.isEmpty) {
+                                              throw Exception('Invalid event data');
+                                            }
+                                            
+                                            print('Navigating to event details for: ${event.name} (ID: ${event.id})');
+                                            
+                                            if (!mounted) return;
+                                            
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => EventDetailPage(event: event),
+                                              ),
+                                            );
+                                          } catch (e) {
+                                            print('Error navigating to event details: $e');
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Error opening event details: $e'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: theme.colorScheme.primary,
@@ -428,7 +439,6 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                               ],
                             ),
                           ),
-                        ),
                       );
                     },
                   ),

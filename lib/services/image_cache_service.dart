@@ -112,7 +112,15 @@ class ImageCacheService {
       ),
       child: Icon(
         Icons.event,
-        size: (width != null && height != null) ? (width + height) / 4 : 40,
+        size: () {
+          if (width != null && height != null) {
+            final calculatedSize = (width! + height!) / 4;
+            print('DEBUG: Icon size calculation - width: $width, height: $height, calculatedSize: $calculatedSize, isFinite: ${calculatedSize.isFinite}');
+            return calculatedSize.isFinite && calculatedSize > 0 ? calculatedSize.toDouble() : 40.0;
+          }
+          print('DEBUG: Using default icon size: 40');
+          return 40.0;
+        }(),
         color: Colors.grey[600],
       ),
     );
@@ -127,7 +135,15 @@ class ImageCacheService {
       ),
       child: Icon(
         Icons.broken_image,
-        size: (width != null && height != null) ? (width + height) / 4 : 40,
+        size: () {
+          if (width != null && height != null) {
+            final calculatedSize = (width! + height!) / 4;
+            print('DEBUG: Error icon size calculation - width: $width, height: $height, calculatedSize: $calculatedSize, isFinite: ${calculatedSize.isFinite}');
+            return calculatedSize.isFinite && calculatedSize > 0 ? calculatedSize.toDouble() : 40.0;
+          }
+          print('DEBUG: Using default error icon size: 40');
+          return 40.0;
+        }(),
         color: Colors.red[400],
       ),
     );
