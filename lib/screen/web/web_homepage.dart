@@ -1,6 +1,7 @@
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
@@ -256,24 +257,22 @@ class _WebHomePageState extends State<WebHomePage> {
                                     Expanded(
                                       flex: 2,
                                       child: ClipRRect(
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(AppBorderRadius.large),
-                                          bottomLeft: Radius.circular(AppBorderRadius.large),
-                                        ),
-                                        child: Image.network(
-                                          event.imageUrl,
+                                        child: ImageCacheService.buildEventImage(
+                                          imageUrl: event.imageUrl,
                                           height: double.infinity,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              color: Colors.grey[300],
-                                              child: const Icon(
-                                                Icons.image_not_supported,
-                                                size: 64,
-                                                color: Colors.grey,
-                                              ),
-                                            );
-                                          },
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(AppBorderRadius.large),
+                                            bottomLeft: Radius.circular(AppBorderRadius.large),
+                                          ),
+                                          errorWidget: Container(
+                                            color: Colors.grey[300],
+                                            child: const Icon(
+                                              Icons.image_not_supported,
+                                              size: 64,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),

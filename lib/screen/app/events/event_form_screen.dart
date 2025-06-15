@@ -1,5 +1,6 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -936,10 +937,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                       _selectedImageFile!,
                                       fit: BoxFit.cover,
                                     )
-                                  : Image.network(
-                                      _imageUrlController.text,
+                                  : ImageCacheService.buildEventImage(
+                                      imageUrl: _imageUrlController.text.isNotEmpty ? _imageUrlController.text : null,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Column(
+                                      placeholder: const Center(child: CircularProgressIndicator()),
+                                      errorWidget: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           const Icon(Icons.error, color: Colors.red),
@@ -947,10 +949,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                           Text(l10n.invalidImageUrl),
                                         ],
                                       ),
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
-                                        return const Center(child: CircularProgressIndicator());
-                                      },
                                     ),
                             ),
                           ),

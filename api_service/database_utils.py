@@ -9,7 +9,7 @@ from typing import Dict, Optional
 from home_mapping import get_connection_string_for_schema, get_schema_for_home
 
 # SQL Debug flag - set to True to enable SQL logging
-SQL_DEBUG = True  # Change this to False to disable SQL debugging
+SQL_DEBUG = False  # Change this to False to disable SQL debugging
 
 def setup_sql_logging():
     """Setup SQL logging if debug is enabled"""

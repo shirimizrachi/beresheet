@@ -1026,7 +1026,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      if (_selectedImageBytes != null || _imageUrlController.text.isNotEmpty)
+                      if (_selectedImageBytes != null ||
+                          _imageUrlController.text.isNotEmpty ||
+                          (widget.event != null && widget.event!.imageUrl.isNotEmpty))
                         Container(
                           height: 200,
                           width: double.infinity,
@@ -1042,16 +1044,21 @@ class _EventFormWebState extends State<EventFormWeb> {
                                     fit: BoxFit.cover,
                                   )
                                 : Image.network(
-                                    _imageUrlController.text,
+                                    _imageUrlController.text.isNotEmpty
+                                        ? _imageUrlController.text
+                                        : (widget.event?.imageUrl ?? ''),
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.error, color: Colors.red),
-                                        const SizedBox(height: 8),
-                                        Text(AppLocalizations.of(context)!.invalidImageUrl),
-                                      ],
-                                    ),
+                                    errorBuilder: (context, error, stackTrace) {
+                                      print('Image loading error: $error');
+                                      return Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.error, color: Colors.red),
+                                          const SizedBox(height: 8),
+                                          Text(AppLocalizations.of(context)!.invalidImageUrl),
+                                        ],
+                                      );
+                                    },
                                     loadingBuilder: (context, child, loadingProgress) {
                                       if (loadingProgress == null) return child;
                                       return const Center(child: CircularProgressIndicator());

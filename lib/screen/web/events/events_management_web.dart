@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
+import '../../../services/image_cache_service.dart';
 import '../../../services/web_auth_service.dart';
 import '../../../model/event.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -337,44 +338,28 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                       ),
                     ],
                   ),
-                  child: ClipRRect(
+                  child: ImageCacheService.buildEventImage(
+                    imageUrl: event.imageUrl.isNotEmpty ? event.imageUrl : null,
+                    fit: BoxFit.cover,
                     borderRadius: BorderRadius.circular(12),
-                    child: event.imageUrl.isNotEmpty
-                        ? Image.network(
-                            event.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey.shade100,
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey,
-                                  size: 40,
-                                ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                color: Colors.grey.shade100,
-                                child: const Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey.shade100,
-                            child: const Icon(
-                              Icons.event,
-                              color: Colors.grey,
-                              size: 40,
-                            ),
-                          ),
+                    placeholder: Container(
+                      color: Colors.grey.shade100,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                    errorWidget: Container(
+                      color: Colors.grey.shade100,
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
+                    ),
                   ),
                 ),
                 

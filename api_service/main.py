@@ -919,14 +919,91 @@ async def create_user_profile(
 @api_router.put("/users/{user_id}", response_model=UserProfile)
 async def update_user_profile(
     user_id: str,
-    user: UserProfileUpdate,
+    full_name: Optional[str] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    role: Optional[str] = Form(None),
+    birthday: Optional[str] = Form(None),
+    apartment_number: Optional[str] = Form(None),
+    marital_status: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    religious: Optional[str] = Form(None),
+    native_language: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id)
 ):
-    """Update an existing user profile"""
-    updated_user = user_db.update_user_profile(user_id, user, home_id)
-    if not updated_user:
-        raise HTTPException(status_code=404, detail="User profile not found")
-    return updated_user
+    """Update an existing user profile with optional image upload"""
+    try:
+        # Check if user exists
+        existing_user = user_db.get_user_profile(user_id, home_id)
+        if not existing_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Prepare update data
+        update_data = {}
+        
+        if full_name is not None:
+            update_data['full_name'] = full_name
+        if phone_number is not None:
+            update_data['phone_number'] = phone_number
+        if role is not None:
+            update_data['role'] = role
+        if apartment_number is not None:
+            update_data['apartment_number'] = apartment_number
+        if marital_status is not None:
+            update_data['marital_status'] = marital_status
+        if gender is not None:
+            update_data['gender'] = gender
+        if religious is not None:
+            update_data['religious'] = religious
+        if native_language is not None:
+            update_data['native_language'] = native_language
+        
+        # Parse birthday if provided
+        if birthday is not None:
+            try:
+                from datetime import datetime
+                parsed_birthday = datetime.fromisoformat(birthday.replace('Z', '+00:00')).date()
+                update_data['birthday'] = parsed_birthday
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid birthday format")
+        
+        # Handle photo upload if provided
+        if photo:
+            # Validate file type
+            if not photo.content_type or not photo.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            
+            # Read photo data
+            photo_data = await photo.read()
+            
+            # Upload to Azure Storage
+            success, result = azure_storage_service.upload_user_photo(
+                home_id=home_id,
+                user_id=user_id,
+                image_data=photo_data,
+                original_filename=photo.filename or "profile.jpg",
+                content_type=photo.content_type
+            )
+            
+            if not success:
+                raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+            
+            update_data['photo'] = result
+        
+        # Create UserProfileUpdate object
+        user_update = UserProfileUpdate(**update_data)
+        
+        # Update the user profile
+        updated_user = user_db.update_user_profile(user_id, user_update, home_id)
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        return updated_user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating user profile: {str(e)}")
 
 @api_router.delete("/users/{user_id}")
 async def delete_user_profile(user_id: str, home_id: int = Depends(get_home_id)):
@@ -970,7 +1047,7 @@ async def upload_user_photo(
     photo: UploadFile = File(...),
     home_id: int = Depends(get_home_id)
 ):
-    """Upload a photo for a user profile"""
+    """Upload a photo for a user profile to Azure Storage"""
     # Check if user exists
     user = user_db.get_user_profile(user_id, home_id)
     if not user:
@@ -984,28 +1061,55 @@ async def upload_user_photo(
         # Read photo data
         photo_data = await photo.read()
         
-        # Save photo
-        photo_path = user_db.save_user_photo(user_id, photo_data, home_id)
+        # Upload to Azure Storage
+        success, result = azure_storage_service.upload_user_photo(
+            home_id=home_id,
+            user_id=user_id,
+            image_data=photo_data,
+            original_filename=photo.filename or "profile.jpg",
+            content_type=photo.content_type
+        )
         
-        # Update user profile with photo path
-        user_update = UserProfileUpdate(photo=f"/api/users/{user_id}/photo")
+        if not success:
+            raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+        
+        # Update user profile with Azure photo URL
+        user_update = UserProfileUpdate(photo=result)
         updated_user = user_db.update_user_profile(user_id, user_update, home_id)
+        
+        if not updated_user:
+            raise HTTPException(status_code=500, detail="Failed to update user profile with photo URL")
         
         return {
             "message": "Photo uploaded successfully",
-            "photo_url": f"/api/users/{user_id}/photo"
+            "photo_url": result
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
 
 @api_router.get("/users/{user_id}/photo")
 async def get_user_photo(user_id: str, home_id: int = Depends(get_home_id)):
-    """Get a user's photo"""
-    photo_path = user_db.get_user_photo_path(user_id, home_id)
-    if not photo_path:
+    """Get a user's photo URL from Azure Storage"""
+    # Get user profile to check if photo URL exists
+    user = user_db.get_user_profile(user_id, home_id)
+    if not user or not user.photo:
         raise HTTPException(status_code=404, detail="Photo not found")
     
-    return FileResponse(photo_path, media_type="image/jpeg")
+    # If the photo URL is already a full Azure Storage URL with SAS token, redirect to it
+    if user.photo.startswith('https://'):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=user.photo)
+    
+    # Otherwise, assume it's a blob path and generate SAS URL
+    blob_path = f"{home_id}/users/photos/{user_id}.jpg"
+    photo_url = azure_storage_service.get_image_url(blob_path)
+    if not photo_url:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=photo_url)
 
 # Event Registration Management endpoints
 @api_router.get("/registrations/user/{user_id}")

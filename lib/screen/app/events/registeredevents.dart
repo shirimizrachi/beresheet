@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
@@ -15,6 +16,8 @@ class RegisteredEventsScreen extends StatefulWidget {
 class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
   List<Event> registeredEvents = [];
   bool isLoading = true;
+  bool _disposed = false;
+  Completer<void>? _loadingCompleter;
 
   @override
   void initState() {
@@ -22,20 +25,40 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     loadRegisteredEvents();
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    _loadingCompleter?.complete();
+    super.dispose();
+  }
+
   Future<void> loadRegisteredEvents() async {
+    // Cancel any previous loading operation
+    _loadingCompleter?.complete();
+    _loadingCompleter = Completer<void>();
+    
     try {
       // Get user registrations from API
       final registrations = await EventService.getUserRegistrations();
       
+      // Check if widget is still mounted and not disposed
+      if (_disposed || !mounted) return;
+      
       // Get event details for each registration
       final List<Event> events = [];
       for (final registration in registrations) {
+        // Check cancellation before each network call
+        if (_disposed || !mounted) return;
+        
         final eventId = registration['event_id'];
         final event = await EventService.getEventById(eventId);
         if (event != null) {
           events.add(event);
         }
       }
+      
+      // Final check before setState
+      if (_disposed || !mounted) return;
       
       setState(() {
         registeredEvents = events;
@@ -45,12 +68,22 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
       print('Error loading registered events: $e');
       // Fallback to local method
       try {
+        // Check if still mounted before fallback
+        if (_disposed || !mounted) return;
+        
         final events = await EventService.getRegisteredEvents();
+        
+        // Check again before setState
+        if (_disposed || !mounted) return;
+        
         setState(() {
           registeredEvents = events;
           isLoading = false;
         });
       } catch (e2) {
+        // Final check before error setState
+        if (_disposed || !mounted) return;
+        
         setState(() {
           isLoading = false;
         });
@@ -59,6 +92,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
   }
 
   Future<void> _refreshEvents() async {
+    if (_disposed || !mounted) return;
     await loadRegisteredEvents();
   }
 

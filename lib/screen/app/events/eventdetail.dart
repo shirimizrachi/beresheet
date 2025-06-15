@@ -1,5 +1,6 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
@@ -154,22 +155,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Event Image
-            Image.network(
-              widget.event.imageUrl,
+            ImageCacheService.buildEventImage(
+              imageUrl: widget.event.imageUrl,
               height: 250,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 250,
-                  color: Colors.grey[300],
-                  child: Icon(
-                    _getTypeIcon(widget.event.type),
-                    size: 80,
-                    color: Colors.grey[600],
-                  ),
-                );
-              },
+              errorWidget: Container(
+                height: 250,
+                color: Colors.grey[300],
+                child: Icon(
+                  _getTypeIcon(widget.event.type),
+                  size: 80,
+                  color: Colors.grey[600],
+                ),
+              ),
             ),
             
             Padding(

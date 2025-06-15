@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/event_form_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -182,21 +183,17 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: AppSpacing.md),
                             child: ListTile(
-                              leading: ClipRRect(
+                              leading: ImageCacheService.buildEventImage(
+                                imageUrl: event.imageUrl,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  event.imageUrl,
+                                errorWidget: Container(
                                   width: 60,
                                   height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: 60,
-                                      height: 60,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.image_not_supported),
-                                    );
-                                  },
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image_not_supported),
                                 ),
                               ),
                               title: Text(

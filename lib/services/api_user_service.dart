@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../model/user.dart';
@@ -35,6 +36,7 @@ class ApiUserService {
         await UserSessionService.sethomeID(user.homeID);
         await UserSessionService.setRole(user.role);
         await UserSessionService.setUserId(user.id);
+        await UserSessionService.setPhoto(user.photo);
         return user;
       } else if (response.statusCode == 404) {
         return null; // User not found
@@ -82,6 +84,7 @@ class ApiUserService {
         await UserSessionService.sethomeID(user.homeID);
         await UserSessionService.setRole(user.role);
         await UserSessionService.setUserId(user.id);
+        await UserSessionService.setPhoto(user.photo);
         return user;
       } else if (response.statusCode == 404) {
         return null; // User not found
@@ -156,26 +159,75 @@ class ApiUserService {
     }
   }
 
-  /// Update an existing user profile
-  static Future<UserModel?> updateUserProfile(String userId, UserModel user) async {
+  /// Update an existing user profile with optional image upload
+  static Future<UserModel?> updateUserProfile(String userId, UserModel user, {File? imageFile}) async {
     try {
-      final headers = await UserSessionService.getApiHeaders();
-      final response = await http.put(
+      // Always use multipart request for consistency with API
+      var request = http.MultipartRequest(
+        'PUT',
         Uri.parse('$baseUrl/api/users/$userId'),
-        headers: headers,
-        body: json.encode(user.toJson()),
       );
 
+      // Add headers including homeID
+      final headers = await UserSessionService.getApiHeaders();
+      request.headers.addAll(headers);
+
+      // Add form fields - only send non-null and non-empty values
+      if (user.fullName != null && user.fullName!.isNotEmpty) {
+        request.fields['full_name'] = user.fullName!;
+      }
+      if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+        request.fields['phone_number'] = user.phoneNumber!;
+      }
+      if (user.role != null && user.role!.isNotEmpty) {
+        request.fields['role'] = user.role!;
+      }
+      if (user.apartmentNumber != null && user.apartmentNumber!.isNotEmpty) {
+        request.fields['apartment_number'] = user.apartmentNumber!;
+      }
+      if (user.maritalStatus != null && user.maritalStatus!.isNotEmpty) {
+        request.fields['marital_status'] = user.maritalStatus!;
+      }
+      if (user.gender != null && user.gender!.isNotEmpty) {
+        request.fields['gender'] = user.gender!;
+      }
+      if (user.religious != null && user.religious!.isNotEmpty) {
+        request.fields['religious'] = user.religious!;
+      }
+      if (user.nativeLanguage != null && user.nativeLanguage!.isNotEmpty) {
+        request.fields['native_language'] = user.nativeLanguage!;
+      }
+      
+      if (user.birthday != null) {
+        request.fields['birthday'] = user.birthday!.toIso8601String();
+      }
+
+      // Add image file if provided
+      if (imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'photo',
+            imageFile.path,
+            filename: '$userId.jpeg',
+            contentType: MediaType.parse('image/jpeg'),
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(responseBody);
         final updatedUser = UserModel.fromJson(data);
         // Update session with latest data
         await UserSessionService.sethomeID(updatedUser.homeID);
         await UserSessionService.setRole(updatedUser.role);
         await UserSessionService.setUserId(updatedUser.id);
+        await UserSessionService.setPhoto(updatedUser.photo);
         return updatedUser;
       } else {
-        print('Error updating user profile: ${response.statusCode} - ${response.body}');
+        print('Error updating user profile with image: ${response.statusCode} - $responseBody');
         return null;
       }
     } catch (e) {

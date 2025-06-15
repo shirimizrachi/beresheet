@@ -9,10 +9,12 @@ class UserSessionService {
   static const String _homeIDKey = 'user_home_id';
   static const String _roleKey = 'user_role';
   static const String _userIdKey = 'user_id';
+  static const String _photoKey = 'user_photo';
   
   static int? _cachedhomeID;
   static String? _cachedRole;
   static String? _cachedUserId;
+  static String? _cachedPhoto;
 
   /// Initialize user session by fetching profile data
   static Future<void> initializeSession() async {
@@ -22,6 +24,7 @@ class UserSessionService {
         await sethomeID(user.homeID);
         await setRole(user.role);
         await setUserId(user.id);
+        await setPhoto(user.photo);
       }
     } catch (e) {
       print('Error initializing user session: $e');
@@ -82,16 +85,40 @@ class UserSessionService {
     return _cachedUserId;
   }
 
+  /// Store photo URL using SharedPreferences
+  static Future<void> setPhoto(String? photoUrl) async {
+    _cachedPhoto = photoUrl;
+    final prefs = await SharedPreferences.getInstance();
+    if (photoUrl != null) {
+      await prefs.setString(_photoKey, photoUrl);
+    } else {
+      await prefs.remove(_photoKey);
+    }
+  }
+
+  /// Get photo URL using SharedPreferences
+  static Future<String?> getPhoto() async {
+    if (_cachedPhoto != null) {
+      return _cachedPhoto;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    _cachedPhoto = prefs.getString(_photoKey);
+    return _cachedPhoto;
+  }
+
   /// Clear session data
   static Future<void> clearSession() async {
     _cachedhomeID = null;
     _cachedRole = null;
     _cachedUserId = null;
+    _cachedPhoto = null;
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_homeIDKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_userIdKey);
+    await prefs.remove(_photoKey);
   }
 
   /// Check if user has manager role

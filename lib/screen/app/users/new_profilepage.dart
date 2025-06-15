@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:beresheet_app/screen/app/homepage.dart';
 import 'package:beresheet_app/services/api_user_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -179,22 +180,26 @@ class _NewProfilePageState extends State<NewProfilePage> {
         photo: _photoUrl,
       );
 
-      // Update existing profile only (creation should be done via web interface)
-      UserModel? savedUser = await ApiUserService.updateUserProfile(_currentUser!.id, userModel);
+      // Update existing profile with optional image upload
+      UserModel? savedUser = await ApiUserService.updateUserProfile(
+        _currentUser!.id,
+        userModel,
+        imageFile: _selectedImage, // Only upload if user selected a new image
+      );
 
       if (savedUser == null) {
         throw Exception('Failed to save user profile');
       }
 
-      // Upload photo if selected
-      if (_selectedImage != null) {
-        final photoUrl = await ApiUserService.uploadUserPhoto(_currentUser!.id, _selectedImage!);
-        if (photoUrl != null) {
-          setState(() {
-            _photoUrl = photoUrl;
-          });
-        }
-      }
+      // Update local state with the saved user data
+      setState(() {
+        _currentUser = savedUser;
+        _photoUrl = savedUser.photo;
+        _selectedImage = null; // Clear selected image after successful save
+      });
+
+      // Photo upload is now handled by updateUserProfile above
+      // No need for separate upload call
 
       // Show success message and navigate
       if (mounted) {
@@ -278,18 +283,11 @@ class _NewProfilePageState extends State<NewProfilePage> {
                             height: 120,
                           ),
                         )
-                      : _photoUrl != null
-                          ? ClipOval(
-                              child: Image.network(
-                                ApiUserService.getUserPhotoUrl(_currentUser?.id ?? ''),
-                                fit: BoxFit.cover,
-                                width: 120,
-                                height: 120,
-                                errorBuilder: (context, error, stackTrace) => 
-                                    const Icon(Icons.person, size: 60),
-                              ),
-                            )
-                          : const Icon(Icons.person, size: 60),
+                      : ImageCacheService.buildCircularUserImage(
+                          imageUrl: _photoUrl,
+                          radius: 60,
+                          errorWidget: const Icon(Icons.person, size: 60),
+                        ),
                 ),
               ),
             ),

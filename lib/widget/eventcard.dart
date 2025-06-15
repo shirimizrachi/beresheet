@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -139,23 +140,26 @@ class _EventCardState extends State<EventCard> {
             // Event Image
             Flexible(
               flex: 3,
-              child: ClipRRect(
+              child: ImageCacheService.buildEventImage(
+                imageUrl: widget.event.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(
-                  widget.event.imageUrl,
+                placeholder: Container(
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      color: Colors.grey[300],
-                      child: Icon(
-                        _getTypeIcon(widget.event.type),
-                        size: 40,
-                        color: Colors.grey[600],
-                      ),
-                    );
-                  },
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: Container(
+                  width: double.infinity,
+                  color: Colors.grey[300],
+                  child: Icon(
+                    _getTypeIcon(widget.event.type),
+                    size: 40,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ),
             ),
