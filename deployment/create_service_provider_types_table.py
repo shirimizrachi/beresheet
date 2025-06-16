@@ -61,12 +61,14 @@ def create_service_provider_types_table(schema_name: str):
                 INSERT INTO [{schema_name}].[service_provider_types]
                 (name, description, created_at, updated_at)
                 VALUES
-                ('Cleaning Services', 'Professional cleaning and maintenance services', GETDATE(), GETDATE()),
-                ('Maintenance', 'Building and equipment maintenance services', GETDATE(), GETDATE()),
-                ('Security', 'Security and safety services', GETDATE(), GETDATE()),
-                ('Manager', 'Management and administrative services', GETDATE(), GETDATE()),
-                ('Finance', 'Financial and accounting services', GETDATE(), GETDATE()),
-                ('HR', 'Human resources and personnel services', GETDATE(), GETDATE())
+                (N'תחזוקה', N'שירותי תחזוקה כלליים', GETDATE(), GETDATE()),
+                (N'שרות לדייר', N'שירותי תמיכה ועזרה לדיירים', GETDATE(), GETDATE()),
+                (N'משק', N'שירותי משק ביתי', GETDATE(), GETDATE()),
+                (N'עובדת סוציאלית', N'שירותי רווחה וייעוץ', GETDATE(), GETDATE()),
+                (N'אחות', N'שירותי בריאות', GETDATE(), GETDATE()),
+                (N'תרבות', N'שירותי תרבות ופנאי', GETDATE(), GETDATE()),
+                (N'מנהל חשבונות', N'שירותי ניהול כספים וחשבונות', GETDATE(), GETDATE()),
+                (N'מנהל', N'שירותי ניהול', GETDATE(), GETDATE())
             """)
             conn.execute(insert_default_types_sql)
             conn.commit()

@@ -112,25 +112,21 @@ class AppConfig {
   /// These are shared across the app to ensure consistency
   
   /// Event Type Constants
-  static const String eventTypeClass = 'class';
-  static const String eventTypePerformance = 'performance';
-  static const String eventTypeCultural = 'cultural';
-  static const String eventTypeLeisure = 'leisure';
-  static const String eventTypeWorkshop = 'workshop';
-  static const String eventTypeMeeting = 'meeting';
+  static const String eventTypeEvent = 'event';
   static const String eventTypeSport = 'sport';
-  static const String eventTypeHealth = 'health';
+  static const String eventTypeCultural = 'cultural';
+  static const String eventTypeArt = 'art';
+  static const String eventTypeEnglish = 'english';
+  static const String eventTypeReligion = 'religion';
   
   /// Available event types
   static const List<String> eventTypes = [
-    eventTypeClass,
-    eventTypePerformance,
-    eventTypeCultural,
-    eventTypeLeisure,
-    eventTypeWorkshop,
-    eventTypeMeeting,
+    eventTypeEvent,
     eventTypeSport,
-    eventTypeHealth
+    eventTypeCultural,
+    eventTypeArt,
+    eventTypeEnglish,
+    eventTypeReligion
   ];
   
   /// Event Status Constants

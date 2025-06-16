@@ -32,7 +32,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
 
-  String _selectedType = AppConfig.eventTypeClass;
+  String _selectedType = AppConfig.eventTypeEvent;
   String _selectedStatus = AppConfig.eventStatusPendingApproval;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   bool _isSaving = false;
@@ -441,14 +441,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
     final l10n = context.l10n;
     
     switch (type) {
-      case AppConfig.eventTypeClass: return l10n.eventTypeClass;
-      case AppConfig.eventTypePerformance: return l10n.eventTypePerformance;
+      case AppConfig.eventTypeEvent: return l10n.eventTypeEvent;
       case AppConfig.eventTypeCultural: return l10n.eventTypeCultural;
-      case AppConfig.eventTypeLeisure: return l10n.eventTypeLeisure;
-      case AppConfig.eventTypeWorkshop: return l10n.eventTypeWorkshop;
-      case AppConfig.eventTypeMeeting: return l10n.eventTypeMeeting;
       case AppConfig.eventTypeSport: return l10n.eventTypeSport;
-      case AppConfig.eventTypeHealth: return l10n.eventTypeHealth;
+      case AppConfig.eventTypeArt: return l10n.eventTypeArt;
+      case AppConfig.eventTypeEnglish: return l10n.eventTypeEnglish;
+      case AppConfig.eventTypeReligion: return l10n.eventTypeReligion;
       default: return type;
     }
   }

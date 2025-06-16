@@ -33,7 +33,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   final TextEditingController _imageUrlController = TextEditingController();
   
   // Form variables
-  String _selectedType = AppConfig.eventTypeClass;
+  String _selectedType = AppConfig.eventTypeEvent;
   String _selectedStatus = AppConfig.eventStatusPendingApproval;
   String _selectedRecurring = AppConfig.eventRecurringNone;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
@@ -332,7 +332,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     _currentParticipantsController.clear();
     _imageUrlController.clear();
     setState(() {
-      _selectedType = AppConfig.eventTypeClass;
+      _selectedType = AppConfig.eventTypeEvent;
       _selectedStatus = AppConfig.eventStatusPendingApproval;
       _selectedRecurring = AppConfig.eventRecurringNone;
       _selectedDateTime = DateTime.now().add(const Duration(days: 1));

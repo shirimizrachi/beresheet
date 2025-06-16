@@ -145,14 +145,8 @@ class ModernAppStrings {
   String get retry => _l10n.retry;
 
   // Event Types
-  String get eventTypeClass => _l10n.eventTypeClass;
-  String get eventTypePerformance => _l10n.eventTypePerformance;
   String get eventTypeCultural => _l10n.eventTypeCultural;
-  String get eventTypeLeisure => _l10n.eventTypeLeisure;
-  String get eventTypeWorkshop => _l10n.eventTypeWorkshop;
-  String get eventTypeMeeting => _l10n.eventTypeMeeting;
   String get eventTypeSport => _l10n.eventTypeSport;
-  String get eventTypeHealth => _l10n.eventTypeHealth;
 
   // Common
   String get yes => _l10n.yes;

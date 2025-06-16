@@ -353,37 +353,29 @@
     "description": "Retry button"
   },
   
-  "eventTypeClass": "Class",
-  "@eventTypeClass": {
-    "description": "Class event type"
+  "eventTypeEvent": "Event",
+  "@eventTypeEvent": {
+    "description": "Event event type"
   },
-  "eventTypePerformance": "Performance",
-  "@eventTypePerformance": {
-    "description": "Performance event type"
-  },
-  "eventTypeCultural": "Cultural",
-  "@eventTypeCultural": {
-    "description": "Cultural event type"
-  },
-  "eventTypeLeisure": "Leisure",
-  "@eventTypeLeisure": {
-    "description": "Leisure event type"
-  },
-  "eventTypeWorkshop": "Workshop",
-  "@eventTypeWorkshop": {
-    "description": "Workshop event type"
-  },
-  "eventTypeMeeting": "Meeting",
-  "@eventTypeMeeting": {
-    "description": "Meeting event type"
-  },
-  "eventTypeSport": "Sport",
+  "eventTypeSport": "Sports",
   "@eventTypeSport": {
-    "description": "Sport event type"
+    "description": "Sports event type"
   },
-  "eventTypeHealth": "Health",
-  "@eventTypeHealth": {
-    "description": "Health event type"
+  "eventTypeCultural": "Culture",
+  "@eventTypeCultural": {
+    "description": "Culture event type"
+  },
+  "eventTypeArt": "Art",
+  "@eventTypeArt": {
+    "description": "Art event type"
+  },
+  "eventTypeEnglish": "English",
+  "@eventTypeEnglish": {
+    "description": "English event type"
+  },
+  "eventTypeReligion": "Religion",
+  "@eventTypeReligion": {
+    "description": "Religion event type"
   },
   
   "yes": "Yes",
@@ -1773,5 +1765,111 @@
   "unregisterTooltip": "Unregister",
   "@unregisterTooltip": {
     "description": "Unregister tooltip"
+  },
+  
+  "accessDeniedManagerRoleRequired": "Access denied: Manager role required",
+  "@accessDeniedManagerRoleRequired": {
+    "description": "Access denied message for manager role requirement"
+  },
+  "failedToLoadServiceProviderTypes": "Failed to load service provider types",
+  "@failedToLoadServiceProviderTypes": {
+    "description": "Failed to load service provider types message"
+  },
+  "pleaseEnterName": "Please enter a name",
+  "@pleaseEnterName": {
+    "description": "Please enter name validation"
+  },
+  "serviceProviderTypeCreatedSuccessfully": "Service provider type created successfully",
+  "@serviceProviderTypeCreatedSuccessfully": {
+    "description": "Service provider type created successfully message"
+  },
+  "failedToCreateServiceProviderType": "Failed to create service provider type",
+  "@failedToCreateServiceProviderType": {
+    "description": "Failed to create service provider type message"
+  },
+  "serviceProviderTypeUpdatedSuccessfully": "Service provider type updated successfully",
+  "@serviceProviderTypeUpdatedSuccessfully": {
+    "description": "Service provider type updated successfully message"
+  },
+  "failedToUpdateServiceProviderType": "Failed to update service provider type",
+  "@failedToUpdateServiceProviderType": {
+    "description": "Failed to update service provider type message"
+  },
+  "deleteServiceProviderTypeConfirmation": "Are you sure you want to delete '{name}'?",
+  "@deleteServiceProviderTypeConfirmation": {
+    "description": "Delete service provider type confirmation message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "serviceProviderTypeDeletedSuccessfully": "Service provider type deleted successfully",
+  "@serviceProviderTypeDeletedSuccessfully": {
+    "description": "Service provider type deleted successfully message"
+  },
+  "failedToDeleteServiceProviderType": "Failed to delete service provider type",
+  "@failedToDeleteServiceProviderType": {
+    "description": "Failed to delete service provider type message"
+  },
+  "serviceProviderTypesManagementTitle": "Service Provider Types Management",
+  "@serviceProviderTypesManagementTitle": {
+    "description": "Service provider types management page title"
+  },
+  "createNewServiceProviderType": "Create New Service Provider Type",
+  "@createNewServiceProviderType": {
+    "description": "Create new service provider type button"
+  },
+  "editServiceProviderType": "Edit Service Provider Type",
+  "@editServiceProviderType": {
+    "description": "Edit service provider type button"
+  },
+  "serviceProviderTypeName": "Service Provider Type Name",
+  "@serviceProviderTypeName": {
+    "description": "Service provider type name field label"
+  },
+  "nameCannotBeChanged": "Name cannot be changed after creation",
+  "@nameCannotBeChanged": {
+    "description": "Name cannot be changed helper text"
+  },
+  "serviceProviderTypeDescription": "Service Provider Type Description",
+  "@serviceProviderTypeDescription": {
+    "description": "Service provider type description field label"
+  },
+  "update": "Update",
+  "@update": {
+    "description": "Update button"
+  },
+  "create": "Create",
+  "@create": {
+    "description": "Create button"
+  },
+  "clear": "Clear",
+  "@clear": {
+    "description": "Clear button"
+  },
+  "existingServiceProviderTypes": "Existing Service Provider Types",
+  "@existingServiceProviderTypes": {
+    "description": "Existing service provider types section title"
+  },
+  "noServiceProviderTypesFound": "No service provider types found",
+  "@noServiceProviderTypesFound": {
+    "description": "No service provider types found message"
+  },
+  "noDescription": "No description",
+  "@noDescription": {
+    "description": "No description placeholder"
+  },
+  "editTooltip": "Edit",
+  "@editTooltip": {
+    "description": "Edit tooltip"
+  },
+  "deleteTooltip": "Delete",
+  "@deleteTooltip": {
+    "description": "Delete tooltip"
+  },
+  "serviceProviderTypesManagementRequiresManagerRole": "Service provider types management requires manager role",
+  "@serviceProviderTypesManagementRequiresManagerRole": {
+    "description": "Service provider types management requires manager role message"
   }
 }

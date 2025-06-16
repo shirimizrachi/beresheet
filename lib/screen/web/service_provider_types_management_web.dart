@@ -40,7 +40,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
     final userRole = WebAuthService.userRole ?? '';
     if (userRole != 'manager') {
       setState(() {
-        _errorMessage = 'Access denied: Manager role required';
+        _errorMessage = AppLocalizations.of(context)!.accessDeniedManagerRoleRequired;
         _isLoading = false;
       });
     }
@@ -60,7 +60,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load service provider types: $e';
+        _errorMessage = '${AppLocalizations.of(context)!.failedToLoadServiceProviderTypes}: $e';
         _isLoading = false;
       });
     }
@@ -68,7 +68,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
 
   Future<void> _createServiceProviderType() async {
     if (_nameController.text.trim().isEmpty) {
-      _showMessage('Please enter a name', isError: true);
+      _showMessage(AppLocalizations.of(context)!.pleaseEnterName, isError: true);
       return;
     }
 
@@ -87,10 +87,10 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
       if (newType != null) {
         _clearForm();
         await _loadServiceProviderTypes();
-        _showMessage('Service provider type created successfully', isError: false);
+        _showMessage(AppLocalizations.of(context)!.serviceProviderTypeCreatedSuccessfully, isError: false);
       }
     } catch (e) {
-      _showMessage('Failed to create service provider type: $e', isError: true);
+      _showMessage('${AppLocalizations.of(context)!.failedToCreateServiceProviderType}: $e', isError: true);
       setState(() {
         _isLoading = false;
       });
@@ -115,10 +115,10 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
       if (updatedType != null) {
         _clearForm();
         await _loadServiceProviderTypes();
-        _showMessage('Service provider type updated successfully', isError: false);
+        _showMessage(AppLocalizations.of(context)!.serviceProviderTypeUpdatedSuccessfully, isError: false);
       }
     } catch (e) {
-      _showMessage('Failed to update service provider type: $e', isError: true);
+      _showMessage('${AppLocalizations.of(context)!.failedToUpdateServiceProviderType}: $e', isError: true);
       setState(() {
         _isLoading = false;
       });
@@ -130,7 +130,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.confirmDelete),
-        content: Text('Are you sure you want to delete "${type.name}"?\n\nThis action cannot be undone.'),
+        content: Text(AppLocalizations.of(context)!.deleteServiceProviderTypeConfirmation(type.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -158,10 +158,10 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
 
       if (success) {
         await _loadServiceProviderTypes();
-        _showMessage('Service provider type deleted successfully', isError: false);
+        _showMessage(AppLocalizations.of(context)!.serviceProviderTypeDeletedSuccessfully, isError: false);
       }
     } catch (e) {
-      _showMessage('Failed to delete service provider type: $e', isError: true);
+      _showMessage('${AppLocalizations.of(context)!.failedToDeleteServiceProviderType}: $e', isError: true);
       setState(() {
         _isLoading = false;
       });
@@ -216,9 +216,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Service Provider Types Management',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.serviceProviderTypesManagementTitle,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -238,7 +238,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _editingType == null ? 'Create New Service Provider Type' : 'Edit Service Provider Type',
+                      _editingType == null ? AppLocalizations.of(context)!.createNewServiceProviderType : AppLocalizations.of(context)!.editServiceProviderType,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -251,9 +251,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                       controller: _nameController,
                       enabled: _editingType == null, // Name is not editable when updating
                       decoration: InputDecoration(
-                        labelText: 'Name *',
+                        labelText: '${AppLocalizations.of(context)!.serviceProviderTypeName} *',
                         border: const OutlineInputBorder(),
-                        helperText: _editingType != null ? 'Name cannot be changed' : null,
+                        helperText: _editingType != null ? AppLocalizations.of(context)!.nameCannotBeChanged : null,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -262,9 +262,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                     TextFormField(
                       controller: _descriptionController,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!.serviceProviderTypeDescription,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -279,7 +279,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                               backgroundColor: Colors.orange,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text('Update'),
+                            child: Text(AppLocalizations.of(context)!.update),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
@@ -293,12 +293,12 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text('Create'),
+                            child: Text(AppLocalizations.of(context)!.create),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
                             onPressed: _clearForm,
-                            child: const Text('Clear'),
+                            child: Text(AppLocalizations.of(context)!.clear),
                           ),
                         ],
                       ],
@@ -346,9 +346,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
               ),
             
             // Service Provider Types List
-            const Text(
-              'Existing Service Provider Types',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.existingServiceProviderTypes,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -359,10 +359,10 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _serviceProviderTypes.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'No service provider types found',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.noServiceProviderTypesFound,
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.grey,
                             ),
@@ -380,19 +380,19 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                                 ),
                                 subtitle: type.description != null
                                     ? Text(type.description!)
-                                    : const Text('No description'),
+                                    : Text(AppLocalizations.of(context)!.noDescription),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: const Icon(Icons.edit, color: Colors.blue),
                                       onPressed: () => _editServiceProviderType(type),
-                                      tooltip: 'Edit',
+                                      tooltip: AppLocalizations.of(context)!.editTooltip,
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete, color: Colors.red),
                                       onPressed: () => _deleteServiceProviderType(type),
-                                      tooltip: 'Delete',
+                                      tooltip: AppLocalizations.of(context)!.deleteTooltip,
                                     ),
                                   ],
                                 ),
@@ -410,7 +410,7 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
   Widget _buildAccessDeniedPage() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Service Provider Types Management'),
+        title: Text(AppLocalizations.of(context)!.serviceProviderTypesManagementTitle),
         backgroundColor: Colors.red[700],
       ),
       body: Center(
@@ -435,9 +435,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Service provider types management requires Manager role.',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.serviceProviderTypesManagementRequiresManagerRole,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
                   ),

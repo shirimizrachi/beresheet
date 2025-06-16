@@ -30,22 +30,18 @@ class DisplayNameUtils {
   static String getEventTypeDisplayName(String type, BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     switch (type) {
-      case AppConfig.eventTypeClass:
-        return localizations.eventTypeClass;
-      case AppConfig.eventTypePerformance:
-        return localizations.eventTypePerformance;
-      case AppConfig.eventTypeCultural:
-        return localizations.eventTypeCultural;
-      case AppConfig.eventTypeLeisure:
-        return localizations.eventTypeLeisure;
-      case AppConfig.eventTypeWorkshop:
-        return localizations.eventTypeWorkshop;
-      case AppConfig.eventTypeMeeting:
-        return localizations.eventTypeMeeting;
+      case AppConfig.eventTypeEvent:
+        return localizations.eventTypeEvent;
       case AppConfig.eventTypeSport:
         return localizations.eventTypeSport;
-      case AppConfig.eventTypeHealth:
-        return localizations.eventTypeHealth;
+      case AppConfig.eventTypeCultural:
+        return localizations.eventTypeCultural;
+      case AppConfig.eventTypeArt:
+        return localizations.eventTypeArt;
+      case AppConfig.eventTypeEnglish:
+        return localizations.eventTypeEnglish;
+      case AppConfig.eventTypeReligion:
+        return localizations.eventTypeReligion;
       default:
         return type;
     }

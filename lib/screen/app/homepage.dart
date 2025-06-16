@@ -3,6 +3,7 @@ import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/registeredevents.dart';
 import 'package:beresheet_app/screen/app/users/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
+import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -22,13 +23,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int registeredEventsCount = 0;
   bool isLoading = true;
   bool isMenuExpanded = false;
+  bool isCardView = true; // Default to card view
+  int currentCardIndex = 0;
+  double _dragOffset = 0.0;
   late AnimationController _animationController;
+  late AnimationController _cardAnimationController;
   late Animation<double> _animation;
+  Map<String, bool> registrationStatus = {}; // Track registration status for each event
+  bool isHeartRegistering = false; // Track heart button loading state
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _cardAnimationController = AnimationController(
       duration: Duration(milliseconds: 300),
       vsync: this,
     );
@@ -42,6 +53,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
+    _cardAnimationController.dispose();
     super.dispose();
   }
 
@@ -56,10 +68,147 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
+  void toggleViewMode() {
+    setState(() {
+      isCardView = !isCardView;
+    });
+  }
+
+  void _nextCard() {
+    setState(() {
+      currentCardIndex = (currentCardIndex + 1) % events.length;
+      // Heart state will automatically update based on new current card
+    });
+  }
+
+  void _previousCard() {
+    setState(() {
+      currentCardIndex = (currentCardIndex - 1 + events.length) % events.length;
+      // Heart state will automatically update based on new current card
+    });
+  }
+
+  void _likeEvent() {
+    // Set positive drag offset for right swipe animation
+    setState(() {
+      _dragOffset = 300;
+    });
+    _cardAnimationController.forward().then((_) {
+      setState(() {
+        _dragOffset = 0;
+      });
+      _nextCard();
+      _cardAnimationController.reset();
+    });
+  }
+
+  void _passEvent() {
+    // Set negative drag offset for left swipe animation
+    setState(() {
+      _dragOffset = -300;
+    });
+    _cardAnimationController.forward().then((_) {
+      setState(() {
+        _dragOffset = 0;
+      });
+      _nextCard();
+      _cardAnimationController.reset();
+    });
+  }
+
+  void _superLikeEvent() {
+    _likeEvent();
+  }
+
+  Future<void> _handleHeartRegistration() async {
+    if (isHeartRegistering || events.isEmpty) return;
+
+    final currentEvent = events[currentCardIndex];
+    final isCurrentlyRegistered = registrationStatus[currentEvent.id] ?? false;
+
+    setState(() {
+      isHeartRegistering = true;
+    });
+
+    try {
+      bool success = false;
+      if (isCurrentlyRegistered) {
+        // Unregister
+        success = await EventService.unregisterFromEvent(currentEvent.id);
+        if (success) {
+          setState(() {
+            registrationStatus[currentEvent.id] = false;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${context.l10n.unregister} ${currentEvent.name}'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } else {
+        // Register
+        if (!currentEvent.isAvailable) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(context.l10n.eventFull),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        success = await EventService.registerForEvent(currentEvent);
+        if (success) {
+          setState(() {
+            registrationStatus[currentEvent.id] = true;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${context.l10n.registrationSuccessful} ${currentEvent.name}!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+
+      if (success) {
+        // Refresh registered events count
+        _refreshEvents();
+      }
+    } catch (e) {
+      print('Heart registration error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.operationFailed),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isHeartRegistering = false;
+        });
+      }
+    }
+  }
+
   Future<void> loadEvents() async {
     try {
       final loadedEvents = await EventService.loadApprovedEvents();
       final registeredEvents = await EventService.getRegisteredEvents();
+      
+      // Load registration status for all events
+      await _loadRegistrationStatus(loadedEvents);
+      
       setState(() {
         events = loadedEvents;
         registeredEventsCount = registeredEvents.length;
@@ -70,6 +219,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadRegistrationStatus(List<Event> eventsList) async {
+    for (final event in eventsList) {
+      final isRegistered = await EventService.isRegisteredForEvent(event.id);
+      registrationStatus[event.id] = isRegistered;
     }
   }
 
@@ -235,25 +391,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : events.isNotEmpty
-                    ? RefreshIndicator(
-                        onRefresh: _refreshEvents,
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(10),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                          itemCount: events.length,
-                          itemBuilder: (context, index) {
-                            return EventCard(
-                              event: events[index],
-                              onRegistrationChanged: _refreshEvents,
-                            );
-                          },
-                        ),
-                      )
+                    ? isCardView
+                        ? _buildCardView()
+                        : RefreshIndicator(
+                            onRefresh: _refreshEvents,
+                            child: GridView.builder(
+                              padding: const EdgeInsets.all(10),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              itemCount: events.length,
+                              itemBuilder: (context, index) {
+                                return EventCard(
+                                  event: events[index],
+                                  onRegistrationChanged: _refreshEvents,
+                                );
+                              },
+                            ),
+                          )
                     : RefreshIndicator(
                         onRefresh: _refreshEvents,
                         child: SingleChildScrollView(
@@ -365,7 +523,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     children: [
                                       _buildBottomMenuItem(Icons.settings, 'Settings'),
                                       SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.help, 'Help'),
+                                      _buildBottomMenuItem(Icons.help, 'Help', onTap: toggleViewMode),
                                       SizedBox(width: 40),
                                       _buildBottomMenuItem(Icons.info, 'About'),
                                     ],
@@ -399,7 +557,384 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildBottomMenuItem(IconData icon, String title, {bool hasNotification = false, int notificationCount = 0}) {
+  Widget _buildCardView() {
+    return Column(
+      children: [
+        // Add top margin from header
+        SizedBox(height: 40),
+        
+        // Card Stack - centered vertically
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 25),
+            child: Center(
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.55, // Increased from 0.45 to 0.55
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Background cards - showing 3 cards with deck effect
+                    for (int offset = 2; offset >= 0; offset--)
+                      _buildEventCard((currentCardIndex + offset) % events.length, offset),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        
+        // Action Buttons
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildActionButton(
+                icon: Icons.close,
+                color: Colors.grey,
+                onTap: () {
+                  // Simulate swipe left by setting drag offset and calling onPanEnd
+                  setState(() {
+                    _dragOffset = -100; // Set to left swipe threshold
+                  });
+                  _onPanEnd(DragEndDetails(velocity: Velocity(pixelsPerSecond: Offset(-600, 0))));
+                },
+              ),
+              _buildActionButton(
+                icon: Icons.star,
+                color: Colors.blue,
+                onTap: _superLikeEvent,
+                size: 35,
+              ),
+              _buildHeartActionButton(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEventCard(int index, int position) {
+    if (events.isEmpty) return Container();
+    
+    final event = events[index % events.length];
+    final isCurrentCard = position == 0;
+    
+    return AnimatedBuilder(
+      animation: _cardAnimationController,
+      builder: (context, child) {
+        // Enhanced deck effect - cards stack with visible bottom edges
+        double scale = 1.0 - (position * 0.05); // Reduced scaling for better visibility
+        double verticalOffset = position * 8.0; // Vertical stacking effect
+        double rotation = position * 0.01; // Minimal rotation for natural look
+        
+        // Swipe animation effects - ONLY for the current card
+        double swipeRotation = 0.0;
+        double swipeScale = 1.0;
+        double swipeOffset = 0.0;
+        
+        if (isCurrentCard) {
+          // Apply drag offset only to the current card
+          swipeOffset = _dragOffset;
+          
+          // Add rotation during swipe
+          swipeRotation = (_dragOffset / 300) * 0.2; // Subtle rotation
+          
+          // Scale down slightly during swipe
+          if (_dragOffset.abs() > 50) {
+            swipeScale = 1.0 - (_dragOffset.abs() / 1000);
+          }
+          
+          // Flying effect during animation
+          if (_cardAnimationController.isAnimating) {
+            swipeOffset = _dragOffset * (1 + _cardAnimationController.value * 3);
+            swipeRotation = (_dragOffset / 300) * 0.5 * _cardAnimationController.value;
+            swipeScale = 1.0 - _cardAnimationController.value * 0.3;
+          }
+        }
+        // Background cards remain stationary (swipeOffset = 0.0)
+
+        return Positioned(
+          top: verticalOffset,
+          left: 0,
+          right: 0,
+          child: Transform.scale(
+            scale: scale * swipeScale,
+            child: Transform.rotate(
+              angle: rotation + swipeRotation,
+              child: GestureDetector(
+                onTap: isCurrentCard ? () {
+                  // Navigate to event details when tapping the current card
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => EventDetailPage(event: event),
+                    ),
+                  ).then((result) {
+                    if (result == true) {
+                      _refreshEvents();
+                    }
+                  });
+                } : null,
+                onPanUpdate: isCurrentCard ? _onPanUpdate : null,
+                onPanEnd: isCurrentCard ? _onPanEnd : null,
+                child: Transform.translate(
+                  offset: Offset(swipeOffset, 0),
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2 - (position * 0.05)),
+                          blurRadius: 20 - (position * 3),
+                          offset: Offset(0, 10 - (position * 2)),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.52, // Increased from 0.42 to 0.52
+                        child: Stack(
+                          children: [
+                            // Background Image
+                            Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              child: event.imageUrl.isNotEmpty
+                                  ? Image.network(
+                                      event.imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: AppColors.primary.withOpacity(0.3),
+                                          child: Icon(
+                                            Icons.event,
+                                            size: 100,
+                                            color: Colors.white.withOpacity(0.5),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      color: AppColors.primary.withOpacity(0.3),
+                                      child: Icon(
+                                        Icons.event,
+                                        size: 100,
+                                        color: Colors.white.withOpacity(0.5),
+                                      ),
+                                    ),
+                            ),
+                            
+                            // Gradient Overlay
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.7),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            
+                            // Event Information
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                padding: EdgeInsets.all(24),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      event.name,
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on,
+                                          color: Colors.white.withOpacity(0.8),
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            event.location,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.white.withOpacity(0.8),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            event.formattedDate,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      event.description,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.9),
+                                        height: 1.4,
+                                      ),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.delta.dx;
+      // Limit the drag offset to prevent extreme positions
+      _dragOffset = _dragOffset.clamp(-400.0, 400.0);
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    final threshold = 80.0;
+    final velocity = details.velocity.pixelsPerSecond.dx;
+    
+    if (_dragOffset > threshold || velocity > 500) {
+      // Swipe right - like/next
+      _likeEvent();
+    } else if (_dragOffset < -threshold || velocity < -500) {
+      // Swipe left - pass/previous
+      _passEvent();
+    } else {
+      // Return to center with smooth animation
+      _cardAnimationController.duration = Duration(milliseconds: 200);
+      _cardAnimationController.forward().then((_) {
+        _cardAnimationController.reset();
+        _cardAnimationController.duration = Duration(milliseconds: 300);
+        setState(() {
+          _dragOffset = 0.0;
+        });
+      });
+    }
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    double size = 30,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: color,
+          size: size,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeartActionButton() {
+    if (events.isEmpty) {
+      return _buildActionButton(
+        icon: Icons.favorite_border,
+        color: Colors.grey,
+        onTap: () {},
+      );
+    }
+
+    final currentEvent = events[currentCardIndex];
+    final isRegistered = registrationStatus[currentEvent.id] ?? false;
+
+    return GestureDetector(
+      onTap: isHeartRegistering ? null : _handleHeartRegistration,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: isHeartRegistering
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                ),
+              )
+            : Icon(
+                isRegistered ? Icons.favorite : Icons.favorite_border,
+                color: isRegistered ? Colors.red : Colors.grey,
+                size: 30,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildBottomMenuItem(IconData icon, String title, {bool hasNotification = false, int notificationCount = 0, VoidCallback? onTap}) {
     return SizedBox(
       width: 90,
       child: Stack(
@@ -422,27 +957,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(30),
                     onTap: () {
-                      // Handle navigation based on title
-                      if (title == context.l10n.profile) {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => const NewProfilePage(),
-                        ));
-                      } else if (title == context.l10n.myRegisteredEvents) {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => const RegisteredEventsScreen(),
-                        )).then((result) {
-                          if (result == true) {
-                            _refreshEvents();
-                          }
-                        });
-                      } else if (title == context.l10n.manageEvents) {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => const EventsManagementScreen(),
-                        )).then((result) {
-                          if (result == true) {
-                            _refreshEvents();
-                          }
-                        });
+                      if (onTap != null) {
+                        onTap();
+                      } else {
+                        // Handle navigation based on title
+                        if (title == context.l10n.profile) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const NewProfilePage(),
+                          ));
+                        } else if (title == context.l10n.myRegisteredEvents) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const RegisteredEventsScreen(),
+                          )).then((result) {
+                            if (result == true) {
+                              _refreshEvents();
+                            }
+                          });
+                        } else if (title == context.l10n.manageEvents) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const EventsManagementScreen(),
+                          )).then((result) {
+                            if (result == true) {
+                              _refreshEvents();
+                            }
+                          });
+                        }
                       }
                     },
                     child: Icon(
