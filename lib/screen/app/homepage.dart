@@ -8,8 +8,10 @@ import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -31,6 +33,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _animation;
   Map<String, bool> registrationStatus = {}; // Track registration status for each event
   bool isHeartRegistering = false; // Track heart button loading state
+  Set<String> selectedEventTypeFilters = {}; // Multiple filters for event types
 
   @override
   void initState() {
@@ -233,6 +236,248 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     await loadEvents();
   }
 
+  // Get unique event types from the current events list
+  List<String> _getUniqueEventTypes() {
+    final Set<String> uniqueTypes = events.map((event) => event.type).toSet();
+    return uniqueTypes.toList()..sort();
+  }
+
+  // Filter events based on selected types
+  List<Event> _getFilteredEvents() {
+    if (selectedEventTypeFilters.isEmpty) {
+      return events;
+    }
+    return events.where((event) => selectedEventTypeFilters.contains(event.type)).toList();
+  }
+
+  // Build the event type filter widget
+  Widget _buildEventTypeFilter() {
+    final uniqueTypes = _getUniqueEventTypes();
+    if (uniqueTypes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      height: 40,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: uniqueTypes.length,
+        itemBuilder: (context, index) {
+          final eventType = uniqueTypes[index];
+          final isSelected = selectedEventTypeFilters.contains(eventType);
+          
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(
+                DisplayNameUtils.getEventTypeDisplayName(eventType, context),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    selectedEventTypeFilters.add(eventType);
+                  } else {
+                    selectedEventTypeFilters.remove(eventType);
+                  }
+                });
+              },
+              backgroundColor: Colors.white,
+              selectedColor: AppColors.primary,
+              checkmarkColor: Colors.white,
+              side: BorderSide(
+                color: AppColors.primary,
+                width: 1,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Helper method to get localized month name
+  String _getLocalizedMonth(int month) {
+    switch (month) {
+      case 1: return context.l10n.january;
+      case 2: return context.l10n.february;
+      case 3: return context.l10n.march;
+      case 4: return context.l10n.april;
+      case 5: return context.l10n.may;
+      case 6: return context.l10n.june;
+      case 7: return context.l10n.july;
+      case 8: return context.l10n.august;
+      case 9: return context.l10n.september;
+      case 10: return context.l10n.october;
+      case 11: return context.l10n.november;
+      case 12: return context.l10n.december;
+      default: return month.toString();
+    }
+  }
+
+  // Helper method to get localized day name
+  String _getLocalizedDay(int weekday) {
+    switch (weekday) {
+      case 1: return context.l10n.monday;
+      case 2: return context.l10n.tuesday;
+      case 3: return context.l10n.wednesday;
+      case 4: return context.l10n.thursday;
+      case 5: return context.l10n.friday;
+      case 6: return context.l10n.saturday;
+      case 7: return context.l10n.sunday;
+      default: return weekday.toString();
+    }
+  }
+
+  // Helper method to group events by date
+  Map<String, List<Event>> _groupEventsByDate(List<Event> eventsList) {
+    final Map<String, List<Event>> groupedEvents = {};
+    final now = DateTime.now();
+    
+    for (final event in eventsList) {
+      final eventDate = DateTime(event.dateTime.year, event.dateTime.month, event.dateTime.day);
+      final today = DateTime(now.year, now.month, now.day);
+      final tomorrow = today.add(Duration(days: 1));
+      
+      String dateKey;
+      if (eventDate.isAtSameMomentAs(today)) {
+        dateKey = context.l10n.today;
+      } else if (eventDate.isAtSameMomentAs(tomorrow)) {
+        dateKey = context.l10n.tomorrow;
+      } else {
+        // Format: "Weekday, dd Month" with localized names
+        final dayName = _getLocalizedDay(eventDate.weekday);
+        final monthName = _getLocalizedMonth(eventDate.month);
+        dateKey = '$dayName, ${eventDate.day} $monthName';
+      }
+      
+      if (!groupedEvents.containsKey(dateKey)) {
+        groupedEvents[dateKey] = [];
+      }
+      groupedEvents[dateKey]!.add(event);
+    }
+    
+    // Sort events within each date group by time
+    groupedEvents.forEach((key, eventList) {
+      eventList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    });
+    
+    return groupedEvents;
+  }
+
+  // Helper method to create date separator widget
+  Widget _buildDateSeparator(String dateLabel) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      child: Row(
+        children: [
+          Text(
+            dateLabel,
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: AppColors.primary.withOpacity(0.3),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build grid view with date separators
+  Widget _buildGridViewWithDateSeparators() {
+    final filteredEvents = _getFilteredEvents();
+    final groupedEvents = _groupEventsByDate(filteredEvents);
+    final sortedDateKeys = groupedEvents.keys.toList();
+    
+    // Sort the date keys to ensure proper chronological order
+    sortedDateKeys.sort((a, b) {
+      if (a == context.l10n.today) return -1;
+      if (b == context.l10n.today) return 1;
+      if (a == context.l10n.tomorrow) return -1;
+      if (b == context.l10n.tomorrow) return 1;
+      
+      // For other dates, we need to find the actual events to compare dates
+      // since we can't easily parse localized date strings
+      final eventsA = groupedEvents[a]!;
+      final eventsB = groupedEvents[b]!;
+      
+      if (eventsA.isNotEmpty && eventsB.isNotEmpty) {
+        return eventsA.first.dateTime.compareTo(eventsB.first.dateTime);
+      }
+      
+      return a.compareTo(b);
+    });
+
+    return RefreshIndicator(
+      onRefresh: _refreshEvents,
+      child: CustomScrollView(
+        slivers: [
+          // Event Type Filter
+          SliverToBoxAdapter(
+            child: _buildEventTypeFilter(),
+          ),
+          // Events grouped by date
+          for (String dateKey in sortedDateKeys) ...[
+            // Date separator
+            SliverToBoxAdapter(
+              child: _buildDateSeparator(dateKey),
+            ),
+            // Events for this date in a grid
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final eventsForDate = groupedEvents[dateKey]!;
+                    return EventCard(
+                      event: eventsForDate[index],
+                      onRegistrationChanged: _refreshEvents,
+                    );
+                  },
+                  childCount: groupedEvents[dateKey]!.length,
+                ),
+              ),
+            ),
+          ],
+          // Empty state if no events match filter
+          if (groupedEvents.isEmpty)
+            SliverToBoxAdapter(
+              child: Container(
+                height: 200,
+                child: Center(
+                  child: Text(
+                    context.l10n.noEventsFound,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Enable edge-to-edge display to use full screen
@@ -393,25 +638,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 : events.isNotEmpty
                     ? isCardView
                         ? _buildCardView()
-                        : RefreshIndicator(
-                            onRefresh: _refreshEvents,
-                            child: GridView.builder(
-                              padding: const EdgeInsets.all(10),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                              itemCount: events.length,
-                              itemBuilder: (context, index) {
-                                return EventCard(
-                                  event: events[index],
-                                  onRegistrationChanged: _refreshEvents,
-                                );
-                              },
-                            ),
-                          )
+                        : _buildGridViewWithDateSeparators()
                     : RefreshIndicator(
                         onRefresh: _refreshEvents,
                         child: SingleChildScrollView(

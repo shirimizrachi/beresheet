@@ -453,5 +453,29 @@
   "failedToLoadServiceProviderTypes": "נכשל בטעינת סוגי ספקי שירותים",
   "accessDeniedManagerRoleRequired": "גישה נדחתה: נדרש תפקיד מנהל",
   "serviceProviderTypesManagementRequiresManagerRole": "ניהול סוגי ספקי שירותים דורש תפקיד מנהל.",
-  "deleteServiceProviderTypeConfirmation": "האם אתה בטוח שברצונך למחוק את \"{name}\"?\n\nפעולה זו לא ניתנת לביטול."
+  "deleteServiceProviderTypeConfirmation": "האם אתה בטוח שברצונך למחוק את \"{name}\"?\n\nפעולה זו לא ניתנת לביטול.",
+  
+  "today": "היום",
+  "tomorrow": "מחר",
+  
+  "january": "ינואר",
+  "february": "פברואר",
+  "march": "מרץ",
+  "april": "אפריל",
+  "may": "מאי",
+  "june": "יוני",
+  "july": "יולי",
+  "august": "אוגוסט",
+  "september": "ספטמבר",
+  "october": "אוקטובר",
+  "november": "נובמבר",
+  "december": "דצמבר",
+  
+  "sunday": "ראשון",
+  "monday": "שני",
+  "tuesday": "שלישי",
+  "wednesday": "רביעי",
+  "thursday": "חמישי",
+  "friday": "שישי",
+  "saturday": "שבת"
 }

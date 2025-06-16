@@ -1871,5 +1871,35 @@
   "serviceProviderTypesManagementRequiresManagerRole": "Service provider types management requires manager role",
   "@serviceProviderTypesManagementRequiresManagerRole": {
     "description": "Service provider types management requires manager role message"
-  }
+  },
+  
+  "today": "Today",
+  "@today": {
+    "description": "Today label for date separators"
+  },
+  "tomorrow": "Tomorrow",
+  "@tomorrow": {
+    "description": "Tomorrow label for date separators"
+  },
+  
+  "january": "January",
+  "february": "February",
+  "march": "March",
+  "april": "April",
+  "may": "May",
+  "june": "June",
+  "july": "July",
+  "august": "August",
+  "september": "September",
+  "october": "October",
+  "november": "November",
+  "december": "December",
+  
+  "sunday": "Sunday",
+  "monday": "Monday",
+  "tuesday": "Tuesday",
+  "wednesday": "Wednesday",
+  "thursday": "Thursday",
+  "friday": "Friday",
+  "saturday": "Saturday"
 }
