@@ -8,6 +8,7 @@ import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../../../config/app_config.dart';
@@ -43,7 +44,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   String? _userRole;
   
   // Image handling
-  String _imageSource = 'url'; // 'url', 'gallery', or 'unsplash'
+  String _imageSource = 'upload'; // 'upload' or 'unsplash'
   File? _selectedImageFile;
   final ImagePicker _imagePicker = ImagePicker();
   
@@ -224,7 +225,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       if (image != null) {
         setState(() {
           _selectedImageFile = File(image.path);
-          _imageSource = 'gallery';
+          _imageSource = 'upload';
           _imageUrlController.clear();
         });
       }
@@ -240,11 +241,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
     }
   }
 
-  Future<void> _downloadImageFromUrl() async {
+  Future<void> _validateUnsplashImage() async {
     if (_imageUrlController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter an image URL first'),
+          content: Text('Please enter an Unsplash image URL first'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -260,26 +261,26 @@ class _EventFormScreenState extends State<EventFormScreen> {
       
       if (response.statusCode == 200) {
         setState(() {
-          _imageSource = 'url';
+          _imageSource = 'unsplash';
           _selectedImageFile = null;
         });
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Image URL validated successfully'),
+              content: Text('Unsplash image validated successfully'),
               backgroundColor: Colors.green,
             ),
           );
         }
       } else {
-        throw Exception('Failed to load image from URL');
+        throw Exception('Failed to load image from Unsplash URL');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error downloading image: $e'),
+            content: Text('Error validating Unsplash image: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -332,7 +333,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       final userId = await UserSessionService.getUserId();
       
       if (homeId == null || userId == null) {
-        throw Exception('User session not found');
+        throw Exception('User session not found - homeId: $homeId, userId: $userId');
       }
 
       // Create multipart request
@@ -368,10 +369,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
       }
 
       // Handle image based on source
-      if (_imageSource == 'gallery' && _selectedImageFile != null) {
+      if (_imageSource == 'upload' && _selectedImageFile != null) {
         request.files.add(await http.MultipartFile.fromPath(
           'image',
           _selectedImageFile!.path,
+          contentType: MediaType('image', 'jpeg'),
         ));
       } else if (_imageSource == 'unsplash' && _imageUrlController.text.isNotEmpty) {
         // For Unsplash images, download and upload as bytes
@@ -382,6 +384,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
               'image',
               imageResponse.bodyBytes,
               filename: 'unsplash_image.jpg',
+              contentType: MediaType('image', 'jpeg'),
             ));
           }
         } catch (e) {
@@ -399,6 +402,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       }
 
       final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
       
       if (response.statusCode == 201 || response.statusCode == 200) {
         if (mounted) {
@@ -411,12 +415,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
           Navigator.of(context).pop(true);
         }
       } else {
-        final responseBody = await response.stream.bytesToString();
         try {
           final errorData = json.decode(responseBody);
           throw Exception(errorData['detail'] ?? 'Unknown error');
         } catch (e) {
-          throw Exception('Server error: ${response.statusCode}');
+          throw Exception('Server error: ${response.statusCode} - $responseBody');
         }
       }
     } catch (e) {
@@ -828,24 +831,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             width: 160,
                             child: RadioListTile<String>(
                               title: Text(l10n.webUpload),
-                              value: 'gallery',
+                              value: 'upload',
                               groupValue: _imageSource,
                               onChanged: (value) {
                                 setState(() {
                                   _imageSource = value!;
-                                });
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            width: 160,
-                            child: RadioListTile<String>(
-                              title: Text(l10n.url),
-                              value: 'url',
-                              groupValue: _imageSource,
-                              onChanged: (value) {
-                                setState(() {
-                                  _imageSource = value!;
+                                  _imageUrlController.clear();
                                 });
                               },
                             ),
@@ -885,7 +876,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             },
                           ),
                         ),
-                      ] else if (_imageSource == 'gallery') ...[
+                      ] else if (_imageSource == 'upload') ...[
                         Row(
                           children: [
                             Expanded(
@@ -919,44 +910,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             ),
                           ),
                         ],
-                      ] else ...[
-                        // URL input field is hidden as requested
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          '${l10n.imagePreview}:',
-                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        if (_selectedImageFile != null || _imageUrlController.text.isNotEmpty)
-                          Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppSpacing.sm),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(AppSpacing.sm),
-                              child: _selectedImageFile != null
-                                  ? Image.file(
-                                      _selectedImageFile!,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : ImageCacheService.buildEventImage(
-                                      imageUrl: _imageUrlController.text.isNotEmpty ? _imageUrlController.text : null,
-                                      fit: BoxFit.cover,
-                                      placeholder: const Center(child: CircularProgressIndicator()),
-                                      errorWidget: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.error, color: Colors.red),
-                                          const SizedBox(height: AppSpacing.sm),
-                                          Text(l10n.invalidImageUrl),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                          ),
                       ],
                       
                     ],
