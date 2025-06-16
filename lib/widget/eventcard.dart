@@ -1,8 +1,6 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
-import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
-import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
@@ -17,23 +15,6 @@ class EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<EventCard> {
-  bool isRegistering = false;
-  bool isRegistered = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkRegistrationStatus();
-  }
-
-  Future<void> _checkRegistrationStatus() async {
-    final registered = await EventService.isRegisteredForEvent(widget.event.id);
-    if (mounted) {
-      setState(() {
-        isRegistered = registered;
-      });
-    }
-  }
 
   Color _getTypeColor(String type) {
     return ActivityTypeHelper.getColor(type);
@@ -41,82 +22,6 @@ class _EventCardState extends State<EventCard> {
 
   IconData _getTypeIcon(String type) {
     return ActivityTypeHelper.getIcon(type);
-  }
-
-  Future<void> _handleRegistration() async {
-    if (isRegistering) return;
-
-    setState(() {
-      isRegistering = true;
-    });
-
-    try {
-      if (isRegistered) {
-        // Unregister
-        final success = await EventService.unregisterFromEvent(widget.event.id);
-        if (success) {
-          setState(() {
-            isRegistered = false;
-          });
-          // Call the callback to refresh parent widget
-          widget.onRegistrationChanged?.call();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${context.l10n.unregister} ${widget.event.name}'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
-      } else {
-        // Register
-        if (!widget.event.isAvailable) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(context.l10n.eventFull),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
-
-        final success = await EventService.registerForEvent(widget.event);
-        if (success) {
-          setState(() {
-            isRegistered = true;
-          });
-          // Call the callback to refresh parent widget
-          widget.onRegistrationChanged?.call();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${context.l10n.registrationSuccessful} ${widget.event.name}!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      print('Registration error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.operationFailed),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isRegistering = false;
-        });
-      }
-    }
   }
 
   @override
@@ -265,7 +170,7 @@ class _EventCardState extends State<EventCard> {
                     
                     const SizedBox(height: 4),
                     
-                    // Participants Info and Register Button Row
+                    // Participants Info Row
                     Row(
                       children: [
                         Icon(Icons.people, size: 10, color: Colors.grey[600]),
@@ -295,49 +200,6 @@ class _EventCardState extends State<EventCard> {
                             ),
                           ),
                         ],
-                        const Spacer(),
-                        // Compact Register Button
-                        Expanded(
-                          child: SizedBox(
-                            height: 24,
-                            child: ElevatedButton(
-                              onPressed: isRegistering || (!widget.event.isAvailable && !isRegistered) ? null : _handleRegistration,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: !widget.event.isAvailable && !isRegistered
-                                    ? Colors.grey
-                                    : isRegistered
-                                        ? AppColors.accent
-                                        : AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                minimumSize: Size.zero,
-                              ),
-                              child: isRegistering
-                                  ? const SizedBox(
-                                      height: 12,
-                                      width: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : Text(
-                                      !widget.event.isAvailable && !isRegistered
-                                          ? 'FULL'
-                                          : isRegistered
-                                              ? context.l10n.unregister
-                                              : context.l10n.registerEvent,
-                                      style: const TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],

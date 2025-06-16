@@ -4,6 +4,7 @@ import 'package:beresheet_app/screen/app/events/registeredevents.dart';
 import 'package:beresheet_app/screen/app/users/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
+import 'package:beresheet_app/screen/app/service_request_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -22,7 +23,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Event> events = [];
-  int registeredEventsCount = 0;
   bool isLoading = true;
   bool isMenuExpanded = false;
   bool isCardView = true; // Default to card view
@@ -31,8 +31,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late AnimationController _cardAnimationController;
   late Animation<double> _animation;
-  Map<String, bool> registrationStatus = {}; // Track registration status for each event
-  bool isHeartRegistering = false; // Track heart button loading state
   Set<String> selectedEventTypeFilters = {}; // Multiple filters for event types
 
   @override
@@ -123,98 +121,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _likeEvent();
   }
 
-  Future<void> _handleHeartRegistration() async {
-    if (isHeartRegistering || events.isEmpty) return;
-
-    final currentEvent = events[currentCardIndex];
-    final isCurrentlyRegistered = registrationStatus[currentEvent.id] ?? false;
-
-    setState(() {
-      isHeartRegistering = true;
-    });
-
-    try {
-      bool success = false;
-      if (isCurrentlyRegistered) {
-        // Unregister
-        success = await EventService.unregisterFromEvent(currentEvent.id);
-        if (success) {
-          setState(() {
-            registrationStatus[currentEvent.id] = false;
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${context.l10n.unregister} ${currentEvent.name}'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
-      } else {
-        // Register
-        if (!currentEvent.isAvailable) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(context.l10n.eventFull),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
-
-        success = await EventService.registerForEvent(currentEvent);
-        if (success) {
-          setState(() {
-            registrationStatus[currentEvent.id] = true;
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${context.l10n.registrationSuccessful} ${currentEvent.name}!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
-      }
-
-      if (success) {
-        // Refresh registered events count
-        _refreshEvents();
-      }
-    } catch (e) {
-      print('Heart registration error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.operationFailed),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isHeartRegistering = false;
-        });
-      }
-    }
-  }
-
   Future<void> loadEvents() async {
     try {
       final loadedEvents = await EventService.loadApprovedEvents();
-      final registeredEvents = await EventService.getRegisteredEvents();
-      
-      // Load registration status for all events
-      await _loadRegistrationStatus(loadedEvents);
       
       setState(() {
         events = loadedEvents;
-        registeredEventsCount = registeredEvents.length;
         isLoading = false;
       });
     } catch (e) {
@@ -222,13 +134,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       setState(() {
         isLoading = false;
       });
-    }
-  }
-
-  Future<void> _loadRegistrationStatus(List<Event> eventsList) async {
-    for (final event in eventsList) {
-      final isRegistered = await EventService.isRegisteredForEvent(event.id);
-      registrationStatus[event.id] = isRegistered;
     }
   }
 
@@ -452,7 +357,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     final eventsForDate = groupedEvents[dateKey]!;
                     return EventCard(
                       event: eventsForDate[index],
-                      onRegistrationChanged: _refreshEvents,
                     );
                   },
                   childCount: groupedEvents[dateKey]!.length,
@@ -601,30 +505,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: AppSpacing.md),
-            child: IconButton(
-              icon: registeredEventsCount > 0
-                ? Badge(
-                    label: Text("$registeredEventsCount"),
-                    backgroundColor: AppColors.accent,
-                    child: const Icon(Icons.event_available)
-                  )
-                : const Icon(Icons.event_available),
-              color: Colors.white,
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RegisteredEventsScreen()),
-                );
-                if (result == true) {
-                  _refreshEvents();
-                }
-              },
-            ),
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -711,11 +591,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                _buildBottomMenuItem(Icons.person, context.l10n.profile),
+                                _buildBottomMenuItem(isCardView ? Icons.grid_view : Icons.view_carousel,
+                                  isCardView ? context.l10n.galleryView : context.l10n.cardView,
+                                  onTap: toggleViewMode),
                                 SizedBox(width: 40),
-                                _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents, hasNotification: registeredEventsCount > 0, notificationCount: registeredEventsCount),
+                                _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents),
                                 SizedBox(width: 40),
-                                _buildBottomMenuItem(Icons.event_note, context.l10n.manageEvents),
+                                _buildBottomMenuItem(Icons.build_circle_outlined, context.l10n.serviceRequest),
                               ],
                             ),
                           ),
@@ -735,11 +617,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      _buildBottomMenuItem(Icons.person, context.l10n.profile),
+                                      _buildBottomMenuItem(isCardView ? Icons.grid_view : Icons.view_carousel,
+                                        isCardView ? context.l10n.galleryView : context.l10n.cardView,
+                                        onTap: toggleViewMode),
                                       SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents, hasNotification: registeredEventsCount > 0, notificationCount: registeredEventsCount),
+                                      _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents),
                                       SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.event_note, context.l10n.manageEvents),
+                                      _buildBottomMenuItem(Icons.build_circle_outlined, context.l10n.serviceRequest),
                                     ],
                                   ),
                                   SizedBox(height: 24),
@@ -833,7 +717,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 onTap: _superLikeEvent,
                 size: 35,
               ),
-              _buildHeartActionButton(),
             ],
           ),
         ),
@@ -896,11 +779,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     MaterialPageRoute(
                       builder: (context) => EventDetailPage(event: event),
                     ),
-                  ).then((result) {
-                    if (result == true) {
-                      _refreshEvents();
-                    }
-                  });
+                  );
                 } : null,
                 onPanUpdate: isCurrentCard ? _onPanUpdate : null,
                 onPanEnd: isCurrentCard ? _onPanEnd : null,
@@ -1115,51 +994,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeartActionButton() {
-    if (events.isEmpty) {
-      return _buildActionButton(
-        icon: Icons.favorite_border,
-        color: Colors.grey,
-        onTap: () {},
-      );
-    }
-
-    final currentEvent = events[currentCardIndex];
-    final isRegistered = registrationStatus[currentEvent.id] ?? false;
-
-    return GestureDetector(
-      onTap: isHeartRegistering ? null : _handleHeartRegistration,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: isHeartRegistering
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
-                ),
-              )
-            : Icon(
-                isRegistered ? Icons.favorite : Icons.favorite_border,
-                color: isRegistered ? Colors.red : Colors.grey,
-                size: 30,
-              ),
-      ),
-    );
-  }
 
   Widget _buildBottomMenuItem(IconData icon, String title, {bool hasNotification = false, int notificationCount = 0, VoidCallback? onTap}) {
     return SizedBox(
@@ -1188,26 +1022,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         onTap();
                       } else {
                         // Handle navigation based on title
-                        if (title == context.l10n.profile) {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => const NewProfilePage(),
-                          ));
-                        } else if (title == context.l10n.myRegisteredEvents) {
+                        if (title == context.l10n.myRegisteredEvents) {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (context) => const RegisteredEventsScreen(),
-                          )).then((result) {
-                            if (result == true) {
-                              _refreshEvents();
-                            }
-                          });
-                        } else if (title == context.l10n.manageEvents) {
+                          ));
+                        } else if (title == context.l10n.serviceRequest) {
                           Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => const EventsManagementScreen(),
-                          )).then((result) {
-                            if (result == true) {
-                              _refreshEvents();
-                            }
-                          });
+                            builder: (context) => const ServiceRequestScreen(),
+                          ));
                         }
                       }
                     },

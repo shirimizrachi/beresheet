@@ -477,5 +477,10 @@
   "wednesday": "רביעי",
   "thursday": "חמישי",
   "friday": "שישי",
-  "saturday": "שבת"
+  "saturday": "שבת",
+  
+  "serviceRequest": "בקשת שירות",
+  
+  "galleryView": "תצוגת גלריה",
+  "cardView": "תצוגת כרטיסים"
 }
