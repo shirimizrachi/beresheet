@@ -126,6 +126,32 @@ class _NewProfilePageState extends State<NewProfilePage> {
     }
   }
 
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 500,
+        maxHeight: 500,
+        imageQuality: 75,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.l10n.errorTakingPhoto}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -292,11 +318,41 @@ class _NewProfilePageState extends State<NewProfilePage> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              l10n.tapToTakePhoto,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
+            GestureDetector(
+              onTap: _pickImage,
+              child: Text(
+                l10n.tapToSelectFromGallery,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _takePhoto,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.primary, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.camera_alt, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.pressHereToTakePhoto,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -433,11 +489,14 @@ class _NewProfilePageState extends State<NewProfilePage> {
                 child: Column(
                   crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
                   children: [
-                    Text(
-                      l10n.personalInformation,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Align(
+                      alignment: DirectionUtils.startAlignment,
+                      child: Text(
+                        l10n.personalInformation,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -533,11 +592,14 @@ class _NewProfilePageState extends State<NewProfilePage> {
                 child: Column(
                   crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
                   children: [
-                    Text(
-                      l10n.contactInformation,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Align(
+                      alignment: DirectionUtils.startAlignment,
+                      child: Text(
+                        l10n.contactInformation,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

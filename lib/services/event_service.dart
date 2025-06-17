@@ -10,6 +10,11 @@ import 'package:beresheet_app/config/app_config.dart';
 class EventService {
   // Use different URLs for web vs mobile platforms
   static String get baseUrl => '${AppConfig.apiBaseUrl}/api';
+  
+  // Cache for events with registration status
+  static List<Event>? _cachedEventsForHome;
+  static DateTime? _cacheTimestamp;
+  static const Duration _cacheValidDuration = Duration(minutes: 5);
 
   // Load all events from API
   static Future<List<Event>> loadEvents() async {
@@ -76,6 +81,75 @@ class EventService {
     }
   }
 
+  // Load events for homepage with registration status (with caching)
+  static Future<List<Event>> loadEventsForHome({bool forceRefresh = false}) async {
+    // Check if we have valid cached data and not forcing refresh
+    if (!forceRefresh && _cachedEventsForHome != null && _cacheTimestamp != null) {
+      final now = DateTime.now();
+      final cacheAge = now.difference(_cacheTimestamp!);
+      
+      if (cacheAge < _cacheValidDuration) {
+        print('EventService: Using cached events for home (${_cachedEventsForHome!.length} events)');
+        return List<Event>.from(_cachedEventsForHome!);
+      }
+    }
+
+    try {
+      print('EventService: Attempting to load events for home from $baseUrl/events/home');
+      final headers = await UserSessionService.getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/home'),
+        headers: headers,
+      );
+
+      print('EventService: Response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('EventService: Parsed ${data.length} events with registration status from API');
+        
+        final List<Event> events = data.map((eventJson) {
+          return Event.fromJson(eventJson);
+        }).toList();
+        
+        // Cache the results
+        _cachedEventsForHome = events;
+        _cacheTimestamp = DateTime.now();
+        
+        print('EventService: Successfully loaded and cached ${events.length} events for home');
+        return events;
+      } else {
+        throw Exception('Failed to load events for home: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('EventService: Error loading events for home from API: $e');
+      // Return cached data if available, even if expired
+      if (_cachedEventsForHome != null) {
+        print('EventService: Returning expired cached data due to API error');
+        return List<Event>.from(_cachedEventsForHome!);
+      }
+      return [];
+    }
+  }
+
+  // Get registered events from cache
+  static List<Event> getCachedRegisteredEvents() {
+    if (_cachedEventsForHome == null) {
+      print('EventService: No cached events available for registered events');
+      return [];
+    }
+    
+    final registeredEvents = _cachedEventsForHome!.where((event) => event.isRegistered).toList();
+    print('EventService: Found ${registeredEvents.length} registered events in cache');
+    return registeredEvents;
+  }
+
+  // Clear cache (useful for testing or when needed)
+  static void clearCache() {
+    _cachedEventsForHome = null;
+    _cacheTimestamp = null;
+    print('EventService: Cache cleared');
+  }
 
   // Fallback method to load from assets if API is not available
   static Future<List<Event>> _loadEventsFromAssets() async {

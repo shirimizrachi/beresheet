@@ -55,21 +55,7 @@ def create_rooms_table(schema_name: str):
             
             conn.commit()
             
-            # Insert some default rooms
-            insert_rooms_sql = text(f"""
-                INSERT INTO [{schema_name}].[rooms] (room_name, created_at, updated_at)
-                VALUES
-                ('Main Hall', GETDATE(), GETDATE()),
-                ('Conference Room', GETDATE(), GETDATE()),
-                ('Activity Room', GETDATE(), GETDATE()),
-                ('Library', GETDATE(), GETDATE()),
-                ('Garden', GETDATE(), GETDATE())
-            """)
-            conn.execute(insert_rooms_sql)
-            conn.commit()
-            
             print(f"Rooms table created successfully in schema '{schema_name}' with indexes.")
-            print(f"Default rooms added: Main Hall, Conference Room, Activity Room, Library, Garden")
             return True
             
     except Exception as e:

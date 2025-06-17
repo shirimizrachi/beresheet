@@ -99,7 +99,9 @@ class ModernAppStrings {
   String get religious => _l10n.religious;
   String get nativeLanguage => _l10n.nativeLanguage;
   String get profilePhoto => _l10n.profilePhoto;
-  String get tapToTakePhoto => _l10n.tapToTakePhoto;
+  String get tapToSelectFromGallery => _l10n.tapToSelectFromGallery;
+  String get pressHereToTakePhoto => _l10n.pressHereToTakePhoto;
+  String get errorTakingPhoto => _l10n.errorTakingPhoto;
   String get selectBirthday => _l10n.selectBirthday;
   String get pleaseSelectBirthday => _l10n.pleaseSelectBirthday;
   String get createProfile => _l10n.createProfile;

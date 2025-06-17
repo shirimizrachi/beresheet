@@ -6,9 +6,10 @@ import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatefulWidget {
-  const EventCard({Key? key, required this.event, this.onRegistrationChanged}) : super(key: key);
+  const EventCard({Key? key, required this.event, this.onRegistrationChanged, this.isRegistered = false}) : super(key: key);
   final Event event;
   final VoidCallback? onRegistrationChanged;
+  final bool isRegistered;
 
   @override
   State<EventCard> createState() => _EventCardState();
@@ -110,6 +111,37 @@ class _EventCardState extends State<EventCard> {
                         ],
                       ),
                     ),
+                    
+                    // Registration Status Badge
+                    if (widget.isRegistered) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green[100],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 8,
+                              color: Colors.green[700],
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              'REG',
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     
                     const SizedBox(height: 4),
                     

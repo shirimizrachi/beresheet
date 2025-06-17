@@ -17,6 +17,9 @@ from models import (
     SessionInfo,
     Room,
     RoomCreate,
+    EventInstructor,
+    EventInstructorCreate,
+    EventInstructorUpdate,
     ServiceProviderType,
     ServiceProviderTypeCreate,
     ServiceProviderTypeUpdate,
@@ -29,6 +32,7 @@ from models import (
 from events import event_db
 from rooms import room_db
 from events_registration import events_registration_db
+from event_instructor import event_instructor_db
 from users import user_db
 from service_provider_types import service_provider_type_db
 from request_service import request_db
@@ -142,6 +146,21 @@ async def get_events(
         events = event_db.get_all_events_ordered(home_id)
     
     return events
+
+@api_router.get("/events/home")
+async def get_events_for_home(
+    home_id: int = Depends(get_home_id),
+    user_id: str = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Get approved events with registration status for homepage"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    print(f"Getting events for home {home_id}, user {user_id}")
+    
+    events_with_status = event_db.get_approved_events_with_registration_status(home_id, user_id)
+    return events_with_status
 
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(
@@ -515,6 +534,169 @@ async def delete_room(
     if not success:
         raise HTTPException(status_code=404, detail="Room not found")
     return {"message": "Room deleted successfully"}
+
+
+# ------------------------- Event Instructor Endpoints ------------------------- #
+@api_router.get("/event-instructors", response_model=List[EventInstructor])
+async def get_event_instructors(
+    home_id: int = Depends(get_home_id),
+):
+    """List all event instructors - public access"""
+    instructors = event_instructor_db.get_all_event_instructors(home_id)
+    return instructors
+
+
+@api_router.get("/event-instructors/{instructor_id}", response_model=EventInstructor)
+async def get_event_instructor(
+    instructor_id: int,
+    home_id: int = Depends(get_home_id),
+):
+    """Get a specific event instructor by ID"""
+    instructor = event_instructor_db.get_event_instructor_by_id(instructor_id, home_id)
+    if not instructor:
+        raise HTTPException(status_code=404, detail="Event instructor not found")
+    return instructor
+
+
+@api_router.post("/event-instructors", response_model=EventInstructor, status_code=201)
+async def create_event_instructor(
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Create a new event instructor with photo upload - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    try:
+        # First create instructor without photo
+        instructor_data = EventInstructorCreate(
+            name=name,
+            description=description
+        )
+        
+        # Create the instructor
+        new_instructor = event_instructor_db.create_event_instructor(instructor_data, home_id)
+        if not new_instructor:
+            raise HTTPException(status_code=400, detail="Unable to create event instructor")
+        
+        # Handle photo upload if provided
+        if photo:
+            # Validate photo file
+            if not photo.content_type or not photo.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            
+            # Read photo data
+            photo_data = await photo.read()
+            
+            # Upload to Azure Storage using instructor_id as filename
+            success, result = azure_storage_service.upload_event_instructor_photo(
+                home_id=home_id,
+                instructor_id=new_instructor.id,
+                image_data=photo_data,
+                original_filename=photo.filename or "instructor_photo.jpg",
+                content_type=photo.content_type
+            )
+            
+            if not success:
+                raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+            
+            # Update instructor with photo URL
+            instructor_update = EventInstructorUpdate(photo=result)
+            updated_instructor = event_instructor_db.update_event_instructor(new_instructor.id, instructor_update, home_id)
+            if updated_instructor:
+                new_instructor = updated_instructor
+        
+        return new_instructor
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating event instructor: {str(e)}")
+
+
+@api_router.put("/event-instructors/{instructor_id}", response_model=EventInstructor)
+async def update_event_instructor(
+    instructor_id: int,
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Update an event instructor with photo upload - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    try:
+        # Check if instructor exists
+        existing_instructor = event_instructor_db.get_event_instructor_by_id(instructor_id, home_id)
+        if not existing_instructor:
+            raise HTTPException(status_code=404, detail="Event instructor not found")
+        
+        # Prepare update data
+        update_data = {}
+        
+        if name is not None:
+            update_data['name'] = name
+        if description is not None:
+            update_data['description'] = description
+        
+        # Handle photo update if provided
+        if photo:
+            # Validate photo file
+            if not photo.content_type or not photo.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            
+            # Read photo data
+            photo_data = await photo.read()
+            
+            # Upload to Azure Storage using instructor_id as filename
+            success, result = azure_storage_service.upload_event_instructor_photo(
+                home_id=home_id,
+                instructor_id=instructor_id,
+                image_data=photo_data,
+                original_filename=photo.filename or "instructor_photo.jpg",
+                content_type=photo.content_type
+            )
+            
+            if not success:
+                raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+            
+            update_data['photo'] = result
+        
+        # Create EventInstructorUpdate object
+        instructor_update = EventInstructorUpdate(**update_data)
+        
+        # Update the instructor
+        updated_instructor = event_instructor_db.update_event_instructor(instructor_id, instructor_update, home_id)
+        if not updated_instructor:
+            raise HTTPException(status_code=404, detail="Event instructor not found")
+        
+        return updated_instructor
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error updating event instructor: {str(e)}")
+
+
+@api_router.delete("/event-instructors/{instructor_id}")
+async def delete_event_instructor(
+    instructor_id: int,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Delete an event instructor by ID - manager role required"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    success = event_instructor_db.delete_event_instructor(instructor_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Event instructor not found")
+    return {"message": "Event instructor deleted successfully"}
 
 
 # ------------------------- Service Provider Types Endpoints ------------------------- #

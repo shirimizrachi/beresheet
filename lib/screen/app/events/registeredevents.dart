@@ -38,35 +38,27 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     _loadingCompleter = Completer<void>();
     
     try {
-      // Get user registrations from API
-      final registrations = await EventService.getUserRegistrations();
+      // Load events (will use cache if valid, or refresh if expired)
+      await EventService.loadEventsForHome();
       
       // Check if widget is still mounted and not disposed
       if (_disposed || !mounted) return;
       
-      // Get event details for each registration
-      final List<Event> events = [];
-      for (final registration in registrations) {
-        // Check cancellation before each network call
-        if (_disposed || !mounted) return;
-        
-        final eventId = registration['event_id'];
-        final event = await EventService.getEventById(eventId);
-        if (event != null) {
-          events.add(event);
-        }
-      }
+      // Get registered events from cache
+      final cachedEvents = EventService.getCachedRegisteredEvents();
       
       // Final check before setState
       if (_disposed || !mounted) return;
       
       setState(() {
-        registeredEvents = events;
+        registeredEvents = cachedEvents;
         isLoading = false;
       });
+      
+      print('RegisteredEventsScreen: Loaded ${cachedEvents.length} registered events from cache');
     } catch (e) {
       print('Error loading registered events: $e');
-      // Fallback to local method
+      // Fallback to old method
       try {
         // Check if still mounted before fallback
         if (_disposed || !mounted) return;

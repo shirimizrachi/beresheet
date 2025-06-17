@@ -95,29 +95,7 @@ def create_users_table(schema_name: str):
             
             conn.commit()
             
-            # Insert default test users with proper values matching UserProfile validation
-            insert_user_sql = text(f"""
-                INSERT INTO [{schema_name}].[users]
-                (id, firebase_id, home_id, password, phone_number, full_name, role, birthday, apartment_number, marital_status, gender, religious, native_language, service_provider_type, firebase_fcm_token, created_at, updated_at)
-                VALUES
-                ('default-manager-user', 'default-manager-firebase', 1, '541111111', '541111111', 'Default Manager', 'manager', '1980-01-01', 'A1', 'single', 'male', 'secular', 'hebrew', NULL, NULL, GETDATE(), GETDATE()),
-                ('test-staff-user', 'test-staff-firebase', 1, '541111222', '541111222', 'Test Staff', 'staff', '1985-05-15', 'B2', 'married', 'female', 'traditional', 'hebrew', NULL, NULL, GETDATE(), GETDATE()),
-                ('test-service-construction', 'test-service-construction-firebase', 1, '541111333', '541111333', 'Construction Service', 'service', '1982-03-20', 'C3', 'single', 'male', 'secular', 'english', 'Maintenance', NULL, GETDATE(), GETDATE()),
-                ('test-service-manager', 'test-service-manager-firebase', 1, '541111444', '541111444', 'Manager Service', 'service', '1978-12-10', 'D4', 'married', 'male', 'orthodox', 'hebrew', 'Manager', NULL, GETDATE(), GETDATE()),
-                ('test-service-cleaning', 'test-service-cleaning-firebase', 1, '541111555', '541111555', 'Cleaning Service', 'service', '1990-08-25', 'E5', 'single', 'female', 'secular', 'hebrew', 'Cleaning Services', NULL, GETDATE(), GETDATE()),
-                ('test-resident-user', 'test-resident-firebase', 1, '541111666', '541111666', 'Test Resident', 'resident', '1975-11-30', 'F6', 'married', 'male', 'traditional', 'hebrew', NULL, NULL, GETDATE(), GETDATE())
-            """)
-            conn.execute(insert_user_sql)
-            conn.commit()
-            
             print(f"Users table created successfully in schema '{schema_name}' with indexes.")
-            print(f"Test users added:")
-            print(f"  Manager: 541111111 / 541111111")
-            print(f"  Staff: 541111222 / 541111222")
-            print(f"  Service (Construction): 541111333 / 541111333")
-            print(f"  Service (Manager): 541111444 / 541111444")
-            print(f"  Service (Cleaning): 541111555 / 541111555")
-            print(f"  Resident: 541111666 / 541111666")
             return True
             
     except Exception as e:

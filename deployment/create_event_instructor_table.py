@@ -1,14 +1,14 @@
 """
-DDL script for creating the service_provider_types table in a specific schema
-Usage: python create_service_provider_types_table.py <schema_name>
+DDL script for creating the event_instructor table in a specific schema
+Usage: python create_event_instructor_table.py <schema_name>
 """
 
 import sys
 from sqlalchemy import create_engine, text
 
-def create_service_provider_types_table(schema_name: str):
+def create_event_instructor_table(schema_name: str):
     """
-    Create the service_provider_types table in the specified schema
+    Create the event_instructor table in the specified schema
     Drops the table first if it exists
     
     Args:
@@ -26,20 +26,21 @@ def create_service_provider_types_table(schema_name: str):
             # Drop table if exists
             drop_table_sql = text(f"""
                 IF EXISTS (SELECT * FROM information_schema.tables 
-                          WHERE table_schema = '{schema_name}' AND table_name = 'service_provider_types')
+                          WHERE table_schema = '{schema_name}' AND table_name = 'event_instructor')
                 BEGIN
-                    DROP TABLE [{schema_name}].[service_provider_types]
-                    PRINT 'Dropped existing service_provider_types table in schema {schema_name}'
+                    DROP TABLE [{schema_name}].[event_instructor]
+                    PRINT 'Dropped existing event_instructor table in schema {schema_name}'
                 END
             """)
             conn.execute(drop_table_sql)
             
-            # Create service_provider_types table
+            # Create event_instructor table
             create_table_sql = text(f"""
-                CREATE TABLE [{schema_name}].[service_provider_types] (
+                CREATE TABLE [{schema_name}].[event_instructor] (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    name NVARCHAR(100) UNIQUE NOT NULL,
-                    description NVARCHAR(500),
+                    name NVARCHAR(255) NOT NULL,
+                    description NVARCHAR(MAX) NULL,
+                    photo NVARCHAR(1000) NULL,
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE()
                 );
@@ -48,26 +49,26 @@ def create_service_provider_types_table(schema_name: str):
             
             # Create indexes for better performance
             indexes_sql = text(f"""
-                -- Index on name for quick lookups
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_service_provider_types_name 
-                ON [{schema_name}].[service_provider_types](name);
+                -- Index on name
+                CREATE NONCLUSTERED INDEX IX_{schema_name}_event_instructor_name 
+                ON [{schema_name}].[event_instructor](name);
             """)
             conn.execute(indexes_sql)
             
             conn.commit()
             
-            print(f"Service provider types table created successfully in schema '{schema_name}' with indexes.")
+            print(f"Event_instructor table created successfully in schema '{schema_name}' with indexes.")
             return True
             
     except Exception as e:
-        print(f"Error creating service_provider_types table in schema '{schema_name}': {e}")
+        print(f"Error creating event_instructor table in schema '{schema_name}': {e}")
         return False
 
 def main():
     """Main function to handle command line arguments"""
     if len(sys.argv) != 2:
-        print("Usage: python create_service_provider_types_table.py <schema_name>")
-        print("Example: python create_service_provider_types_table.py beresheet")
+        print("Usage: python create_event_instructor_table.py <schema_name>")
+        print("Example: python create_event_instructor_table.py beresheet")
         sys.exit(1)
     
     schema_name = sys.argv[1]
@@ -76,7 +77,7 @@ def main():
         print("Error: Schema name must be alphanumeric")
         sys.exit(1)
     
-    success = create_service_provider_types_table(schema_name)
+    success = create_event_instructor_table(schema_name)
     if not success:
         sys.exit(1)
 

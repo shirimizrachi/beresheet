@@ -121,9 +121,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _likeEvent();
   }
 
-  Future<void> loadEvents() async {
+  Future<void> loadEvents({bool forceRefresh = false}) async {
     try {
-      final loadedEvents = await EventService.loadApprovedEvents();
+      final loadedEvents = await EventService.loadEventsForHome(forceRefresh: forceRefresh);
       
       setState(() {
         events = loadedEvents;
@@ -138,8 +138,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _refreshEvents() async {
-    await loadEvents();
+    await loadEvents(forceRefresh: true);
   }
+
 
   // Get unique event types from the current events list
   List<String> _getUniqueEventTypes() {
@@ -357,6 +358,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     final eventsForDate = groupedEvents[dateKey]!;
                     return EventCard(
                       event: eventsForDate[index],
+                      isRegistered: eventsForDate[index].isRegistered,
                     );
                   },
                   childCount: groupedEvents[dateKey]!.length,
@@ -856,6 +858,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Registration Status Badge for Card View
+                                    if (event.isRegistered) ...[
+                                      Container(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green[100],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle,
+                                              size: 14,
+                                              color: Colors.green[700],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'REGISTERED',
+                                              style: TextStyle(
+                                                color: Colors.green[700],
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                     Text(
                                       event.name,
                                       style: TextStyle(

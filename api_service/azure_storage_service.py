@@ -210,6 +210,31 @@ class AzureStorageService:
         
         return self.upload_image(home_id, file_name, "users/photos/", image_data, content_type)
     
+    def upload_event_instructor_photo(self, home_id: int, instructor_id: int, image_data: bytes,
+                                    original_filename: str, content_type: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Upload an event instructor photo to Azure Storage
+        
+        Args:
+            home_id: The home ID for organizing files
+            instructor_id: The instructor ID
+            image_data: The image data as bytes
+            original_filename: Original filename (for extension detection)
+            content_type: MIME content type of the image
+        
+        Returns:
+            Tuple of (success: bool, url_or_error_message: str)
+        """
+        # Get file extension from original filename
+        file_extension = os.path.splitext(original_filename)[1].lower()
+        if not file_extension:
+            file_extension = '.jpg'  # Default extension
+        
+        # Use instructor_id as filename
+        file_name = f"instructor_{instructor_id}{file_extension}"
+        
+        return self.upload_image(home_id, file_name, "instructors/photos/", image_data, content_type)
+    
     def delete_image(self, blob_path: str) -> bool:
         """
         Delete an image from Azure Storage

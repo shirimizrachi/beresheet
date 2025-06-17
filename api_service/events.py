@@ -429,6 +429,83 @@ class EventDatabase:
             print(f"Error getting upcoming events for home {home_id}: {e}")
             return []
 
+    def get_approved_events_with_registration_status(self, home_id: int, user_id: str) -> List[dict]:
+        """Get all approved events with registration status for a specific user"""
+        try:
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return []
+
+            # Get the events and events_registration tables
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            # Get registration table
+            metadata = MetaData(schema=schema_name)
+            metadata.reflect(bind=self.engine, only=['events_registration'])
+            registration_table = metadata.tables[f'{schema_name}.events_registration']
+
+            events_with_status = []
+            with self.engine.connect() as conn:
+                # Get all approved events with registration status
+                results = conn.execute(
+                    text(f"""
+                        SELECT
+                            e.id,
+                            e.name,
+                            e.type,
+                            e.description,
+                            e.dateTime,
+                            e.location,
+                            e.maxParticipants,
+                            e.currentParticipants,
+                            e.image_url,
+                            e.status,
+                            e.recurring,
+                            e.recurring_end_date,
+                            e.recurring_pattern,
+                            CASE
+                                WHEN er.status = 'registered' THEN 1
+                                ELSE 0
+                            END as is_registered
+                        FROM [{schema_name}].[events] e
+                        LEFT JOIN [{schema_name}].[events_registration] er
+                            ON e.id = er.event_id
+                            AND er.user_id = :user_id
+                            AND er.status = 'registered'
+                        WHERE e.status = 'approved'
+                        ORDER BY e.dateTime DESC
+                    """),
+                    {"user_id": user_id}
+                ).fetchall()
+                
+                for result in results:
+                    event_dict = {
+                        'id': result.id,
+                        'name': result.name,
+                        'type': result.type,
+                        'description': result.description,
+                        'dateTime': result.dateTime.isoformat() if result.dateTime else None,
+                        'location': result.location,
+                        'maxParticipants': result.maxParticipants,
+                        'currentParticipants': result.currentParticipants,
+                        'image_url': result.image_url,
+                        'status': result.status if hasattr(result, 'status') else "pending-approval",
+                        'recurring': result.recurring if hasattr(result, 'recurring') else "none",
+                        'recurring_end_date': result.recurring_end_date.isoformat() if hasattr(result, 'recurring_end_date') and result.recurring_end_date else None,
+                        'recurring_pattern': result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        'is_registered': bool(result.is_registered)
+                    }
+                    events_with_status.append(event_dict)
+            
+            return events_with_status
+
+        except Exception as e:
+            print(f"Error getting approved events with registration status for home {home_id}, user {user_id}: {e}")
+            return []
+
     def register_for_event(self, event_id: str, user_id: Optional[str], home_id: int) -> bool:
         """Register a user for an event"""
         try:

@@ -15,6 +15,7 @@ import 'events/event_form_web.dart';
 import 'events/event_registrations_web.dart';
 import 'rooms_management_web.dart';
 import 'service_provider_types_management_web.dart';
+import 'event_instructor_management_web.dart';
 
 class WebManagementPanel extends StatefulWidget {
   final String? initialTab;
@@ -157,6 +158,13 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       availableTabs.add('rooms_management');
       
       destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.school),
+        selectedIcon: const Icon(Icons.school),
+        label: Text(AppLocalizations.of(context)!.eventInstructors),
+      ));
+      availableTabs.add('event_instructors');
+      
+      destinations.add(NavigationRailDestination(
         icon: const Icon(Icons.work),
         selectedIcon: const Icon(Icons.work),
         label: Text(AppLocalizations.of(context)!.serviceProviderTypes),
@@ -237,6 +245,14 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           return const RoomsManagementWeb();
         } else {
           return _buildAccessDeniedPage(AppLocalizations.of(context)!.roomsManagementRequiresRole);
+        }
+      
+      case 'event_instructors':
+        // Check if user has manager role
+        if (userRole == AppConfig.userRoleManager) {
+          return const EventInstructorManagementWeb();
+        } else {
+          return _buildAccessDeniedPage(AppLocalizations.of(context)!.eventInstructorManagementRequiresRole);
         }
       
       case 'service_provider_types':
@@ -397,6 +413,16 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           description: AppLocalizations.of(context)!.manageEventRoomsAndLocations,
           onTap: () => setState(() => _selectedTab = 'rooms_management'),
           color: Colors.orange,
+        ),
+      );
+      
+      cards.add(
+        _buildFeatureCard(
+          icon: Icons.school,
+          title: AppLocalizations.of(context)!.eventInstructors,
+          description: AppLocalizations.of(context)!.manageEventInstructors,
+          onTap: () => setState(() => _selectedTab = 'event_instructors'),
+          color: Colors.cyan,
         ),
       );
       

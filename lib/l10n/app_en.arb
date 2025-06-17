@@ -175,9 +175,17 @@
   "@profilePhoto": {
     "description": "Profile photo field"
   },
-  "tapToTakePhoto": "Tap to take photo",
-  "@tapToTakePhoto": {
-    "description": "Tap to take photo instruction"
+  "tapToSelectFromGallery": "Tap to select from gallery",
+  "@tapToSelectFromGallery": {
+    "description": "Tap to select from gallery instruction"
+  },
+  "pressHereToTakePhoto": "Press here to take photo",
+  "@pressHereToTakePhoto": {
+    "description": "Press here to take photo instruction"
+  },
+  "errorTakingPhoto": "Error taking photo",
+  "@errorTakingPhoto": {
+    "description": "Error taking photo message"
   },
   "selectBirthday": "Select Birthday",
   "@selectBirthday": {
@@ -1915,5 +1923,203 @@
   "cardView": "Card View",
   "@cardView": {
     "description": "Card View toggle label"
+  },
+  
+  "eventInstructorsManagement": "Event Instructors Management",
+  "@eventInstructorsManagement": {
+    "description": "Event instructors management page title"
+  },
+  "createNewInstructor": "Create New Instructor",
+  "@createNewInstructor": {
+    "description": "Create new instructor section title"
+  },
+  "editInstructor": "Edit Instructor",
+  "@editInstructor": {
+    "description": "Edit instructor section title"
+  },
+  "instructorName": "Instructor Name",
+  "@instructorName": {
+    "description": "Instructor name field label"
+  },
+  "enterInstructorName": "Enter instructor name",
+  "@enterInstructorName": {
+    "description": "Enter instructor name hint"
+  },
+  "pleaseEnterInstructorName": "Please enter instructor name",
+  "@pleaseEnterInstructorName": {
+    "description": "Please enter instructor name validation"
+  },
+  "instructorDescription": "Description",
+  "@instructorDescription": {
+    "description": "Instructor description field label"
+  },
+  "enterDescription": "Enter description",
+  "@enterDescription": {
+    "description": "Enter description hint"
+  },
+  "selectPhoto": "Select Photo",
+  "@selectPhoto": {
+    "description": "Select photo button"
+  },
+  "photoSelected": "Photo Selected",
+  "@photoSelected": {
+    "description": "Photo selected status"
+  },
+  "selectedPhoto": "Selected: {fileName}",
+  "@selectedPhoto": {
+    "description": "Selected photo file name",
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "createInstructor": "Create Instructor",
+  "@createInstructor": {
+    "description": "Create instructor button"
+  },
+  "updateInstructor": "Update Instructor",
+  "@updateInstructor": {
+    "description": "Update instructor button"
+  },
+  "creatingInstructor": "Creating...",
+  "@creatingInstructor": {
+    "description": "Creating instructor status"
+  },
+  "updatingInstructor": "Updating...",
+  "@updatingInstructor": {
+    "description": "Updating instructor status"
+  },
+  "instructorCreatedSuccessfully": "Instructor created successfully",
+  "@instructorCreatedSuccessfully": {
+    "description": "Instructor created successfully message"
+  },
+  "instructorUpdatedSuccessfully": "Instructor updated successfully",
+  "@instructorUpdatedSuccessfully": {
+    "description": "Instructor updated successfully message"
+  },
+  "failedToCreateInstructor": "Failed to create instructor",
+  "@failedToCreateInstructor": {
+    "description": "Failed to create instructor message"
+  },
+  "failedToUpdateInstructor": "Failed to update instructor",
+  "@failedToUpdateInstructor": {
+    "description": "Failed to update instructor message"
+  },
+  "errorCreatingInstructor": "Error creating instructor: {error}",
+  "@errorCreatingInstructor": {
+    "description": "Error creating instructor message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingInstructor": "Error updating instructor: {error}",
+  "@errorUpdatingInstructor": {
+    "description": "Error updating instructor message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteInstructor": "Confirm Delete",
+  "@confirmDeleteInstructor": {
+    "description": "Confirm delete instructor dialog title"
+  },
+  "areYouSureDeleteInstructor": "Are you sure you want to delete instructor \"{instructorName}\"?",
+  "@areYouSureDeleteInstructor": {
+    "description": "Confirm delete instructor message",
+    "placeholders": {
+      "instructorName": {
+        "type": "String"
+      }
+    }
+  },
+  "instructorDeletedSuccessfully": "Instructor \"{instructorName}\" deleted successfully",
+  "@instructorDeletedSuccessfully": {
+    "description": "Instructor deleted successfully message",
+    "placeholders": {
+      "instructorName": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToDeleteInstructor": "Failed to delete instructor",
+  "@failedToDeleteInstructor": {
+    "description": "Failed to delete instructor message"
+  },
+  "errorDeletingInstructor": "Error deleting instructor: {error}",
+  "@errorDeletingInstructor": {
+    "description": "Error deleting instructor message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "eventInstructorsCount": "Event Instructors ({count})",
+  "@eventInstructorsCount": {
+    "description": "Event instructors count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noInstructorsFound": "No Instructors Found",
+  "@noInstructorsFound": {
+    "description": "No instructors found message"
+  },
+  "createFirstInstructor": "Create your first instructor above",
+  "@createFirstInstructor": {
+    "description": "Create first instructor instruction"
+  },
+  "unknownInstructor": "Unknown Instructor",
+  "@unknownInstructor": {
+    "description": "Unknown instructor fallback text"
+  },
+  "noDescription": "No description",
+  "@noDescription": {
+    "description": "No description placeholder"
+  },
+  "editInstructorTooltip": "Edit Instructor",
+  "@editInstructorTooltip": {
+    "description": "Edit instructor tooltip"
+  },
+  "deleteInstructorTooltip": "Delete Instructor",
+  "@deleteInstructorTooltip": {
+    "description": "Delete instructor tooltip"
+  },
+  "failedToLoadInstructors": "Failed to load instructors: {statusCode}",
+  "@failedToLoadInstructors": {
+    "description": "Failed to load instructors message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingInstructors": "Error loading instructors: {error}",
+  "@errorLoadingInstructors": {
+    "description": "Error loading instructors message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "eventInstructors": "Event Instructors",
+  "@eventInstructors": {
+    "description": "Event instructors navigation label"
+  },
+  "manageEventInstructors": "Manage event instructors and their profiles",
+  "@manageEventInstructors": {
+    "description": "Manage event instructors description"
+  },
+  "eventInstructorManagementRequiresRole": "Event instructor management requires manager role",
+  "@eventInstructorManagementRequiresRole": {
+    "description": "Event instructor management requires role message"
   }
 }

@@ -39,6 +39,26 @@ class Event(EventBase):
     class Config:
         from_attributes = True
 
+class EventWithRegistrationStatus(BaseModel):
+    """Event model with registration status for homepage"""
+    id: str
+    name: str
+    type: str
+    description: str
+    dateTime: str  # ISO string
+    location: str
+    maxParticipants: int
+    currentParticipants: int
+    image_url: str
+    status: str
+    recurring: str
+    recurring_end_date: Optional[str] = None  # ISO string
+    recurring_pattern: Optional[str] = None
+    is_registered: bool
+
+    class Config:
+        from_attributes = True
+
 # Room Models
 class Room(BaseModel):
     id: int
@@ -238,3 +258,22 @@ class RequestStatusUpdate(BaseModel):
     mark_as_read: Optional[bool] = False
     close_by_resident: Optional[bool] = False
     close_by_service_provider: Optional[bool] = False
+
+# Event Instructor Models
+class EventInstructor(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    photo: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class EventInstructorCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class EventInstructorUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    photo: Optional[str] = None

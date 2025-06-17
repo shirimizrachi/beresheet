@@ -15,6 +15,7 @@ class Event {
     this.recurring = AppConfig.eventRecurringNone,
     this.recurringEndDate,
     this.recurringPattern,
+    this.isRegistered = false,
   });
 
   final String id;
@@ -30,6 +31,7 @@ class Event {
   final String recurring; // "none", "daily", "weekly", "monthly", "yearly", "custom"
   final DateTime? recurringEndDate;
   final String? recurringPattern; // JSON string with custom pattern details
+  final bool isRegistered; // Whether the current user is registered for this event
 
   bool get isAvailable => currentParticipants < maxParticipants;
   
@@ -66,6 +68,7 @@ class Event {
           ? DateTime.parse(json['recurring_end_date'])
           : null,
       recurringPattern: json['recurring_pattern'],
+      isRegistered: json['is_registered'] ?? false,
     );
   }
 
@@ -84,6 +87,7 @@ class Event {
       'recurring': recurring,
       'recurring_end_date': recurringEndDate?.toIso8601String(),
       'recurring_pattern': recurringPattern,
+      'is_registered': isRegistered,
     };
   }
 
@@ -101,6 +105,7 @@ class Event {
     String? recurring,
     DateTime? recurringEndDate,
     String? recurringPattern,
+    bool? isRegistered,
   }) {
     return Event(
       id: id ?? this.id,
@@ -116,6 +121,7 @@ class Event {
       recurring: recurring ?? this.recurring,
       recurringEndDate: recurringEndDate ?? this.recurringEndDate,
       recurringPattern: recurringPattern ?? this.recurringPattern,
+      isRegistered: isRegistered ?? this.isRegistered,
     );
   }
 }
