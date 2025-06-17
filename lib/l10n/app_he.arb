@@ -292,6 +292,7 @@
   "eventStatusApproved": "מאושר",
   "eventStatusRejected": "נדחה",
   "eventStatusCancelled": "בוטל",
+  "eventStatusDone": "הושלם",
   
   "userRoleManager": "מנהל",
   "userRoleStaff": "צוות",

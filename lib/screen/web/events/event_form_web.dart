@@ -39,6 +39,12 @@ class _EventFormWebState extends State<EventFormWeb> {
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   DateTime? _recurringEndDate;
   
+  // Recurring pattern variables
+  int? _selectedDayOfWeek;
+  int? _selectedDayOfMonth;
+  TimeOfDay? _recurringTime;
+  int? _interval;
+  
   // Image handling
   String _imageSource = 'upload'; // 'upload', 'gallery', or 'unsplash'
   Uint8List? _selectedImageBytes;
@@ -55,7 +61,7 @@ class _EventFormWebState extends State<EventFormWeb> {
 
   // Use constants from AppConfig for consistency
   List<String> get _eventTypes => AppConfig.eventTypes;
-  List<String> get _statusOptions => AppConfig.eventStatusOptions;
+  List<String> get _statusOptions => AppConfig.userSelectableEventStatusOptions;
   List<String> get _recurringOptions => AppConfig.eventRecurringOptions;
 
   @override
@@ -82,6 +88,24 @@ class _EventFormWebState extends State<EventFormWeb> {
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
     _selectedRoomName = event.location; // For existing events, set the room from location
+    
+    // Parse recurring pattern if it exists
+    if (event.parsedRecurrencePattern != null) {
+      final pattern = event.parsedRecurrencePattern!;
+      _selectedDayOfWeek = pattern.dayOfWeek;
+      _selectedDayOfMonth = pattern.dayOfMonth;
+      _interval = pattern.interval;
+      
+      if (pattern.time != null) {
+        final timeParts = pattern.time!.split(':');
+        if (timeParts.length == 2) {
+          _recurringTime = TimeOfDay(
+            hour: int.tryParse(timeParts[0]) ?? 0,
+            minute: int.tryParse(timeParts[1]) ?? 0,
+          );
+        }
+      }
+    }
   }
 
   Future<void> _loadRooms() async {
@@ -149,7 +173,10 @@ class _EventFormWebState extends State<EventFormWeb> {
     // For new events, all fields except status and currentParticipants are editable
     if (widget.event == null) return true;
     
-    // Fields are always editable for managers and staff
+    // If event status is "done", no fields should be editable (view-only mode)
+    if (_selectedStatus == AppConfig.eventStatusDone) return false;
+    
+    // Fields are always editable for managers and staff (except when status is done)
     return true;
   }
 
@@ -207,10 +234,37 @@ class _EventFormWebState extends State<EventFormWeb> {
     // Additional validation for recurring events
     if (_selectedRecurring != 'none' && _recurringEndDate == null) {
       setState(() {
-        _errorMessage = '${AppLocalizations.of(context)!.endDate} is required for recurring events';
+        _errorMessage = AppLocalizations.of(context)!.endDateRequiredForRecurringEvents;
         _isLoading = false;
       });
       return;
+    }
+
+    // Validate recurring pattern for recurring events
+    if (_selectedRecurring != 'none') {
+      if (_recurringTime == null) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.pleaseSelectTimeForRecurringEvents;
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      if ((_selectedRecurring == 'weekly' || _selectedRecurring == 'bi-weekly') && _selectedDayOfWeek == null) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.pleaseSelectDayOfWeekForWeeklyEvents;
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      if (_selectedRecurring == 'monthly' && _selectedDayOfMonth == null) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.pleaseSelectDayOfMonthForMonthlyEvents;
+          _isLoading = false;
+        });
+        return;
+      }
     }
 
     setState(() {
@@ -235,6 +289,27 @@ class _EventFormWebState extends State<EventFormWeb> {
         'userId': WebAuthService.userId ?? '',
       });
 
+      // Generate recurring pattern JSON
+      String? recurringPatternJson;
+      if (_selectedRecurring != 'none' && _recurringTime != null) {
+        final pattern = <String, dynamic>{};
+        
+        if (_selectedDayOfWeek != null) {
+          pattern['dayOfWeek'] = _selectedDayOfWeek;
+        }
+        if (_selectedDayOfMonth != null) {
+          pattern['dayOfMonth'] = _selectedDayOfMonth;
+        }
+        if (_interval != null) {
+          pattern['interval'] = _interval;
+        }
+        
+        // Format time as HH:MM
+        pattern['time'] = '${_recurringTime!.hour.toString().padLeft(2, '0')}:${_recurringTime!.minute.toString().padLeft(2, '0')}';
+        
+        recurringPatternJson = json.encode(pattern);
+      }
+
       // Add form fields
       request.fields.addAll({
         'name': _nameController.text.trim(),
@@ -250,6 +325,10 @@ class _EventFormWebState extends State<EventFormWeb> {
 
       if (_recurringEndDate != null) {
         request.fields['recurring_end_date'] = _recurringEndDate!.toIso8601String();
+      }
+      
+      if (recurringPatternJson != null) {
+        request.fields['recurring_pattern'] = recurringPatternJson;
       }
 
       // Handle image based on source
@@ -337,6 +416,10 @@ class _EventFormWebState extends State<EventFormWeb> {
       _selectedRecurring = AppConfig.eventRecurringNone;
       _selectedDateTime = DateTime.now().add(const Duration(days: 1));
       _recurringEndDate = null;
+      _selectedDayOfWeek = null;
+      _selectedDayOfMonth = null;
+      _recurringTime = null;
+      _interval = null;
       _imageSource = 'upload';
       _selectedImageBytes = null;
       _selectedImageName = null;
@@ -591,27 +674,40 @@ class _EventFormWebState extends State<EventFormWeb> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Status (read-only)
-                      DropdownButtonFormField<String>(
-                        value: _selectedStatus,
-                        decoration: InputDecoration(
-                          labelText: AppLocalizations.of(context)!.webStatus,
-                          border: const OutlineInputBorder(),
-                        ),
-                        items: _statusOptions.map((String status) {
-                          return DropdownMenuItem<String>(
-                            value: status,
-                            child: Text(_getStatusDisplayName(status)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedStatus = value;
-                            });
-                          }
-                        },
-                      ),
+                      // Status - show as read-only text if status is "done", otherwise allow selection
+                      _selectedStatus == AppConfig.eventStatusDone
+                        ? TextFormField(
+                            initialValue: _getStatusDisplayName(_selectedStatus),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context)!.webStatus,
+                              border: const OutlineInputBorder(),
+                            ),
+                            readOnly: true,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : DropdownButtonFormField<String>(
+                            value: _selectedStatus,
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context)!.webStatus,
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: _statusOptions.map((String status) {
+                              return DropdownMenuItem<String>(
+                                value: status,
+                                child: Text(_getStatusDisplayName(status)),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedStatus = value;
+                                });
+                              }
+                            },
+                          ),
                       const SizedBox(height: 16),
                       
                       // Description
@@ -767,39 +863,18 @@ class _EventFormWebState extends State<EventFormWeb> {
                       ),
                       const SizedBox(height: 16),
                       
-                      DropdownButtonFormField<String>(
-                        value: _selectedRecurring,
-                        decoration: InputDecoration(
-                          labelText: AppLocalizations.of(context)!.recurrence,
-                          border: const OutlineInputBorder(),
+                      // Initial Date & Time section (for reference)
+                      Text(
+                        _selectedRecurring == 'none'
+                            ? AppLocalizations.of(context)!.eventDateTime
+                            : AppLocalizations.of(context)!.recurringEventStartDate,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
                         ),
-                        items: _recurringOptions.map((recurring) {
-                          return DropdownMenuItem(
-                            value: recurring,
-                            child: Text(_getRecurringDisplayName(recurring)),
-                          );
-                        }).toList(),
-                        onChanged: _isFieldEditable ? (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedRecurring = value;
-                              if (value == 'none') {
-                                _recurringEndDate = null;
-                              }
-                            });
-                          }
-                        } : null,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return AppLocalizations.of(context)!.fieldRequired;
-                          }
-                          return null;
-                        },
+                        textDirection: AppConfig.textDirection,
                       ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Date & Time section (moved here)
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           // Date Picker
@@ -841,13 +916,173 @@ class _EventFormWebState extends State<EventFormWeb> {
                         ],
                       ),
                       
+                      const SizedBox(height: 24),
+                      
+                      // Recurrence Type
+                      DropdownButtonFormField<String>(
+                        value: _selectedRecurring,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.recurrence,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: _recurringOptions.map((recurring) {
+                          return DropdownMenuItem(
+                            value: recurring,
+                            child: Text(_getRecurringDisplayName(recurring)),
+                          );
+                        }).toList(),
+                        onChanged: _isFieldEditable ? (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedRecurring = value;
+                              if (value == 'none') {
+                                _recurringEndDate = null;
+                                _selectedDayOfWeek = null;
+                                _selectedDayOfMonth = null;
+                                _recurringTime = null;
+                                _interval = null;
+                              } else {
+                                // Set default values for recurring events
+                                _recurringTime = TimeOfDay.fromDateTime(_selectedDateTime);
+                                if (value == 'bi-weekly') {
+                                  _interval = 2;
+                                }
+                              }
+                            });
+                          }
+                        } : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return AppLocalizations.of(context)!.fieldRequired;
+                          }
+                          return null;
+                        },
+                      ),
+                      
                       if (_selectedRecurring != 'none') ...[
                         const SizedBox(height: 16),
+                        
+                        // Recurring Schedule Configuration
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            border: Border.all(color: Colors.blue[200]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: AppConfig.isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppLocalizations.of(context)!.recurringScheduleConfiguration,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[800],
+                                ),
+                                textDirection: AppConfig.textDirection,
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // Recurring Time
+                              InkWell(
+                                onTap: () async {
+                                  final TimeOfDay? picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: _recurringTime ?? TimeOfDay.fromDateTime(_selectedDateTime),
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      _recurringTime = picked;
+                                    });
+                                  }
+                                },
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: '${AppLocalizations.of(context)!.recurringEventTime} *',
+                                    border: const OutlineInputBorder(),
+                                    suffixIcon: const Icon(Icons.access_time),
+                                  ),
+                                  child: Text(
+                                    _recurringTime != null
+                                        ? '${_recurringTime!.hour.toString().padLeft(2, '0')}:${_recurringTime!.minute.toString().padLeft(2, '0')}'
+                                        : AppLocalizations.of(context)!.selectTimeForRecurringEvents,
+                                    style: const TextStyle(),
+                                    textDirection: AppConfig.textDirection,
+                                  ),
+                                ),
+                              ),
+                              
+                              if (_selectedRecurring == 'weekly' || _selectedRecurring == 'bi-weekly') ...[
+                                const SizedBox(height: 12),
+                                DropdownButtonFormField<int>(
+                                  value: _selectedDayOfWeek,
+                                  decoration: InputDecoration(
+                                    labelText: '${AppLocalizations.of(context)!.dayOfWeek} *',
+                                    border: const OutlineInputBorder(),
+                                  ),
+                                  items: [
+                                    DropdownMenuItem(value: 0, child: Text(AppLocalizations.of(context)!.sunday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 1, child: Text(AppLocalizations.of(context)!.monday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 2, child: Text(AppLocalizations.of(context)!.tuesday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 3, child: Text(AppLocalizations.of(context)!.wednesday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 4, child: Text(AppLocalizations.of(context)!.thursday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 5, child: Text(AppLocalizations.of(context)!.friday, textDirection: AppConfig.textDirection)),
+                                    DropdownMenuItem(value: 6, child: Text(AppLocalizations.of(context)!.saturday, textDirection: AppConfig.textDirection)),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedDayOfWeek = value;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return AppLocalizations.of(context)!.pleaseSelectDayOfWeek;
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                              
+                              if (_selectedRecurring == 'monthly') ...[
+                                const SizedBox(height: 12),
+                                DropdownButtonFormField<int>(
+                                  value: _selectedDayOfMonth,
+                                  decoration: InputDecoration(
+                                    labelText: '${AppLocalizations.of(context)!.dayOfMonth} *',
+                                    border: const OutlineInputBorder(),
+                                  ),
+                                  items: List.generate(31, (index) {
+                                    final day = index + 1;
+                                    return DropdownMenuItem(
+                                      value: day,
+                                      child: Text(day.toString(), textDirection: AppConfig.textDirection),
+                                    );
+                                  }),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedDayOfMonth = value;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return AppLocalizations.of(context)!.pleaseSelectDayOfMonth;
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // End Date
                         InkWell(
                           onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 30)),
+                              initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 90)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
                             );
@@ -921,21 +1156,6 @@ class _EventFormWebState extends State<EventFormWeb> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: const Text('Gallery (Phone only)'),
-                              value: 'gallery',
-                              groupValue: _imageSource,
-                              onChanged: (value) {
-                                setState(() {
-                                  _imageSource = value!;
-                                  _selectedImageBytes = null;
-                                  _selectedImageName = null;
-                                });
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            width: 160,
-                            child: RadioListTile<String>(
                               title: Text(AppLocalizations.of(context)!.unsplash),
                               value: 'unsplash',
                               groupValue: _imageSource,
@@ -967,15 +1187,13 @@ class _EventFormWebState extends State<EventFormWeb> {
                           ),
                         ),
                       ] else ...[
-                        // File upload section for 'upload' and 'gallery'
+                        // File upload section for 'upload'
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: _pickImageFile,
                             icon: const Icon(Icons.upload_file),
-                            label: Text(_imageSource == 'upload'
-                                ? 'Upload Image from Computer'
-                                : 'Select Image from Gallery (Phone only)'),
+                            label: Text(AppLocalizations.of(context)!.webUploadImage),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
@@ -1047,7 +1265,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                                     _imageUrlController.text.isNotEmpty
                                         ? _imageUrlController.text
                                         : (widget.event?.imageUrl ?? ''),
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain, // Changed from cover to contain to show full image
                                     errorBuilder: (context, error, stackTrace) {
                                       print('Image loading error: $error');
                                       return Column(

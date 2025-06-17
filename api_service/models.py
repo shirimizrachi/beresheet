@@ -1,20 +1,28 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, Dict, Any
+import json
+
+class RecurrencePatternData(BaseModel):
+    """Recurrence pattern structure for events"""
+    dayOfWeek: Optional[int] = Field(None, description="Day of week (0=Sunday, 1=Monday, ..., 6=Saturday)")
+    dayOfMonth: Optional[int] = Field(None, description="Day of month (1-31) for monthly events")
+    time: Optional[str] = Field(None, description="Time in HH:MM format (e.g., '14:00')")
+    interval: Optional[int] = Field(None, description="Interval for recurring events (e.g., 2 for bi-weekly)")
 
 class EventBase(BaseModel):
     name: str
-    type: str  # "class", "performance", "cultural", "leisure"
+    type: str  # "event", "sport", "cultural", "art", "english", "religion"
     description: str
-    dateTime: datetime
+    dateTime: datetime  # Initial occurrence date for recurring events
     location: str
     maxParticipants: int
-    image_url: str
+    image_url: Optional[str] = ""  # Allow None and default to empty string
     currentParticipants: int = 0
-    status: str = "pending-approval"  # "active", "canceled", "suspended", "pending-approval"
-    recurring: str = "none"  # "none", "daily", "weekly", "monthly", "yearly", "custom"
+    status: str = "pending-approval"  # "pending-approval", "approved", "rejected", "cancelled"
+    recurring: str = "none"  # "none", "weekly", "bi-weekly", "monthly"
     recurring_end_date: Optional[datetime] = None
-    recurring_pattern: Optional[str] = None  # JSON string with custom pattern details
+    recurring_pattern: Optional[str] = None  # JSON string with RecurrencePatternData
 
 class EventCreate(EventBase):
     pass

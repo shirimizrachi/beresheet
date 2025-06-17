@@ -59,6 +59,8 @@ class DisplayNameUtils {
         return localizations.eventStatusRejected;
       case AppConfig.eventStatusCancelled:
         return localizations.eventStatusCancelled;
+      case AppConfig.eventStatusDone:
+        return localizations.eventStatusDone;
       default:
         return status;
     }
@@ -74,6 +76,8 @@ class DisplayNameUtils {
         return localizations.eventRecurringDaily;
       case AppConfig.eventRecurringWeekly:
         return localizations.eventRecurringWeekly;
+      case AppConfig.eventRecurringBiWeekly:
+        return localizations.eventRecurringBiWeekly;
       case AppConfig.eventRecurringMonthly:
         return localizations.eventRecurringMonthly;
       default:

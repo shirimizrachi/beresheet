@@ -1,4 +1,50 @@
 import '../config/app_config.dart';
+import 'dart:convert';
+
+class RecurrencePattern {
+  final int? dayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  final int? dayOfMonth; // 1-31 for monthly events
+  final String? time; // "14:00" format
+  final int? interval; // For bi-weekly (interval=2), etc.
+
+  RecurrencePattern({
+    this.dayOfWeek,
+    this.dayOfMonth,
+    this.time,
+    this.interval,
+  });
+
+  factory RecurrencePattern.fromJson(Map<String, dynamic> json) {
+    return RecurrencePattern(
+      dayOfWeek: json['dayOfWeek'],
+      dayOfMonth: json['dayOfMonth'],
+      time: json['time'],
+      interval: json['interval'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (dayOfWeek != null) 'dayOfWeek': dayOfWeek,
+      if (dayOfMonth != null) 'dayOfMonth': dayOfMonth,
+      if (time != null) 'time': time,
+      if (interval != null) 'interval': interval,
+    };
+  }
+
+  factory RecurrencePattern.fromJsonString(String jsonString) {
+    try {
+      final json = jsonDecode(jsonString);
+      return RecurrencePattern.fromJson(json);
+    } catch (e) {
+      return RecurrencePattern();
+    }
+  }
+
+  String toJsonString() {
+    return jsonEncode(toJson());
+  }
+}
 
 class Event {
   Event({
@@ -20,20 +66,31 @@ class Event {
 
   final String id;
   final String name;
-  final String type; // "class", "performance", "cultural", "leisure"
+  final String type; // "event", "sport", "cultural", "art", "english", "religion"
   final String description;
-  final DateTime dateTime;
+  final DateTime dateTime; // Initial occurrence date for recurring events
   final String location;
   final int maxParticipants;
   final String imageUrl;
   int currentParticipants;
-  final String status; // "active", "canceled", "suspended", "pending-approval"
-  final String recurring; // "none", "daily", "weekly", "monthly", "yearly", "custom"
+  final String status; // "pending-approval", "approved", "rejected", "cancelled"
+  final String recurring; // "none", "weekly", "monthly", "bi-weekly"
   final DateTime? recurringEndDate;
-  final String? recurringPattern; // JSON string with custom pattern details
+  final String? recurringPattern; // JSON string with pattern details
   final bool isRegistered; // Whether the current user is registered for this event
 
   bool get isAvailable => currentParticipants < maxParticipants;
+  
+  /// Get parsed recurrence pattern
+  RecurrencePattern? get parsedRecurrencePattern {
+    if (recurringPattern == null || recurringPattern!.isEmpty) {
+      return null;
+    }
+    return RecurrencePattern.fromJsonString(recurringPattern!);
+  }
+  
+  /// Check if this is a recurring event
+  bool get isRecurring => recurring != AppConfig.eventRecurringNone;
   
   String get formattedDateTime {
     return "${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}";

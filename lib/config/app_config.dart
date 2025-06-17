@@ -134,9 +134,19 @@ class AppConfig {
   static const String eventStatusApproved = 'approved';
   static const String eventStatusRejected = 'rejected';
   static const String eventStatusCancelled = 'cancelled';
+  static const String eventStatusDone = 'done';
   
-  /// Available event status options
+  /// Available event status options (all statuses)
   static const List<String> eventStatusOptions = [
+    eventStatusPendingApproval,
+    eventStatusApproved,
+    eventStatusRejected,
+    eventStatusCancelled,
+    eventStatusDone
+  ];
+  
+  /// User-selectable event status options (excludes 'done' as it's internal only)
+  static const List<String> userSelectableEventStatusOptions = [
     eventStatusPendingApproval,
     eventStatusApproved,
     eventStatusRejected,
@@ -147,13 +157,14 @@ class AppConfig {
   static const String eventRecurringNone = 'none';
   static const String eventRecurringDaily = 'daily';
   static const String eventRecurringWeekly = 'weekly';
+  static const String eventRecurringBiWeekly = 'bi-weekly';
   static const String eventRecurringMonthly = 'monthly';
   
   /// Available recurring options for events
   static const List<String> eventRecurringOptions = [
     eventRecurringNone,
-    eventRecurringDaily,
     eventRecurringWeekly,
+    eventRecurringBiWeekly,
     eventRecurringMonthly,
   ];
   

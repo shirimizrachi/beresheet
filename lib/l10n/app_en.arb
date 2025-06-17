@@ -1130,6 +1130,10 @@
   "@eventStatusCancelled": {
     "description": "Event status: cancelled"
   },
+  "eventStatusDone": "Done",
+  "@eventStatusDone": {
+    "description": "Event status: done"
+  },
   
   "userRoleManager": "Manager",
   "@userRoleManager": {
@@ -1167,6 +1171,10 @@
   "eventRecurringWeekly": "Weekly",
   "@eventRecurringWeekly": {
     "description": "Event recurring: weekly"
+  },
+  "eventRecurringBiWeekly": "Bi-Weekly",
+  "@eventRecurringBiWeekly": {
+    "description": "Event recurring: bi-weekly"
   },
   "eventRecurringMonthly": "Monthly",
   "@eventRecurringMonthly": {
@@ -2121,5 +2129,66 @@
   "eventInstructorManagementRequiresRole": "Event instructor management requires manager role",
   "@eventInstructorManagementRequiresRole": {
     "description": "Event instructor management requires role message"
+  },
+  
+  "initialEventDateTimeReference": "Initial Event Date & Time (for reference):",
+  "@initialEventDateTimeReference": {
+    "description": "Initial event date time reference label"
+  },
+  "eventDateTime": "Event Date & Time",
+  "@eventDateTime": {
+    "description": "Event date time label for one-time events"
+  },
+  "recurringEventStartDate": "Recurring Event Start Date",
+  "@recurringEventStartDate": {
+    "description": "Recurring event start date label"
+  },
+  "recurringScheduleConfiguration": "Recurring Schedule Configuration:",
+  "@recurringScheduleConfiguration": {
+    "description": "Recurring schedule configuration title"
+  },
+  "recurringEventTime": "Recurring Event Time",
+  "@recurringEventTime": {
+    "description": "Recurring event time label"
+  },
+  "selectTimeForRecurringEvents": "Select time for recurring events",
+  "@selectTimeForRecurringEvents": {
+    "description": "Select time for recurring events hint"
+  },
+  "dayOfWeek": "Day of Week",
+  "@dayOfWeek": {
+    "description": "Day of week label"
+  },
+  "dayOfMonth": "Day of Month",
+  "@dayOfMonth": {
+    "description": "Day of month label"
+  },
+  "pleaseSelectDayOfWeek": "Please select a day of the week",
+  "@pleaseSelectDayOfWeek": {
+    "description": "Please select day of week validation"
+  },
+  "pleaseSelectDayOfMonth": "Please select a day of the month",
+  "@pleaseSelectDayOfMonth": {
+    "description": "Please select day of month validation"
+  },
+  "pleaseSelectTimeForRecurringEvents": "Please select a time for recurring events",
+  "@pleaseSelectTimeForRecurringEvents": {
+    "description": "Please select time for recurring events validation"
+  },
+  "pleaseSelectDayOfWeekForWeeklyEvents": "Please select a day of the week for weekly events",
+  "@pleaseSelectDayOfWeekForWeeklyEvents": {
+    "description": "Please select day of week for weekly events validation"
+  },
+  "pleaseSelectDayOfMonthForMonthlyEvents": "Please select a day of the month for monthly events",
+  "@pleaseSelectDayOfMonthForMonthlyEvents": {
+    "description": "Please select day of month for monthly events validation"
+  },
+  "endDateRequiredForRecurringEvents": "End date is required for recurring events",
+  "@endDateRequiredForRecurringEvents": {
+    "description": "End date required for recurring events validation"
+  },
+  "requiredForRecurringEvents": "Required for recurring events",
+  "@requiredForRecurringEvents": {
+    "description": "Required for recurring events subtitle"
   }
 }
