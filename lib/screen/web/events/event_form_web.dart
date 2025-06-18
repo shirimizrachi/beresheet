@@ -749,14 +749,14 @@ class _EventFormWebState extends State<EventFormWeb> {
                                   child: Text(roomName),
                                 );
                               }).toList(),
-                              onChanged: (value) {
+                              onChanged: _isFieldEditable ? (value) {
                                 setState(() {
                                   _selectedRoomName = value;
                                   if (value != null) {
                                     _locationController.text = value;
                                   }
                                 });
-                              },
+                              } : null,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return AppLocalizations.of(context)!.pleaseEnterEventLocation;
@@ -880,7 +880,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                           // Date Picker
                           Expanded(
                             child: InkWell(
-                              onTap: _selectDate,
+                              onTap: _isFieldEditable ? _selectDate : null,
                               child: InputDecorator(
                                 decoration: InputDecoration(
                                   labelText: '${AppLocalizations.of(context)!.eventDate} *',
@@ -899,7 +899,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                           // Time Picker
                           Expanded(
                             child: InkWell(
-                              onTap: _selectTime,
+                              onTap: _isFieldEditable ? _selectTime : null,
                               child: InputDecorator(
                                 decoration: InputDecoration(
                                   labelText: '${AppLocalizations.of(context)!.eventTime} *',
@@ -1144,13 +1144,13 @@ class _EventFormWebState extends State<EventFormWeb> {
                               title: Text(AppLocalizations.of(context)!.upload),
                               value: 'upload',
                               groupValue: _imageSource,
-                              onChanged: (value) {
+                              onChanged: _isFieldEditable ? (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _selectedImageBytes = null;
                                   _selectedImageName = null;
                                 });
-                              },
+                              } : null,
                             ),
                           ),
                           SizedBox(
@@ -1159,14 +1159,14 @@ class _EventFormWebState extends State<EventFormWeb> {
                               title: Text(AppLocalizations.of(context)!.unsplash),
                               value: 'unsplash',
                               groupValue: _imageSource,
-                              onChanged: (value) {
+                              onChanged: _isFieldEditable ? (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _imageUrlController.clear();
                                   _selectedImageBytes = null;
                                   _selectedImageName = null;
                                 });
-                              },
+                              } : null,
                             ),
                           ),
                         ],
@@ -1191,11 +1191,11 @@ class _EventFormWebState extends State<EventFormWeb> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _pickImageFile,
+                            onPressed: _isFieldEditable ? _pickImageFile : null,
                             icon: const Icon(Icons.upload_file),
                             label: Text(AppLocalizations.of(context)!.webUploadImage),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: _isFieldEditable ? Colors.blue : Colors.grey,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
@@ -1333,9 +1333,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                   // Update/Create button
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveEvent,
+                      onPressed: (_isLoading || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: _selectedStatus == AppConfig.eventStatusDone ? Colors.grey : Colors.blue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -1360,9 +1360,9 @@ class _EventFormWebState extends State<EventFormWeb> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _deleteEvent,
+                        onPressed: (_isLoading || _selectedStatus == AppConfig.eventStatusDone) ? null : _deleteEvent,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: _selectedStatus == AppConfig.eventStatusDone ? Colors.grey : Colors.red,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),

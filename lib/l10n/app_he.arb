@@ -304,6 +304,7 @@
   "eventRecurringNone": "פעם אחת",
   "eventRecurringDaily": "יומי",
   "eventRecurringWeekly": "שבועי",
+  "eventRecurringBiWeekly": "דו-שבועי",
   "eventRecurringMonthly": "חודשי",
   
   "locationRoom": "מיקום/חדר",
@@ -523,5 +524,19 @@
   "errorLoadingInstructors": "שגיאה בטעינת המדריכים: {error}",
   "eventInstructors": "מדריכי אירועים",
   "manageEventInstructors": "נהל מדריכי אירועים והפרופילים שלהם",
-  "eventInstructorManagementRequiresRole": "ניהול מדריכי אירועים דורש תפקיד מנהל"
+  "eventInstructorManagementRequiresRole": "ניהול מדריכי אירועים דורש תפקיד מנהל",
+  
+  "eventDateTime": "תאריך ושעת האירוע",
+  "recurringEventStartDate": "תאריך התחלת אירוע חוזר",
+  "dayOfMonth": "יום בחודש",
+  "dayOfWeek": "יום בשבוע",
+  "recurringScheduleConfiguration": "הגדרת לוח זמנים חוזר",
+  "recurringEventTime": "זמן האירוע החוזר",
+  "selectTimeForRecurringEvents": "בחר זמן לאירועים חוזרים",
+  "pleaseSelectTimeForRecurringEvents": "אנא בחר זמן לאירועים חוזרים",
+  "pleaseSelectDayOfWeekForWeeklyEvents": "אנא בחר יום בשבוע לאירועים שבועיים",
+  "pleaseSelectDayOfMonthForMonthlyEvents": "אנא בחר יום בחודש לאירועים חודשיים",
+  "endDateRequiredForRecurringEvents": "תאריך סיום נדרש לאירועים חוזרים",
+  "pleaseSelectDayOfWeek": "אנא בחר יום בשבוע",
+  "pleaseSelectDayOfMonth": "אנא בחר יום בחודש"
 }

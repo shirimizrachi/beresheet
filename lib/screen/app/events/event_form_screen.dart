@@ -572,11 +572,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _saveEvent,
+            onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
             child: Text(
               l10n.save.toUpperCase(),
               style: AppTextStyles.buttonText.copyWith(
-                color: Colors.white,
+                color: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -596,6 +596,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: TextFormField(
                     controller: _nameController,
+                    enabled: _isFieldEditable,
                     decoration: InputDecoration(
                       labelText: l10n.eventName,
                       hintText: l10n.enterEventName,
@@ -727,7 +728,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               child: Text(roomName),
                             );
                           }).toList(),
-                          onChanged: (value) {
+                          onChanged: _isFieldEditable ? (value) {
                             print('Room dropdown changed to: $value');
                             setState(() {
                               _selectedRoomName = value;
@@ -735,7 +736,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                 _locationController.text = value;
                               }
                             });
-                          },
+                          } : null,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return l10n.pleaseEnterEventLocation;
@@ -832,7 +833,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       InkWell(
-                        onTap: _selectDateTime,
+                        onTap: _isFieldEditable ? _selectDateTime : null,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                           decoration: BoxDecoration(
@@ -939,7 +940,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                   textDirection: AppConfig.textDirection,
                                 ),
                                 trailing: const Icon(Icons.access_time),
-                                onTap: () async {
+                                onTap: _isFieldEditable ? () async {
                                   final TimeOfDay? picked = await showTimePicker(
                                     context: context,
                                     initialTime: _recurringTime ?? TimeOfDay.fromDateTime(_selectedDateTime),
@@ -949,7 +950,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                       _recurringTime = picked;
                                     });
                                   }
-                                },
+                                } : null,
                               ),
                               
                               if (_selectedRecurring == 'weekly' || _selectedRecurring == 'bi-weekly') ...[
@@ -970,11 +971,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                     DropdownMenuItem(value: 5, child: Text(l10n.friday, textDirection: AppConfig.textDirection)),
                                     DropdownMenuItem(value: 6, child: Text(l10n.saturday, textDirection: AppConfig.textDirection)),
                                   ],
-                                  onChanged: (value) {
+                                  onChanged: _isFieldEditable ? (value) {
                                     setState(() {
                                       _selectedDayOfWeek = value;
                                     });
-                                  },
+                                  } : null,
                                   validator: (value) {
                                     if (value == null) {
                                       return l10n.pleaseSelectDayOfWeek;
@@ -1000,11 +1001,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                       child: Text(day.toString(), textDirection: AppConfig.textDirection),
                                     );
                                   }),
-                                  onChanged: (value) {
+                                  onChanged: _isFieldEditable ? (value) {
                                     setState(() {
                                       _selectedDayOfMonth = value;
                                     });
-                                  },
+                                  } : null,
                                   validator: (value) {
                                     if (value == null) {
                                       return l10n.pleaseSelectDayOfMonth;
@@ -1030,7 +1031,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             textDirection: AppConfig.textDirection,
                           ),
                           trailing: const Icon(Icons.calendar_today),
-                          onTap: () async {
+                          onTap: _isFieldEditable ? () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
                               initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 90)),
@@ -1042,7 +1043,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                 _recurringEndDate = picked;
                               });
                             }
-                          },
+                          } : null,
                         ),
                       ],
                     ],
@@ -1074,12 +1075,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               title: Text(l10n.webUpload),
                               value: 'upload',
                               groupValue: _imageSource,
-                              onChanged: (value) {
+                              onChanged: _isFieldEditable ? (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _imageUrlController.clear();
                                 });
-                              },
+                              } : null,
                             ),
                           ),
                           SizedBox(
@@ -1088,13 +1089,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                               title: Text(l10n.unsplash),
                               value: 'unsplash',
                               groupValue: _imageSource,
-                              onChanged: (value) {
+                              onChanged: _isFieldEditable ? (value) {
                                 setState(() {
                                   _imageSource = value!;
                                   _selectedImageFile = null;
                                   _imageUrlController.clear();
                                 });
-                              },
+                              } : null,
                             ),
                           ),
                         ],
@@ -1122,11 +1123,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _selectImageFromGallery,
+                                onPressed: _isFieldEditable ? _selectImageFromGallery : null,
                                 icon: const Icon(Icons.photo_library),
                                 label: Text(l10n.webUploadImage),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: _isFieldEditable ? AppColors.primary : Colors.grey,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
@@ -1198,9 +1199,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveEvent,
+                  onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.sm),
                     ),

@@ -479,10 +479,12 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                         // Edit Button
                         ElevatedButton.icon(
                           onPressed: () => _editEvent(event),
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: Text(AppLocalizations.of(context)!.editButton),
+                          icon: Icon(event.status == AppConfig.eventStatusDone ? Icons.visibility : Icons.edit, size: 18),
+                          label: Text(event.status == AppConfig.eventStatusDone
+                              ? AppLocalizations.of(context)!.viewDetails
+                              : AppLocalizations.of(context)!.editButton),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: event.status == AppConfig.eventStatusDone ? Colors.grey : Colors.blue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -502,17 +504,20 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                           child: DropdownButton<String>(
                             value: event.status,
                             underline: const SizedBox(),
-                            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                            icon: Icon(Icons.arrow_drop_down, color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : Colors.grey),
                             items: AppConfig.eventStatusOptions.map((status) {
                               return DropdownMenuItem(
                                 value: status,
                                 child: Text(
                                   DisplayNameUtils.getEventStatusDisplayName(status, context),
-                                  style: const TextStyle(fontSize: 14),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : null,
+                                  ),
                                 ),
                               );
                             }).toList(),
-                            onChanged: (newStatus) {
+                            onChanged: event.status == AppConfig.eventStatusDone ? null : (newStatus) {
                               if (newStatus != null && newStatus != event.status) {
                                 _updateEventStatus(event.id, newStatus);
                               }
