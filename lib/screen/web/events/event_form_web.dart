@@ -59,6 +59,14 @@ class _EventFormWebState extends State<EventFormWeb> {
   bool _isLoadingRooms = true;
   String? _selectedRoomName;
 
+  // Instructor functionality
+  List<Map<String, dynamic>> _instructors = [];
+  bool _isLoadingInstructors = true;
+  Map<String, dynamic>? _selectedInstructor;
+  String? _instructorName;
+  String? _instructorDesc;
+  String? _instructorPhoto;
+
   // Use constants from AppConfig for consistency
   List<String> get _eventTypes => AppConfig.eventTypes;
   List<String> get _statusOptions => AppConfig.userSelectableEventStatusOptions;
@@ -69,6 +77,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     super.initState();
     _checkPermissions();
     _loadRooms();
+    _loadInstructors();
     if (widget.event != null) {
       _populateFields();
     }
@@ -88,6 +97,11 @@ class _EventFormWebState extends State<EventFormWeb> {
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
     _selectedRoomName = event.location; // For existing events, set the room from location
+    
+    // Set instructor fields
+    _instructorName = event.instructorName;
+    _instructorDesc = event.instructorDesc;
+    _instructorPhoto = event.instructorPhoto;
     
     // Parse recurring pattern if it exists
     if (event.parsedRecurrencePattern != null) {
@@ -136,6 +150,38 @@ class _EventFormWebState extends State<EventFormWeb> {
     } catch (e) {
       setState(() {
         _isLoadingRooms = false;
+      });
+    }
+  }
+
+  Future<void> _loadInstructors() async {
+    try {
+      setState(() {
+        _isLoadingInstructors = true;
+      });
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': WebAuthService.homeId.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> instructorsData = json.decode(response.body);
+        setState(() {
+          _instructors = instructorsData.cast<Map<String, dynamic>>();
+          _isLoadingInstructors = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingInstructors = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingInstructors = false;
       });
     }
   }
@@ -323,6 +369,17 @@ class _EventFormWebState extends State<EventFormWeb> {
         'recurring': _selectedRecurring,
       });
 
+      // Add instructor fields if selected
+      if (_instructorName != null) {
+        request.fields['instructor_name'] = _instructorName!;
+      }
+      if (_instructorDesc != null) {
+        request.fields['instructor_desc'] = _instructorDesc!;
+      }
+      if (_instructorPhoto != null) {
+        request.fields['instructor_photo'] = _instructorPhoto!;
+      }
+
       if (_recurringEndDate != null) {
         request.fields['recurring_end_date'] = _recurringEndDate!.toIso8601String();
       }
@@ -423,6 +480,10 @@ class _EventFormWebState extends State<EventFormWeb> {
       _imageSource = 'upload';
       _selectedImageBytes = null;
       _selectedImageName = null;
+      _selectedInstructor = null;
+      _instructorName = null;
+      _instructorDesc = null;
+      _instructorPhoto = null;
     });
   }
 
@@ -764,6 +825,152 @@ class _EventFormWebState extends State<EventFormWeb> {
                                 return null;
                               },
                             ),
+                      const SizedBox(height: 16),
+                      
+                      // Instructor Selection
+                      _isLoadingInstructors
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : DropdownButtonFormField<Map<String, dynamic>>(
+                              value: _selectedInstructor,
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context)!.eventInstructorOptional,
+                                border: const OutlineInputBorder(),
+                              ),
+                              items: [
+                                // Show "Instructor Exists" if there's existing instructor data, otherwise "No Instructor"
+                                DropdownMenuItem<Map<String, dynamic>>(
+                                  value: null,
+                                  child: Text(
+                                    (_instructorName != null && _instructorName!.isNotEmpty)
+                                      ? AppLocalizations.of(context)!.instructorExists
+                                      : AppLocalizations.of(context)!.noInstructor
+                                  ),
+                                ),
+                                ..._instructors.map((instructor) {
+                                  return DropdownMenuItem<Map<String, dynamic>>(
+                                    value: instructor,
+                                    child: Text(instructor['name'] as String),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: _isFieldEditable ? (value) {
+                                setState(() {
+                                  _selectedInstructor = value;
+                                  if (value != null) {
+                                    _instructorName = value['name'] as String?;
+                                    _instructorDesc = value['description'] as String?;
+                                    _instructorPhoto = value['photo'] as String?;
+                                  } else {
+                                    _instructorName = null;
+                                    _instructorDesc = null;
+                                    _instructorPhoto = null;
+                                  }
+                                });
+                              } : null,
+                            ),
+                      
+                      // Show instructor details if selected from dropdown OR if there's existing instructor data
+                      if (_selectedInstructor != null || (_instructorName != null && _instructorName!.isNotEmpty)) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            border: Border.all(color: Colors.blue[200]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  // Instructor photo - use existing data or selected instructor
+                                  Builder(
+                                    builder: (context) {
+                                      final photoUrl = _instructorPhoto ?? _selectedInstructor?['photo'];
+                                      if (photoUrl != null && photoUrl.toString().isNotEmpty) {
+                                        return Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.blue[300]!, width: 2),
+                                          ),
+                                          child: ClipOval(
+                                            child: Image.network(
+                                              photoUrl.toString(),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(Icons.person, color: Colors.grey),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        return Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey[300],
+                                            border: Border.all(color: Colors.blue[300]!, width: 2),
+                                          ),
+                                          child: const Icon(Icons.person, color: Colors.grey, size: 30),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Instructor details - use existing data or selected instructor
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _instructorName ?? _selectedInstructor?['name'] ?? 'Unknown',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Builder(
+                                          builder: (context) {
+                                            final description = _instructorDesc ?? _selectedInstructor?['description'];
+                                            if (description != null && description.toString().isNotEmpty) {
+                                              return Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    description.toString(),
+                                                    style: TextStyle(
+                                                      color: Colors.grey[700],
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            }
+                                            return const SizedBox.shrink();
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -985,7 +1192,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                               
                               // Recurring Time
                               InkWell(
-                                onTap: () async {
+                                onTap: _isFieldEditable ? () async {
                                   final TimeOfDay? picked = await showTimePicker(
                                     context: context,
                                     initialTime: _recurringTime ?? TimeOfDay.fromDateTime(_selectedDateTime),
@@ -995,7 +1202,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                                       _recurringTime = picked;
                                     });
                                   }
-                                },
+                                } : null,
                                 child: InputDecorator(
                                   decoration: InputDecoration(
                                     labelText: '${AppLocalizations.of(context)!.recurringEventTime} *',
@@ -1029,11 +1236,11 @@ class _EventFormWebState extends State<EventFormWeb> {
                                     DropdownMenuItem(value: 5, child: Text(AppLocalizations.of(context)!.friday, textDirection: AppConfig.textDirection)),
                                     DropdownMenuItem(value: 6, child: Text(AppLocalizations.of(context)!.saturday, textDirection: AppConfig.textDirection)),
                                   ],
-                                  onChanged: (value) {
+                                  onChanged: _isFieldEditable ? (value) {
                                     setState(() {
                                       _selectedDayOfWeek = value;
                                     });
-                                  },
+                                  } : null,
                                   validator: (value) {
                                     if (value == null) {
                                       return AppLocalizations.of(context)!.pleaseSelectDayOfWeek;
@@ -1058,11 +1265,11 @@ class _EventFormWebState extends State<EventFormWeb> {
                                       child: Text(day.toString(), textDirection: AppConfig.textDirection),
                                     );
                                   }),
-                                  onChanged: (value) {
+                                  onChanged: _isFieldEditable ? (value) {
                                     setState(() {
                                       _selectedDayOfMonth = value;
                                     });
-                                  },
+                                  } : null,
                                   validator: (value) {
                                     if (value == null) {
                                       return AppLocalizations.of(context)!.pleaseSelectDayOfMonth;
@@ -1079,7 +1286,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                         
                         // End Date
                         InkWell(
-                          onTap: () async {
+                          onTap: _isFieldEditable ? () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
                               initialDate: _recurringEndDate ?? DateTime.now().add(const Duration(days: 90)),
@@ -1091,7 +1298,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                                 _recurringEndDate = picked;
                               });
                             }
-                          },
+                          } : null,
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: '${AppLocalizations.of(context)!.endDate} *',

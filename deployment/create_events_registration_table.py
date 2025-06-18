@@ -44,12 +44,16 @@ def create_events_registration_table(schema_name: str):
                     user_phone NVARCHAR(20),
                     registration_date DATETIME2 DEFAULT GETDATE(),
                     status NVARCHAR(20) DEFAULT 'registered',
-                    notes NVARCHAR(MAX),
+                    vote INT NULL CHECK (vote >= 1 AND vote <= 5),
+                    reviews NVARCHAR(MAX),
+                    instructor_name NVARCHAR(100) NULL,
+                    instructor_desc NVARCHAR(MAX) NULL,
+                    instructor_photo NVARCHAR(500) NULL,
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE(),
                     
                     -- Unique constraint to prevent duplicate registrations
-                    CONSTRAINT UK_{schema_name}_events_registration_user_event 
+                    CONSTRAINT UK_{schema_name}_events_registration_user_event
                         UNIQUE (event_id, user_id)
                 );
             """)

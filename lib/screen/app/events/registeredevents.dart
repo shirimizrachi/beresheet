@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
+import 'package:beresheet_app/screen/app/events/event_vote_review_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -375,21 +376,65 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                 const SizedBox(height: 12),
                                 
                                 // Action Buttons
-                                Row(
+                                Column(
                                   children: [
-                                    Expanded(
-                                      child: OutlinedButton(
-                                        onPressed: () => _unregisterFromEvent(event),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.orange[700],
-                                          side: BorderSide(color: Colors.orange[300]!),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: () => _unregisterFromEvent(event),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.orange[700],
+                                              side: BorderSide(color: Colors.orange[300]!),
+                                            ),
+                                            child: Text(context.l10n.unregister),
+                                          ),
                                         ),
-                                        child: Text(context.l10n.unregister),
-                                      ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () async {
+                                              try {
+                                                // Validate event data before navigation
+                                                if (event.id.isEmpty || event.name.isEmpty) {
+                                                  throw Exception('Invalid event data');
+                                                }
+                                                
+                                                print('Navigating to event details for: ${event.name} (ID: ${event.id})');
+                                                
+                                                if (!mounted) return;
+                                                
+                                                await Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => EventDetailPage(event: event),
+                                                  ),
+                                                );
+                                              } catch (e) {
+                                                print('Error navigating to event details: $e');
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Error opening event details: $e'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: theme.colorScheme.primary,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: Text(context.l10n.viewDetails),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: ElevatedButton(
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
                                         onPressed: () async {
                                           try {
                                             // Validate event data before navigation
@@ -397,22 +442,26 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                               throw Exception('Invalid event data');
                                             }
                                             
-                                            print('Navigating to event details for: ${event.name} (ID: ${event.id})');
+                                            print('Navigating to vote & review for: ${event.name} (ID: ${event.id})');
                                             
                                             if (!mounted) return;
                                             
                                             await Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => EventDetailPage(event: event),
+                                                builder: (context) => EventVoteReviewScreen(
+                                                  eventRegistrationId: event.id, // Using event ID as placeholder
+                                                  eventId: event.id,
+                                                  eventName: event.name,
+                                                ),
                                               ),
                                             );
                                           } catch (e) {
-                                            print('Error navigating to event details: $e');
+                                            print('Error navigating to vote & review: $e');
                                             if (mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Error opening event details: $e'),
+                                                  content: Text('Error opening vote & review: $e'),
                                                   backgroundColor: Colors.red,
                                                 ),
                                               );
@@ -420,10 +469,11 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           }
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: theme.colorScheme.primary,
+                                          backgroundColor: Colors.blue,
                                           foregroundColor: Colors.white,
                                         ),
-                                        child: Text(context.l10n.viewDetails),
+                                        icon: const Icon(Icons.rate_review, size: 18),
+                                        label: Text(context.l10n.voteAndReview),
                                       ),
                                     ),
                                   ],

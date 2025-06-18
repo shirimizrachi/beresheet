@@ -9,6 +9,10 @@ from models import (
     EventCreate,
     EventUpdate,
     EventRegistration,
+    EventVoteAndReviewUpdate,
+    EventGallery,
+    EventGalleryCreate,
+    EventGalleryUpdate,
     UserProfile,
     UserProfileCreate,
     UserProfileUpdate,
@@ -33,6 +37,7 @@ from events import event_db
 from rooms import room_db
 from events_registration import events_registration_db
 from event_instructor import event_instructor_db
+from event_gallery import event_gallery_db
 from users import user_db
 from service_provider_types import service_provider_type_db
 from request_service import request_db
@@ -153,13 +158,13 @@ async def get_events_for_home(
     user_id: str = Depends(get_user_id),
     firebase_token: Optional[str] = Depends(get_firebase_token)
 ):
-    """Get approved events with registration status for homepage"""
+    """Get events for home screen with proper recurring event handling"""
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required")
     
     print(f"Getting events for home {home_id}, user {user_id}")
     
-    events_with_status = event_db.get_approved_events_with_registration_status(home_id, user_id)
+    events_with_status = event_db.load_events_for_home(home_id, user_id)
     return events_with_status
 
 @api_router.get("/events/{event_id}", response_model=Event)
@@ -188,6 +193,9 @@ async def create_event(
     recurring: str = Form("none"),
     recurring_end_date: Optional[str] = Form(None),
     recurring_pattern: Optional[str] = Form(None),
+    instructor_name: Optional[str] = Form(None),
+    instructor_desc: Optional[str] = Form(None),
+    instructor_photo: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Depends(get_firebase_token),
@@ -222,7 +230,10 @@ async def create_event(
             status=status,
             recurring=recurring,
             recurring_end_date=parsed_recurring_end_date,
-            recurring_pattern=recurring_pattern
+            recurring_pattern=recurring_pattern,
+            instructor_name=instructor_name,
+            instructor_desc=instructor_desc,
+            instructor_photo=instructor_photo
         )
         
         # Create the event
@@ -277,6 +288,9 @@ async def update_event(
     recurring: Optional[str] = Form(None),
     recurring_end_date: Optional[str] = Form(None),
     recurring_pattern: Optional[str] = Form(None),
+    instructor_name: Optional[str] = Form(None),
+    instructor_desc: Optional[str] = Form(None),
+    instructor_photo: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Depends(get_firebase_token),
@@ -305,6 +319,12 @@ async def update_event(
             update_data['recurring'] = recurring
         if recurring_pattern is not None:
             update_data['recurring_pattern'] = recurring_pattern
+        if instructor_name is not None:
+            update_data['instructor_name'] = instructor_name
+        if instructor_desc is not None:
+            update_data['instructor_desc'] = instructor_desc
+        if instructor_photo is not None:
+            update_data['instructor_photo'] = instructor_photo
         
         # Parse datetime fields
         if dateTime is not None:
@@ -438,6 +458,115 @@ async def unregister_from_event(
     
     return {"message": "Successfully unregistered from event", "event_id": event_id}
 
+@api_router.put("/events/{event_id}/vote-review")
+async def update_vote_and_review(
+    event_id: str,
+    vote_review_data: EventVoteAndReviewUpdate,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Update vote and/or add review for an event registration"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check if user is registered for this event
+    is_registered = events_registration_db.is_user_registered(event_id, user_id, home_id)
+    if not is_registered:
+        raise HTTPException(status_code=400, detail="User must be registered for this event to vote or review")
+    
+    # Update vote and/or review
+    success = events_registration_db.update_vote_and_review(
+        event_id=event_id,
+        user_id=user_id,
+        vote=vote_review_data.vote,
+        review_text=vote_review_data.review_text,
+        home_id=home_id
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to update vote and review")
+    
+    return {"message": "Vote and review updated successfully", "event_id": event_id}
+
+@api_router.get("/events/{event_id}/vote-review")
+async def get_vote_and_review(
+    event_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Get vote and reviews for an event registration"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get vote and reviews data
+    vote_data = events_registration_db.get_vote_and_reviews(event_id, user_id, home_id)
+    
+    if not vote_data:
+        raise HTTPException(status_code=404, detail="Registration not found for this event")
+    
+    return vote_data
+
+@api_router.get("/events/{event_id}/votes-reviews/all")
+async def get_all_votes_and_reviews(
+    event_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Get all votes and reviews for an event - requires manager role"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get all registrations for this event
+    registrations = events_registration_db.get_event_registrations(event_id, home_id)
+    
+    # Filter and format votes and reviews data
+    votes_reviews_data = []
+    for registration in registrations:
+        reg_dict = registration.to_dict()
+        if reg_dict.get('vote') is not None or (reg_dict.get('reviews') and reg_dict.get('reviews').strip()):
+            # Parse reviews if they exist
+            reviews_list = []
+            if reg_dict.get('reviews'):
+                try:
+                    import json
+                    reviews_list = json.loads(reg_dict['reviews'])
+                except (json.JSONDecodeError, Exception):
+                    reviews_list = []
+            
+            votes_reviews_data.append({
+                'registration_id': reg_dict['id'],
+                'user_id': reg_dict['user_id'],
+                'user_name': reg_dict['user_name'],
+                'vote': reg_dict.get('vote'),
+                'reviews': reviews_list,
+                'registration_date': reg_dict['registration_date']
+            })
+    
+    return {
+        'event_id': event_id,
+        'event_name': event.name,
+        'total_votes_reviews': len(votes_reviews_data),
+        'votes_reviews': votes_reviews_data
+    }
+
 # Event type endpoints
 @api_router.get("/events/types/{event_type}", response_model=List[Event])
 async def get_events_by_type(event_type: str, home_id: int = Depends(get_home_id)):
@@ -450,6 +579,140 @@ async def get_upcoming_events(home_id: int = Depends(get_home_id)):
     """Get all upcoming events"""
     events = event_db.get_upcoming_events(home_id)
     return events
+
+# ------------------------- Event Gallery Endpoints ------------------------- #
+@api_router.get("/events/{event_id}/gallery", response_model=List[EventGallery])
+async def get_event_gallery(
+    event_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Get all gallery images for an event"""
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    gallery_images = event_gallery_db.get_event_gallery(event_id, home_id)
+    return gallery_images
+
+@api_router.post("/events/{event_id}/gallery", response_model=List[EventGallery], status_code=201)
+async def upload_gallery_images(
+    event_id: str,
+    images: List[UploadFile] = File(...),
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Upload multiple images to event gallery (max 3)"""
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Limit to 3 images maximum
+    if len(images) > 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 images allowed per upload")
+    
+    # Validate all images
+    image_files = []
+    for image in images:
+        if not image.content_type or not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail=f"File {image.filename} must be an image")
+        
+        # Read image data
+        image_data = await image.read()
+        image_files.append({
+            'filename': image.filename or "gallery_image.jpg",
+            'content': image_data,
+            'content_type': image.content_type
+        })
+    
+    try:
+        # Upload images to gallery
+        created_galleries = event_gallery_db.upload_gallery_images(
+            event_id=event_id,
+            home_id=home_id,
+            image_files=image_files,
+            created_by=user_id
+        )
+        
+        if not created_galleries:
+            raise HTTPException(status_code=400, detail="Failed to upload images")
+        
+        return created_galleries
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error uploading gallery images: {str(e)}")
+
+@api_router.get("/events/{event_id}/gallery/{photo_id}", response_model=EventGallery)
+async def get_gallery_photo(
+    event_id: str,
+    photo_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Get a specific gallery photo"""
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    photo = event_gallery_db.get_gallery_photo(photo_id, home_id)
+    if not photo:
+        raise HTTPException(status_code=404, detail="Gallery photo not found")
+    
+    # Verify photo belongs to the event
+    if photo.event_id != event_id:
+        raise HTTPException(status_code=404, detail="Gallery photo not found for this event")
+    
+    return photo
+
+@api_router.delete("/events/{event_id}/gallery/{photo_id}")
+async def delete_gallery_photo(
+    event_id: str,
+    photo_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Delete a specific gallery photo"""
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get photo to verify it belongs to the event
+    photo = event_gallery_db.get_gallery_photo(photo_id, home_id)
+    if not photo or photo.event_id != event_id:
+        raise HTTPException(status_code=404, detail="Gallery photo not found for this event")
+    
+    success = event_gallery_db.delete_gallery_photo(photo_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Gallery photo not found")
+    
+    return {"message": "Gallery photo deleted successfully"}
+
+@api_router.delete("/events/{event_id}/gallery")
+async def delete_event_gallery(
+    event_id: str,
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id),
+    firebase_token: Optional[str] = Depends(get_firebase_token)
+):
+    """Delete all gallery photos for an event"""
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    success = event_gallery_db.delete_event_gallery(event_id, home_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to delete event gallery")
+    
+    return {"message": "Event gallery deleted successfully"}
 
 # Statistics endpoint
 @api_router.get("/stats")
@@ -986,6 +1249,89 @@ async def update_chat_messages(
     
     return {"request_id": request_id, "message": "Chat messages updated successfully", "chat_messages": chat_messages}
 
+# Service Requests - Upload media for a request message (creates request if needed)
+@api_router.post("/requests/upload-media")
+async def upload_request_media_with_creation(
+    file: UploadFile = File(...),
+    message_id: str = Form(...),
+    service_provider_id: str = Form(...),
+    request_message: Optional[str] = Form("Media message"),
+    request_id: Optional[str] = Form(None),
+    home_id: int = Depends(get_home_id),
+    user_id: str = Header(..., alias="userId")
+):
+    """Upload media (image, video, or audio) for a service request message. Creates request if needed."""
+    try:
+        actual_request_id = request_id
+        created_new_request = False
+        
+        # If no request_id provided, create a new request
+        if not actual_request_id:
+            from models import RequestCreate
+            request_data = RequestCreate(
+                service_provider_id=service_provider_id,
+                request_message=request_message or "Media message"
+            )
+            
+            new_request = request_db.create_request(request_data, user_id, home_id)
+            if not new_request:
+                raise HTTPException(status_code=400, detail="Unable to create request")
+            
+            actual_request_id = new_request.id
+            created_new_request = True
+        else:
+            # Verify existing request and user access
+            existing_request = request_db.get_request_by_id(actual_request_id, home_id)
+            if not existing_request:
+                raise HTTPException(status_code=404, detail="Request not found")
+            
+            # Check if user is either the resident or service provider
+            if user_id not in [existing_request.resident_id, existing_request.service_provider_id]:
+                raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Read file data
+        file_data = await file.read()
+        
+        # Upload to Azure Storage
+        from azure_storage_service import azure_storage_service
+        success, result = azure_storage_service.upload_request_media(
+            home_id=home_id,
+            request_id=actual_request_id,
+            message_id=message_id,
+            media_data=file_data,
+            original_filename=file.filename or "media",
+            content_type=file.content_type
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=f"Upload failed: {result}")
+        
+        # Get the updated request to return details
+        updated_request = request_db.get_request_by_id(actual_request_id, home_id)
+        if updated_request:
+            # Determine sender type
+            sender_type = "resident" if updated_request.resident_id == user_id else "service_provider"
+            
+            # Create a chat message with the media URL
+            media_message = f"[Media: {file.filename or 'media'}]({result})"
+            request_db.add_chat_message(actual_request_id, user_id, sender_type, media_message, home_id)
+            
+            # Get the request again to include the new chat message
+            final_request = request_db.get_request_by_id(actual_request_id, home_id)
+        
+        return {
+            "status": "success",
+            "media_url": result,
+            "message_id": message_id,
+            "request_id": actual_request_id,
+            "created_new_request": created_new_request,
+            "request_details": final_request.model_dump() if final_request else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @api_router.get("/requests/resident/{resident_id}", response_model=List[Request])
 async def get_requests_by_resident(
@@ -1062,6 +1408,20 @@ async def get_all_users(home_id: int = Depends(get_home_id)):
     """Get all user profiles"""
     users = user_db.get_all_users(home_id)
     return users
+
+@api_router.get("/users/service-providers", response_model=List[UserProfile])
+async def get_service_providers(home_id: int = Depends(get_home_id)):
+    """Get all users with service provider role"""
+    try:
+        print(f"Getting service providers for home_id: {home_id}")
+        all_users = user_db.get_all_users(home_id)
+        print(f"Total users found: {len(all_users)}")
+        service_providers = [user for user in all_users if user.role == "service"]
+        print(f"Service providers found: {len(service_providers)}")
+        return service_providers
+    except Exception as e:
+        print(f"Error in get_service_providers: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @api_router.get("/users/{user_id}", response_model=UserProfile)
 async def get_user_profile(user_id: str, home_id: int = Depends(get_home_id)):

@@ -61,6 +61,9 @@ class Event {
     this.recurring = AppConfig.eventRecurringNone,
     this.recurringEndDate,
     this.recurringPattern,
+    this.instructorName,
+    this.instructorDesc,
+    this.instructorPhoto,
     this.isRegistered = false,
   });
 
@@ -77,6 +80,9 @@ class Event {
   final String recurring; // "none", "weekly", "monthly", "bi-weekly"
   final DateTime? recurringEndDate;
   final String? recurringPattern; // JSON string with pattern details
+  final String? instructorName;
+  final String? instructorDesc;
+  final String? instructorPhoto;
   final bool isRegistered; // Whether the current user is registered for this event
 
   bool get isAvailable => currentParticipants < maxParticipants;
@@ -125,6 +131,9 @@ class Event {
           ? DateTime.parse(json['recurring_end_date'])
           : null,
       recurringPattern: json['recurring_pattern'],
+      instructorName: json['instructor_name'],
+      instructorDesc: json['instructor_desc'],
+      instructorPhoto: json['instructor_photo'],
       isRegistered: json['is_registered'] ?? false,
     );
   }
@@ -144,6 +153,9 @@ class Event {
       'recurring': recurring,
       'recurring_end_date': recurringEndDate?.toIso8601String(),
       'recurring_pattern': recurringPattern,
+      'instructor_name': instructorName,
+      'instructor_desc': instructorDesc,
+      'instructor_photo': instructorPhoto,
       'is_registered': isRegistered,
     };
   }
@@ -162,6 +174,9 @@ class Event {
     String? recurring,
     DateTime? recurringEndDate,
     String? recurringPattern,
+    String? instructorName,
+    String? instructorDesc,
+    String? instructorPhoto,
     bool? isRegistered,
   }) {
     return Event(
@@ -178,6 +193,9 @@ class Event {
       recurring: recurring ?? this.recurring,
       recurringEndDate: recurringEndDate ?? this.recurringEndDate,
       recurringPattern: recurringPattern ?? this.recurringPattern,
+      instructorName: instructorName ?? this.instructorName,
+      instructorDesc: instructorDesc ?? this.instructorDesc,
+      instructorPhoto: instructorPhoto ?? this.instructorPhoto,
       isRegistered: isRegistered ?? this.isRegistered,
     );
   }

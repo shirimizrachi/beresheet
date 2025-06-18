@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:file_picker/file_picker.dart';
 
 class EditUserWeb extends StatefulWidget {
   final UserModel user;
@@ -35,6 +38,11 @@ class _EditUserWebState extends State<EditUserWeb> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  
+  // Photo upload variables
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
+  String? _currentPhotoUrl;
 
   // Dropdown options
   final List<String> _roleOptions = ['resident', 'staff', 'instructor', 'service', 'caregiver', 'manager'];
@@ -79,6 +87,27 @@ class _EditUserWebState extends State<EditUserWeb> {
     _selectedReligious = widget.user.religious.isNotEmpty ? widget.user.religious : 'secular';
     _selectedLanguage = widget.user.nativeLanguage;
     _selectedBirthday = widget.user.birthday;
+    _currentPhotoUrl = widget.user.photo;
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _selectedImageBytes = result.files.single.bytes!;
+          _selectedImageName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error picking image: $e';
+      });
+    }
   }
 
   Future<void> _updateUser() async {
@@ -102,28 +131,123 @@ class _EditUserWebState extends State<EditUserWeb> {
     try {
       final headers = WebAuthService.getAuthHeaders();
       
-      final updateData = {
-        'full_name': _fullNameController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'role': _selectedRole,
-        'birthday': _selectedBirthday!.toIso8601String().split('T')[0], // YYYY-MM-DD format
-        'apartment_number': _apartmentController.text.trim(),
-        'marital_status': _selectedMaritalStatus,
-        'gender': _selectedGender,
-        'religious': _selectedReligious,
-        'native_language': _selectedLanguage,
-      };
-
-      final response = await http.put(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
-        headers: headers,
-        body: json.encode(updateData),
-      );
+      // Use multipart request if there's an image to upload
+      http.Response response;
+      
+      if (_selectedImageBytes != null) {
+        // Create multipart request for image upload
+        var request = http.MultipartRequest(
+          'PUT',
+          Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
+        );
+        
+        // Add headers but remove Content-Type for multipart requests
+        final multipartHeaders = Map<String, String>.from(headers);
+        multipartHeaders.remove('Content-Type'); // Remove this for multipart requests
+        request.headers.addAll(multipartHeaders);
+        
+        // Add form fields - only send non-null and non-empty values
+        if (_fullNameController.text.trim().isNotEmpty) {
+          request.fields['full_name'] = _fullNameController.text.trim();
+        }
+        if (_phoneController.text.trim().isNotEmpty) {
+          request.fields['phone_number'] = _phoneController.text.trim();
+        }
+        if (_selectedRole.isNotEmpty) {
+          request.fields['role'] = _selectedRole;
+        }
+        if (_selectedBirthday != null) {
+          request.fields['birthday'] = _selectedBirthday!.toIso8601String(); // Send full ISO string like mobile version
+        }
+        if (_apartmentController.text.trim().isNotEmpty) {
+          request.fields['apartment_number'] = _apartmentController.text.trim();
+        }
+        if (_selectedMaritalStatus.isNotEmpty) {
+          request.fields['marital_status'] = _selectedMaritalStatus;
+        }
+        if (_selectedGender.isNotEmpty) {
+          request.fields['gender'] = _selectedGender;
+        }
+        if (_selectedReligious.isNotEmpty) {
+          request.fields['religious'] = _selectedReligious;
+        }
+        if (_selectedLanguage.isNotEmpty) {
+          request.fields['native_language'] = _selectedLanguage;
+        }
+        
+        // Add image file with proper content type
+        request.files.add(http.MultipartFile.fromBytes(
+          'photo',
+          _selectedImageBytes!,
+          filename: _selectedImageName ?? '${widget.user.id}.jpeg',
+          contentType: MediaType.parse('image/jpeg'),
+        ));
+        
+        // Send request and get response
+        final streamedResponse = await request.send();
+        response = await http.Response.fromStream(streamedResponse);
+      } else {
+        // Use multipart request even without image for consistency with mobile version
+        var request = http.MultipartRequest(
+          'PUT',
+          Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
+        );
+        
+        // Add headers but remove Content-Type for multipart requests
+        final multipartHeaders = Map<String, String>.from(headers);
+        multipartHeaders.remove('Content-Type'); // Remove this for multipart requests
+        request.headers.addAll(multipartHeaders);
+        
+        // Add form fields - only send non-null and non-empty values
+        if (_fullNameController.text.trim().isNotEmpty) {
+          request.fields['full_name'] = _fullNameController.text.trim();
+        }
+        if (_phoneController.text.trim().isNotEmpty) {
+          request.fields['phone_number'] = _phoneController.text.trim();
+        }
+        if (_selectedRole.isNotEmpty) {
+          request.fields['role'] = _selectedRole;
+        }
+        if (_selectedBirthday != null) {
+          request.fields['birthday'] = _selectedBirthday!.toIso8601String(); // Send full ISO string like mobile version
+        }
+        if (_apartmentController.text.trim().isNotEmpty) {
+          request.fields['apartment_number'] = _apartmentController.text.trim();
+        }
+        if (_selectedMaritalStatus.isNotEmpty) {
+          request.fields['marital_status'] = _selectedMaritalStatus;
+        }
+        if (_selectedGender.isNotEmpty) {
+          request.fields['gender'] = _selectedGender;
+        }
+        if (_selectedReligious.isNotEmpty) {
+          request.fields['religious'] = _selectedReligious;
+        }
+        if (_selectedLanguage.isNotEmpty) {
+          request.fields['native_language'] = _selectedLanguage;
+        }
+        
+        // Send request and get response
+        final streamedResponse = await request.send();
+        response = await http.Response.fromStream(streamedResponse);
+      }
 
       if (response.statusCode == 200) {
         setState(() {
           _successMessage = 'User updated successfully!';
           _isLoading = false;
+          // Clear selected image after successful upload
+          _selectedImageBytes = null;
+          _selectedImageName = null;
+          // Update current photo URL if response contains it
+          try {
+            final responseData = json.decode(response.body);
+            if (responseData['photo'] != null) {
+              _currentPhotoUrl = responseData['photo'];
+            }
+          } catch (e) {
+            // Ignore JSON parsing errors
+          }
         });
         
         // Navigate back after a short delay
@@ -251,6 +375,86 @@ class _EditUserWebState extends State<EditUserWeb> {
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Photo Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.photo_camera, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Profile Photo',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[200],
+                                  border: Border.all(color: Colors.blue, width: 2),
+                                ),
+                                child: _selectedImageBytes != null
+                                    ? ClipOval(
+                                        child: Image.memory(
+                                          _selectedImageBytes!,
+                                          fit: BoxFit.cover,
+                                          width: 120,
+                                          height: 120,
+                                        ),
+                                      )
+                                    : (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty)
+                                        ? ClipOval(
+                                            child: Image.network(
+                                              _currentPhotoUrl!,
+                                              fit: BoxFit.cover,
+                                              width: 120,
+                                              height: 120,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return const Icon(Icons.person, size: 60, color: Colors.grey);
+                                              },
+                                            ),
+                                          )
+                                        : const Icon(Icons.person, size: 60, color: Colors.grey),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: const Text(
+                                'Click to select from gallery',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

@@ -4,7 +4,7 @@ Handles all event-related database operations
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, Boolean, text
 from sqlalchemy.orm import sessionmaker
@@ -12,6 +12,114 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Event, EventCreate, EventUpdate
 from home_mapping import get_connection_string, get_schema_for_home
 from database_utils import get_schema_engine, get_engine_for_home
+import json
+
+def calculate_next_occurrence(event_datetime: datetime, recurring_pattern: str, recurring_end_date: datetime) -> datetime:
+    """
+    Calculate the next occurrence of a recurring event based on its pattern.
+    
+    Args:
+        event_datetime: The original event datetime (used as reference)
+        recurring_pattern: JSON string containing recurrence pattern
+        recurring_end_date: When the recurring series ends
+        
+    Returns:
+        The next occurrence datetime, or the original datetime if no future occurrence exists
+    """
+    try:
+        if not recurring_pattern:
+            return event_datetime
+            
+        pattern = json.loads(recurring_pattern)
+        now = datetime.now()
+        
+        # If we're past the recurring end date, return the original datetime
+        if recurring_end_date and now > recurring_end_date:
+            return event_datetime
+            
+        # Parse time from pattern
+        time_str = pattern.get('time', '14:00')  # Default to 2:00 PM
+        hour, minute = map(int, time_str.split(':'))
+        
+        # Weekly recurrence
+        if 'dayOfWeek' in pattern:
+            target_day = pattern['dayOfWeek']  # 0=Sunday, 1=Monday, etc.
+            interval = pattern.get('interval', 1)  # Default to 1 for weekly, 2 for bi-weekly
+            
+            # Find the next occurrence
+            current_date = now.date()
+            # Convert Python weekday (0=Monday) to our format (0=Sunday)
+            current_weekday = (current_date.weekday() + 1) % 7
+            days_ahead = target_day - current_weekday
+            if days_ahead <= 0:
+                days_ahead += 7  # Go to next week
+                
+            # For bi-weekly, we need to find the correct week
+            if interval == 2:
+                # Calculate weeks since reference date
+                reference_date = event_datetime.date()
+                # Convert Python weekday (0=Monday) to our format (0=Sunday)
+                reference_weekday = (reference_date.weekday() + 1) % 7
+                
+                # Find the first target day from reference
+                if reference_weekday <= target_day:
+                    first_target = reference_date + timedelta(days=(target_day - reference_weekday))
+                else:
+                    first_target = reference_date + timedelta(days=(7 - reference_weekday + target_day))
+                
+                # Calculate how many intervals (2 weeks) have passed
+                weeks_passed = (current_date - first_target).days // 7
+                intervals_passed = weeks_passed // interval
+                
+                # Find next interval
+                next_interval_weeks = (intervals_passed + 1) * interval
+                next_date = first_target + timedelta(weeks=next_interval_weeks)
+                
+                # If this date is in the past, add another interval
+                if next_date <= current_date:
+                    next_date = first_target + timedelta(weeks=(intervals_passed + 2) * interval)
+            else:
+                # Regular weekly
+                next_date = current_date + timedelta(days=days_ahead)
+            
+            next_datetime = datetime.combine(next_date, datetime.min.time().replace(hour=hour, minute=minute))
+            
+        # Monthly recurrence
+        elif 'dayOfMonth' in pattern:
+            target_day = pattern['dayOfMonth']
+            current_date = now.date()
+            
+            # Try current month first
+            try:
+                next_date = current_date.replace(day=target_day)
+                if next_date <= current_date:
+                    # Move to next month
+                    if current_date.month == 12:
+                        next_date = current_date.replace(year=current_date.year + 1, month=1, day=target_day)
+                    else:
+                        next_date = current_date.replace(month=current_date.month + 1, day=target_day)
+            except ValueError:
+                # Target day doesn't exist in current month, move to next month
+                if current_date.month == 12:
+                    next_date = current_date.replace(year=current_date.year + 1, month=1, day=target_day)
+                else:
+                    next_date = current_date.replace(month=current_date.month + 1, day=target_day)
+            
+            next_datetime = datetime.combine(next_date, datetime.min.time().replace(hour=hour, minute=minute))
+        
+        else:
+            # No valid pattern, return original
+            return event_datetime
+            
+        # Check if next occurrence is within the recurring end date
+        if recurring_end_date and next_datetime > recurring_end_date:
+            return event_datetime
+            
+        return next_datetime
+        
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        print(f"Error calculating next occurrence: {e}")
+        return event_datetime
 
 class EventDatabase:
     def __init__(self):
@@ -429,82 +537,6 @@ class EventDatabase:
             print(f"Error getting upcoming events for home {home_id}: {e}")
             return []
 
-    def get_approved_events_with_registration_status(self, home_id: int, user_id: str) -> List[dict]:
-        """Get all approved events with registration status for a specific user"""
-        try:
-            # Get schema for home
-            schema_name = get_schema_for_home(home_id)
-            if not schema_name:
-                return []
-
-            # Get the events and events_registration tables
-            events_table = self.get_events_table(schema_name)
-            if events_table is None:
-                return []
-
-            # Get registration table
-            metadata = MetaData(schema=schema_name)
-            metadata.reflect(bind=self.engine, only=['events_registration'])
-            registration_table = metadata.tables[f'{schema_name}.events_registration']
-
-            events_with_status = []
-            with self.engine.connect() as conn:
-                # Get all approved events with registration status
-                results = conn.execute(
-                    text(f"""
-                        SELECT
-                            e.id,
-                            e.name,
-                            e.type,
-                            e.description,
-                            e.dateTime,
-                            e.location,
-                            e.maxParticipants,
-                            e.currentParticipants,
-                            e.image_url,
-                            e.status,
-                            e.recurring,
-                            e.recurring_end_date,
-                            e.recurring_pattern,
-                            CASE
-                                WHEN er.status = 'registered' THEN 1
-                                ELSE 0
-                            END as is_registered
-                        FROM [{schema_name}].[events] e
-                        LEFT JOIN [{schema_name}].[events_registration] er
-                            ON e.id = er.event_id
-                            AND er.user_id = :user_id
-                            AND er.status = 'registered'
-                        WHERE e.status = 'approved'
-                        ORDER BY e.dateTime DESC
-                    """),
-                    {"user_id": user_id}
-                ).fetchall()
-                
-                for result in results:
-                    event_dict = {
-                        'id': result.id,
-                        'name': result.name,
-                        'type': result.type,
-                        'description': result.description,
-                        'dateTime': result.dateTime.isoformat() if result.dateTime else None,
-                        'location': result.location,
-                        'maxParticipants': result.maxParticipants,
-                        'currentParticipants': result.currentParticipants,
-                        'image_url': result.image_url or "",
-                        'status': result.status if hasattr(result, 'status') else "pending-approval",
-                        'recurring': result.recurring if hasattr(result, 'recurring') else "none",
-                        'recurring_end_date': result.recurring_end_date.isoformat() if hasattr(result, 'recurring_end_date') and result.recurring_end_date else None,
-                        'recurring_pattern': result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        'is_registered': bool(result.is_registered)
-                    }
-                    events_with_status.append(event_dict)
-            
-            return events_with_status
-
-        except Exception as e:
-            print(f"Error getting approved events with registration status for home {home_id}, user {user_id}: {e}")
-            return []
 
     def register_for_event(self, event_id: str, user_id: Optional[str], home_id: int) -> bool:
         """Register a user for an event"""
@@ -582,6 +614,136 @@ class EventDatabase:
         except Exception as e:
             print(f"Error unregistering from event {event_id}: {e}")
             return False
+
+    def load_events_for_home(self, home_id: int, user_id: str) -> List[dict]:
+        """
+        Load events for home screen with specific filtering and next occurrence calculation.
+        
+        Database query conditions:
+        - All events that dateTime is newer than now and recurring is 'none'
+        - All events that recurring_end_date is newer than now and recurring is not 'none'
+        
+        Response filtering:
+        1. For recurring events: return only if recurring end date has not passed and next occurrence is within end date
+        2. For one-time events: return all events which date is newer than now
+        
+        Override dateTime with next occurrence for recurring events.
+        Order by dateTime (after override calculation).
+        """
+        try:
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return []
+
+            # Get the events and events_registration tables
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            # Get registration table
+            metadata = MetaData(schema=schema_name)
+            metadata.reflect(bind=self.engine, only=['events_registration'])
+            registration_table = metadata.tables[f'{schema_name}.events_registration']
+
+            events_with_status = []
+            now = datetime.now()
+            
+            with self.engine.connect() as conn:
+                # Query database according to requirements:
+                # 1. All events that dateTime is newer than now and recurring is 'none'
+                # 2. All events that recurring_end_date is newer than now and recurring is not 'none'
+                results = conn.execute(
+                    text(f"""
+                        SELECT
+                            e.id,
+                            e.name,
+                            e.type,
+                            e.description,
+                            e.dateTime,
+                            e.location,
+                            e.maxParticipants,
+                            e.currentParticipants,
+                            e.image_url,
+                            e.status,
+                            e.recurring,
+                            e.recurring_end_date,
+                            e.recurring_pattern,
+                            CASE
+                                WHEN er.status = 'registered' THEN 1
+                                ELSE 0
+                            END as is_registered
+                        FROM [{schema_name}].[events] e
+                        LEFT JOIN [{schema_name}].[events_registration] er
+                            ON e.id = er.event_id
+                            AND er.user_id = :user_id
+                            AND er.status = 'registered'
+                        WHERE e.status = 'approved'
+                            AND (
+                                (e.recurring = 'none' AND e.dateTime > :now)
+                                OR
+                                (e.recurring != 'none' AND e.recurring_end_date > :now)
+                            )
+                    """),
+                    {"user_id": user_id, "now": now}
+                ).fetchall()
+                
+                for result in results:
+                    # Determine the display datetime
+                    display_datetime = result.dateTime
+                    
+                    # For recurring events, calculate next occurrence
+                    if result.recurring and result.recurring != 'none':
+                        if result.recurring_pattern and result.recurring_end_date:
+                            next_occurrence = calculate_next_occurrence(
+                                result.dateTime,
+                                result.recurring_pattern,
+                                result.recurring_end_date
+                            )
+                            
+                            # Additional filtering: make sure the next iteration hasn't passed the recurring end time
+                            if next_occurrence > result.recurring_end_date:
+                                continue  # Skip this event - no more valid occurrences
+                            
+                            # Also check if next occurrence is in the future
+                            if next_occurrence <= now:
+                                continue  # Skip this event - next occurrence has already passed
+                                
+                            display_datetime = next_occurrence
+                        else:
+                            # Recurring event without proper pattern - skip
+                            continue
+                    else:
+                        # For one-time events, make sure the date is newer than now
+                        if result.dateTime <= now:
+                            continue
+                    
+                    event_dict = {
+                        'id': result.id,
+                        'name': result.name,
+                        'type': result.type,
+                        'description': result.description,
+                        'dateTime': display_datetime.isoformat() if display_datetime else None,
+                        'location': result.location,
+                        'maxParticipants': result.maxParticipants,
+                        'currentParticipants': result.currentParticipants,
+                        'image_url': result.image_url or "",
+                        'status': result.status if hasattr(result, 'status') else "pending-approval",
+                        'recurring': result.recurring if hasattr(result, 'recurring') else "none",
+                        'recurring_end_date': result.recurring_end_date.isoformat() if hasattr(result, 'recurring_end_date') and result.recurring_end_date else None,
+                        'recurring_pattern': result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        'is_registered': bool(result.is_registered)
+                    }
+                    events_with_status.append(event_dict)
+            
+            # Sort by dateTime (after override calculation for recurring events)
+            events_with_status.sort(key=lambda x: x['dateTime'] if x['dateTime'] else '9999-12-31T23:59:59')
+            
+            return events_with_status
+
+        except Exception as e:
+            print(f"Error loading events for home {home_id}, user {user_id}: {e}")
+            return []
 
 # Create global instance
 event_db = EventDatabase()

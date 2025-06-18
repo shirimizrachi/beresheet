@@ -8,6 +8,7 @@ import '../../../model/event.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../utils/display_name_utils.dart';
 import 'event_form_web.dart';
+import 'event_gallery_web.dart';
 
 class EventsManagementWeb extends StatefulWidget {
   const EventsManagementWeb({Key? key}) : super(key: key);
@@ -76,6 +77,14 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
       // Refresh the events list after editing
       await _loadEvents();
     }
+  }
+
+  Future<void> _openGallery(Event event) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EventGalleryWeb(event: event),
+      ),
+    );
   }
 
   Future<void> _updateEventStatus(String eventId, String newStatus) async {
@@ -476,6 +485,22 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Gallery Button
+                        ElevatedButton.icon(
+                          onPressed: () => _openGallery(event),
+                          icon: Icon(Icons.photo_library, size: 18),
+                          label: Text('Gallery'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        
                         // Edit Button
                         ElevatedButton.icon(
                           onPressed: () => _editEvent(event),
@@ -505,7 +530,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                             value: event.status,
                             underline: const SizedBox(),
                             icon: Icon(Icons.arrow_drop_down, color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : Colors.grey),
-                            items: AppConfig.eventStatusOptions.map((status) {
+                            items: AppConfig.userSelectableEventStatusOptions.map((status) {
                               return DropdownMenuItem(
                                 value: status,
                                 child: Text(

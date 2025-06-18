@@ -37,6 +37,7 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
+        centerTitle: true,
         titleTextStyle: TextStyle(
           color: Colors.white,
           fontSize: 20,

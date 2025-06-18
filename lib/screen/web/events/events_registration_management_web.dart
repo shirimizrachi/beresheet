@@ -4,6 +4,7 @@ import 'package:beresheet_app/services/web_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
+import 'package:beresheet_app/screen/web/events/event_vote_review_web.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -253,6 +254,8 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                   DataColumn(label: Text(AppLocalizations.of(context)!.phoneColumn)),
                                   DataColumn(label: Text(AppLocalizations.of(context)!.registrationDateColumn)),
                                   DataColumn(label: Text(AppLocalizations.of(context)!.statusColumn)),
+                                  DataColumn(label: Text('Vote')),
+                                  DataColumn(label: Text('Reviews')),
                                   DataColumn(label: Text(AppLocalizations.of(context)!.actionsColumn)),
                                 ],
                                 rows: registrations.map((registration) {
@@ -261,6 +264,21 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                   final userPhone = registration['user_phone'] ?? AppLocalizations.of(context)!.notAvailable;
                                   final registrationDate = _formatDateTime(registration['registration_date']);
                                   final status = registration['status'] ?? 'unknown';
+                                  final vote = registration['vote'];
+                                  final reviews = registration['reviews'];
+                                  
+                                  // Parse reviews to count them
+                                  int reviewCount = 0;
+                                  if (reviews != null && reviews.toString().isNotEmpty) {
+                                    try {
+                                      final reviewsList = json.decode(reviews.toString());
+                                      if (reviewsList is List) {
+                                        reviewCount = reviewsList.length;
+                                      }
+                                    } catch (e) {
+                                      // Ignore parsing errors
+                                    }
+                                  }
                                   
                                   return DataRow(
                                     cells: [
@@ -294,9 +312,44 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                         ),
                                       ),
                                       DataCell(
+                                        vote != null
+                                            ? Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: List.generate(5, (index) {
+                                                  return Icon(
+                                                    index < vote ? Icons.star : Icons.star_border,
+                                                    size: 16,
+                                                    color: index < vote ? Colors.amber : Colors.grey,
+                                                  );
+                                                }),
+                                              )
+                                            : Text('No vote', style: TextStyle(color: Colors.grey[600])),
+                                      ),
+                                      DataCell(
+                                        reviewCount > 0
+                                            ? Text('$reviewCount review${reviewCount > 1 ? 's' : ''}')
+                                            : Text('No reviews', style: TextStyle(color: Colors.grey[600])),
+                                      ),
+                                      DataCell(
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.rate_review, color: Colors.blue),
+                                              tooltip: 'Vote & Review',
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => EventVoteReviewWeb(
+                                                      eventRegistrationId: registration['id'],
+                                                      eventId: registration['event_id'],
+                                                      eventName: eventName,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                             if (status == 'registered')
                                               IconButton(
                                                 icon: const Icon(Icons.remove_circle, color: Colors.red),

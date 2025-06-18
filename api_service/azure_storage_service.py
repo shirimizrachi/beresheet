@@ -276,6 +276,82 @@ class AzureStorageService:
             return None
         except Exception:
             return None
+    
+    def upload_request_media(self, home_id: int, request_id: str, message_id: str,
+                           media_data: bytes, original_filename: str,
+                           content_type: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Upload media (image, video, or audio) for a service request message
+        
+        Args:
+            home_id: The home ID for organizing files
+            request_id: The request ID
+            message_id: The message ID
+            media_data: The media data as bytes
+            original_filename: Original filename (for extension detection)
+            content_type: MIME content type of the media
+        
+        Returns:
+            Tuple of (success: bool, url_or_error_message: str)
+        """
+        try:
+            # Get file extension from original filename
+            file_extension = os.path.splitext(original_filename)[1].lower()
+            if not file_extension:
+                # Determine extension from content type
+                if content_type:
+                    if content_type.startswith('image/'):
+                        file_extension = '.jpg'
+                    elif content_type.startswith('video/'):
+                        file_extension = '.mp4'
+                    elif content_type.startswith('audio/'):
+                        file_extension = '.m4a'
+                    else:
+                        file_extension = '.bin'
+                else:
+                    file_extension = '.bin'
+            
+            # Create filename with message_id and extension
+            file_name = f"{message_id}{file_extension}"
+            
+            # Create blob path: /[homeId]/requests/[request_id]/[message_id].ext
+            blob_path = f"{home_id}/requests/{request_id}/{file_name}"
+            
+            # Determine content type if not provided
+            if not content_type:
+                content_type, _ = mimetypes.guess_type(original_filename)
+                if not content_type:
+                    content_type = 'application/octet-stream'
+            
+            # For images, validate using existing method
+            if content_type.startswith('image/'):
+                if not self._validate_image(content_type, len(media_data)):
+                    return False, "Invalid image file or file too large (max 10MB)"
+            
+            # For videos and audio, we trust the client-side validation
+            # (duration and size should be validated on the client)
+            
+            # Upload to Azure Storage
+            blob_client = self.blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=blob_path
+            )
+            
+            blob_client.upload_blob(
+                media_data,
+                content_type=content_type,
+                overwrite=True
+            )
+            
+            # Generate SAS URL with 1 year expiration
+            sas_url = self._generate_sas_url(blob_path)
+            
+            return True, sas_url
+            
+        except AzureError as e:
+            return False, f"Azure Storage error: {str(e)}"
+        except Exception as e:
+            return False, f"Unexpected error: {str(e)}"
 
 # Create global instance
 azure_storage_service = AzureStorageService()

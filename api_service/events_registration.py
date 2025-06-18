@@ -12,9 +12,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from home_mapping import get_connection_string, get_schema_for_home
 
 class EventRegistration:
-    def __init__(self, id: str, event_id: str, user_id: str, user_name: str = None, 
-                 user_phone: str = None, registration_date: datetime = None, 
-                 status: str = "registered", notes: str = None):
+    def __init__(self, id: str, event_id: str, user_id: str, user_name: str = None,
+                 user_phone: str = None, registration_date: datetime = None,
+                 status: str = "registered", vote: int = None, reviews: str = None,
+                 instructor_name: str = None, instructor_desc: str = None,
+                 instructor_photo: str = None):
         self.id = id
         self.event_id = event_id
         self.user_id = user_id
@@ -22,7 +24,11 @@ class EventRegistration:
         self.user_phone = user_phone
         self.registration_date = registration_date or datetime.now()
         self.status = status
-        self.notes = notes
+        self.vote = vote
+        self.reviews = reviews
+        self.instructor_name = instructor_name
+        self.instructor_desc = instructor_desc
+        self.instructor_photo = instructor_photo
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -33,7 +39,11 @@ class EventRegistration:
             'user_phone': self.user_phone,
             'registration_date': self.registration_date.isoformat() if self.registration_date else None,
             'status': self.status,
-            'notes': self.notes
+            'vote': self.vote,
+            'reviews': self.reviews,
+            'instructor_name': self.instructor_name,
+            'instructor_desc': self.instructor_desc,
+            'instructor_photo': self.instructor_photo
         }
 
 class EventRegistrationDatabase:
@@ -155,7 +165,11 @@ class EventRegistrationDatabase:
                         'user_phone': user_phone or '',
                         'registration_date': current_time,
                         'status': 'registered',
-                        'notes': None,  # Can be updated later if needed
+                        'vote': None,  # Can be updated later if needed
+                        'reviews': None,  # Can be updated later if needed
+                        'instructor_name': getattr(event_result, 'instructor_name', None),
+                        'instructor_desc': getattr(event_result, 'instructor_desc', None),
+                        'instructor_photo': getattr(event_result, 'instructor_photo', None),
                         'created_at': current_time,
                         'updated_at': current_time
                     }
@@ -302,7 +316,11 @@ class EventRegistrationDatabase:
                         user_phone=result.user_phone,
                         registration_date=result.registration_date,
                         status=result.status,
-                        notes=result.notes
+                        vote=getattr(result, 'vote', None),
+                        reviews=getattr(result, 'reviews', None),
+                        instructor_name=getattr(result, 'instructor_name', None),
+                        instructor_desc=getattr(result, 'instructor_desc', None),
+                        instructor_photo=getattr(result, 'instructor_photo', None)
                     ))
             
             return registrations
@@ -344,7 +362,11 @@ class EventRegistrationDatabase:
                         user_phone=result.user_phone,
                         registration_date=result.registration_date,
                         status=result.status,
-                        notes=result.notes
+                        vote=getattr(result, 'vote', None),
+                        reviews=getattr(result, 'reviews', None),
+                        instructor_name=getattr(result, 'instructor_name', None),
+                        instructor_desc=getattr(result, 'instructor_desc', None),
+                        instructor_photo=getattr(result, 'instructor_photo', None)
                     ))
             
             return registrations
@@ -383,7 +405,11 @@ class EventRegistrationDatabase:
                         user_phone=result.user_phone,
                         registration_date=result.registration_date,
                         status=result.status,
-                        notes=result.notes
+                        vote=getattr(result, 'vote', None),
+                        reviews=getattr(result, 'reviews', None),
+                        instructor_name=getattr(result, 'instructor_name', None),
+                        instructor_desc=getattr(result, 'instructor_desc', None),
+                        instructor_photo=getattr(result, 'instructor_photo', None)
                     ))
             
             return registrations
@@ -391,6 +417,136 @@ class EventRegistrationDatabase:
         except Exception as e:
             print(f"Error getting all registrations: {e}")
             return []
+
+    def update_vote_and_review(self, event_id: str, user_id: str, vote: int = None,
+                              review_text: str = None, home_id: int = None) -> bool:
+        """Update vote and/or add review for an event registration"""
+        try:
+            import json
+            from datetime import datetime
+            
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return False
+
+            # Get the registration table
+            registration_table = self.get_events_registration_table(schema_name)
+            if registration_table is None:
+                return False
+
+            with self.engine.connect() as conn:
+                # Find the registration
+                registration = conn.execute(
+                    registration_table.select().where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.user_id == user_id) &
+                        (registration_table.c.status == 'registered')
+                    )
+                ).fetchone()
+                
+                if not registration:
+                    return False  # Registration not found
+                
+                # Prepare update data
+                update_data = {'updated_at': datetime.now()}
+                
+                # Update vote if provided
+                if vote is not None:
+                    if 1 <= vote <= 5:
+                        update_data['vote'] = vote
+                    else:
+                        return False  # Invalid vote value
+                
+                # Update reviews if review_text is provided
+                if review_text is not None and review_text.strip():
+                    try:
+                        # Parse existing reviews or create new list
+                        existing_reviews = []
+                        if registration.reviews:
+                            existing_reviews = json.loads(registration.reviews)
+                        
+                        # Add new review
+                        new_review = {
+                            'date': datetime.now().isoformat(),
+                            'review': review_text.strip()
+                        }
+                        existing_reviews.append(new_review)
+                        
+                        # Store as JSON string
+                        update_data['reviews'] = json.dumps(existing_reviews)
+                    except (json.JSONDecodeError, Exception) as e:
+                        print(f"Error processing reviews: {e}")
+                        # If existing reviews are corrupted, start fresh
+                        new_review = {
+                            'date': datetime.now().isoformat(),
+                            'review': review_text.strip()
+                        }
+                        update_data['reviews'] = json.dumps([new_review])
+                
+                # Perform the update
+                conn.execute(
+                    registration_table.update()
+                    .where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.user_id == user_id)
+                    )
+                    .values(**update_data)
+                )
+                
+                conn.commit()
+                return True
+
+        except Exception as e:
+            print(f"Error updating vote and review for event {event_id}: {e}")
+            return False
+
+    def get_vote_and_reviews(self, event_id: str, user_id: str, home_id: int = None) -> Dict[str, Any]:
+        """Get vote and reviews for a specific event registration"""
+        try:
+            import json
+            
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return {}
+
+            # Get the registration table
+            registration_table = self.get_events_registration_table(schema_name)
+            if registration_table is None:
+                return {}
+
+            with self.engine.connect() as conn:
+                registration = conn.execute(
+                    registration_table.select().where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.user_id == user_id) &
+                        (registration_table.c.status == 'registered')
+                    )
+                ).fetchone()
+                
+                if not registration:
+                    return {}
+                
+                # Parse reviews
+                reviews = []
+                if registration.reviews:
+                    try:
+                        reviews = json.loads(registration.reviews)
+                    except json.JSONDecodeError:
+                        reviews = []
+                
+                return {
+                    'registration_id': registration.id,
+                    'event_id': event_id,
+                    'user_id': user_id,
+                    'vote': registration.vote,
+                    'reviews': reviews
+                }
+
+        except Exception as e:
+            print(f"Error getting vote and reviews for event {event_id}: {e}")
+            return {}
 
 # Create global instance
 events_registration_db = EventRegistrationDatabase()

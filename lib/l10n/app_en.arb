@@ -1,5 +1,5 @@
 {
-  "appTitle": "Beresheet - Residential Community",
+  "appTitle": "Beresheet",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -182,10 +182,6 @@
   "pressHereToTakePhoto": "Press here to take photo",
   "@pressHereToTakePhoto": {
     "description": "Press here to take photo instruction"
-  },
-  "errorTakingPhoto": "Error taking photo",
-  "@errorTakingPhoto": {
-    "description": "Error taking photo message"
   },
   "selectBirthday": "Select Birthday",
   "@selectBirthday": {
@@ -609,10 +605,6 @@
   "noOrderFound": "No order found",
   "@noOrderFound": {
     "description": "No order found message"
-  },
-  "errorPickingImage": "Error picking image",
-  "@errorPickingImage": {
-    "description": "Error picking image message"
   },
   "unregisterConfirmation": "Are you sure you want to unregister from",
   "@unregisterConfirmation": {
@@ -2190,5 +2182,508 @@
   "requiredForRecurringEvents": "Required for recurring events",
   "@requiredForRecurringEvents": {
     "description": "Required for recurring events subtitle"
+  },
+  
+  "eventInstructor": "Event Instructor",
+  "@eventInstructor": {
+    "description": "Event instructor label"
+  },
+  "eventInstructorOptional": "Event Instructor (Optional)",
+  "@eventInstructorOptional": {
+    "description": "Event instructor optional label"
+  },
+  "noInstructor": "No Instructor",
+  "@noInstructor": {
+    "description": "No instructor option"
+  },
+  "selectInstructor": "Select an instructor",
+  "@selectInstructor": {
+    "description": "Select instructor hint"
+  },
+  "instructorExists": "Instructor Exists",
+  "@instructorExists": {
+    "description": "Instructor exists option for existing instructor data"
+  },
+  
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Gallery label"
+  },
+  "eventGallery": "Event Gallery",
+  "@eventGallery": {
+    "description": "Event gallery title"
+  },
+  "viewGallery": "View Gallery",
+  "@viewGallery": {
+    "description": "View gallery button"
+  },
+  "uploadImages": "Upload Images",
+  "@uploadImages": {
+    "description": "Upload images button"
+  },
+  "uploadImagesMax3": "Upload Images (Max 3)",
+  "@uploadImagesMax3": {
+    "description": "Upload images with max 3 limit"
+  },
+  "selectImages": "Select Images",
+  "@selectImages": {
+    "description": "Select images button"
+  },
+  "noPhotosYet": "No Photos Yet",
+  "@noPhotosYet": {
+    "description": "No photos yet message"
+  },
+  "uploadSomePhotos": "Upload some photos to create a gallery for this event",
+  "@uploadSomePhotos": {
+    "description": "Upload photos instruction"
+  },
+  "deletePhoto": "Delete Photo",
+  "@deletePhoto": {
+    "description": "Delete photo button"
+  },
+  "areYouSureDeletePhoto": "Are you sure you want to delete this photo?",
+  "@areYouSureDeletePhoto": {
+    "description": "Delete photo confirmation message"
+  },
+  "photoDeletedSuccessfully": "Photo deleted successfully!",
+  "@photoDeletedSuccessfully": {
+    "description": "Photo deleted success message"
+  },
+  "failedToDeletePhoto": "Failed to delete photo: {statusCode}",
+  "@failedToDeletePhoto": {
+    "description": "Failed to delete photo message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletingPhoto": "Error deleting photo: {error}",
+  "@errorDeletingPhoto": {
+    "description": "Error deleting photo message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "imagesUploadedSuccessfully": "Images uploaded successfully!",
+  "@imagesUploadedSuccessfully": {
+    "description": "Images uploaded success message"
+  },
+  "failedToUploadImages": "Failed to upload images",
+  "@failedToUploadImages": {
+    "description": "Failed to upload images message"
+  },
+  "errorUploadingImages": "Error uploading images: {error}",
+  "@errorUploadingImages": {
+    "description": "Error uploading images message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorSelectingImages": "Error selecting images: {error}",
+  "@errorSelectingImages": {
+    "description": "Error selecting images message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "maximumImagesAllowed": "Maximum 3 images allowed. Only the first 3 will be uploaded.",
+  "@maximumImagesAllowed": {
+    "description": "Maximum images allowed warning"
+  },
+  "failedToLoadGalleryPhotos": "Failed to load gallery photos: {statusCode}",
+  "@failedToLoadGalleryPhotos": {
+    "description": "Failed to load gallery photos message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingGalleryPhotos": "Error loading gallery photos: {error}",
+  "@errorLoadingGalleryPhotos": {
+    "description": "Error loading gallery photos message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "photoCount": "{count} {count, plural, =1{Photo} other{Photos}}",
+  "@photoCount": {
+    "description": "Photo count with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "userSessionNotFound": "User session not found",
+  "@userSessionNotFound": {
+    "description": "User session not found error"
+  },
+  "failedToLoadImage": "Failed to load image",
+  "@failedToLoadImage": {
+    "description": "Failed to load image error"
+  },
+  
+  "voteAndReview": "Vote & Review",
+  "@voteAndReview": {
+    "description": "Vote and review button"
+  },
+  "rateThisEvent": "Rate this event:",
+  "@rateThisEvent": {
+    "description": "Rate this event label"
+  },
+  "yourRating": "Your rating: {rating} star{ratingPlural}",
+  "@yourRating": {
+    "description": "Your rating display",
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      },
+      "ratingPlural": {
+        "type": "String"
+      }
+    }
+  },
+  "writeReview": "Write a review:",
+  "@writeReview": {
+    "description": "Write review label"
+  },
+  "shareYourExperience": "Share your experience with this event...",
+  "@shareYourExperience": {
+    "description": "Share experience placeholder"
+  },
+  "submitReview": "Submit Review",
+  "@submitReview": {
+    "description": "Submit review button"
+  },
+  "yourReviews": "Your reviews:",
+  "@yourReviews": {
+    "description": "Your reviews label"
+  },
+  "noReviewsYet": "No reviews yet",
+  "@noReviewsYet": {
+    "description": "No reviews yet message"
+  },
+  "voteSubmittedSuccessfully": "Vote submitted successfully!",
+  "@voteSubmittedSuccessfully": {
+    "description": "Vote submitted successfully message"
+  },
+  "reviewSubmittedSuccessfully": "Review submitted successfully!",
+  "@reviewSubmittedSuccessfully": {
+    "description": "Review submitted successfully message"
+  },
+  "pleaseEnterReview": "Please enter a review",
+  "@pleaseEnterReview": {
+    "description": "Please enter review validation"
+  },
+  
+  "serviceProviderList": "Service Provider List",
+  "@serviceProviderList": {
+    "description": "Service provider list screen title"
+  },
+  "availableServiceProviders": "Available Service Providers",
+  "@availableServiceProviders": {
+    "description": "Available service providers header"
+  },
+  "chooseServiceProviderToSendRequest": "Choose a service provider to send a request",
+  "@chooseServiceProviderToSendRequest": {
+    "description": "Choose service provider instruction"
+  },
+  "noServiceProvidersAvailable": "No Service Providers Available",
+  "@noServiceProvidersAvailable": {
+    "description": "No service providers available title"
+  },
+  "noServiceProvidersRegistered": "No service providers are currently registered in your community.",
+  "@noServiceProvidersRegistered": {
+    "description": "No service providers registered message"
+  },
+  "unknownProvider": "Unknown Provider",
+  "@unknownProvider": {
+    "description": "Unknown provider fallback text"
+  },
+  "serviceProvider": "Service Provider",
+  "@serviceProvider": {
+    "description": "Service provider generic label"
+  },
+  "request": "Request",
+  "@request": {
+    "description": "Request button"
+  },
+  "history": "History",
+  "@history": {
+    "description": "History button"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh tooltip"
+  },
+  "errorLoadingServiceProviders": "Error loading service providers: {error}",
+  "@errorLoadingServiceProviders": {
+    "description": "Error loading service providers message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadServiceProviders": "Failed to load service providers: {statusCode}",
+  "@failedToLoadServiceProviders": {
+    "description": "Failed to load service providers message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "requestHistory": "Request History",
+  "@requestHistory": {
+    "description": "Request history screen title"
+  },
+  "noRequestHistory": "No Request History",
+  "@noRequestHistory": {
+    "description": "No request history title"
+  },
+  "noServiceRequestsYet": "You haven't made any service requests yet.",
+  "@noServiceRequestsYet": {
+    "description": "No service requests made yet message"
+  },
+  "unknownDate": "Unknown date",
+  "@unknownDate": {
+    "description": "Unknown date fallback"
+  },
+  "today": "Today",
+  "@today": {
+    "description": "Today date label"
+  },
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "Yesterday date label"
+  },
+  "requestStatusOpen": "Open",
+  "@requestStatusOpen": {
+    "description": "Request status: open"
+  },
+  "requestStatusInProgress": "In Progress",
+  "@requestStatusInProgress": {
+    "description": "Request status: in progress"
+  },
+  "requestStatusClosed": "Closed",
+  "@requestStatusClosed": {
+    "description": "Request status: closed"
+  },
+  "requestStatusAbandoned": "Abandoned",
+  "@requestStatusAbandoned": {
+    "description": "Request status: abandoned"
+  },
+  "requestsCount": "{count} request{requestsPlural}",
+  "@requestsCount": {
+    "description": "Requests count with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "requestsPlural": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingRequestHistory": "Error loading request history: {error}",
+  "@errorLoadingRequestHistory": {
+    "description": "Error loading request history message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadRequestHistory": "Failed to load request history: {statusCode}",
+  "@failedToLoadRequestHistory": {
+    "description": "Failed to load request history message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "sendMessageTo": "Send a message to {serviceProviderName}",
+  "@sendMessageTo": {
+    "description": "Send message instruction",
+    "placeholders": {
+      "serviceProviderName": {
+        "type": "String"
+      }
+    }
+  },
+  "typeMessage": "Type a message...",
+  "@typeMessage": {
+    "description": "Type message hint"
+  },
+  "uploadingMedia": "Uploading media...",
+  "@uploadingMedia": {
+    "description": "Uploading media status"
+  },
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Gallery option"
+  },
+  "camera": "Camera",
+  "@camera": {
+    "description": "Camera option"
+  },
+  "videoGallery": "Video Gallery",
+  "@videoGallery": {
+    "description": "Video gallery option"
+  },
+  "recordVideo": "Record Video",
+  "@recordVideo": {
+    "description": "Record video option"
+  },
+  "audioMessage": "Audio Message",
+  "@audioMessage": {
+    "description": "Audio message label"
+  },
+  "microphonePermissionRequired": "Microphone permission required",
+  "@microphonePermissionRequired": {
+    "description": "Microphone permission required message"
+  },
+  "daysAgo": "{days}d ago",
+  "@daysAgo": {
+    "description": "Days ago format",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "description": "Hours ago format",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "description": "Minutes ago format",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "justNow": "Just now",
+  "@justNow": {
+    "description": "Just now time label"
+  },
+  "userNotLoggedIn": "User not logged in",
+  "@userNotLoggedIn": {
+    "description": "User not logged in error"
+  },
+  "messageCannotBeEmpty": "Message cannot be empty",
+  "@messageCannotBeEmpty": {
+    "description": "Message cannot be empty validation"
+  },
+  "errorSendingMessage": "Error sending message: {error}",
+  "@errorSendingMessage": {
+    "description": "Error sending message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPickingImage": "Error picking image: {error}",
+  "@errorPickingImage": {
+    "description": "Error picking image message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorTakingPhoto": "Error taking photo: {error}",
+  "@errorTakingPhoto": {
+    "description": "Error taking photo message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPickingVideo": "Error picking video: {error}",
+  "@errorPickingVideo": {
+    "description": "Error picking video message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorRecordingVideo": "Error recording video: {error}",
+  "@errorRecordingVideo": {
+    "description": "Error recording video message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorStartingRecording": "Error starting recording: {error}",
+  "@errorStartingRecording": {
+    "description": "Error starting recording message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorStoppingRecording": "Error stopping recording: {error}",
+  "@errorStoppingRecording": {
+    "description": "Error stopping recording message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingConversation": "Error loading conversation: {error}",
+  "@errorLoadingConversation": {
+    "description": "Error loading conversation message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToLoadConversation": "Failed to load conversation: {statusCode}",
+  "@failedToLoadConversation": {
+    "description": "Failed to load conversation message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "serviceProviderAutoResponse": "{serviceProviderName} got your request and is committed to answer the request in maximum 30 minutes",
+  "@serviceProviderAutoResponse": {
+    "description": "Auto response message from service provider",
+    "placeholders": {
+      "serviceProviderName": {
+        "type": "String"
+      }
+    }
   }
 }

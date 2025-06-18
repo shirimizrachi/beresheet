@@ -59,6 +59,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
   bool _isLoadingRooms = true;
   String? _selectedRoomName;
 
+  // Instructor functionality
+  List<Map<String, dynamic>> _instructors = [];
+  bool _isLoadingInstructors = true;
+  Map<String, dynamic>? _selectedInstructor;
+  String? _instructorName;
+  String? _instructorDesc;
+  String? _instructorPhoto;
+
   // Use constants from AppConfig for consistency
   List<String> get _eventTypes => AppConfig.eventTypes;
   List<String> get _statusOptions => AppConfig.userSelectableEventStatusOptions;
@@ -69,6 +77,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     super.initState();
     _loadUserRole();
     _loadRooms();
+    _loadInstructors();
     if (widget.event != null) {
       _populateFields();
     }
@@ -102,6 +111,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
     // Set the selected room name from the event location
     // This will be updated after rooms are loaded to match existing room names
     _selectedRoomName = event.location;
+    
+    // Set instructor fields
+    _instructorName = event.instructorName;
+    _instructorDesc = event.instructorDesc;
+    _instructorPhoto = event.instructorPhoto;
     
     // Parse recurring pattern if it exists
     if (event.parsedRecurrencePattern != null) {
@@ -194,6 +208,56 @@ class _EventFormScreenState extends State<EventFormScreen> {
       print('❌ DEBUG: Exception type: ${e.runtimeType}');
       setState(() {
         _isLoadingRooms = false;
+      });
+    }
+  }
+
+  Future<void> _loadInstructors() async {
+    try {
+      setState(() {
+        _isLoadingInstructors = true;
+      });
+
+      final homeId = await UserSessionService.gethomeID();
+      if (homeId == null) {
+        setState(() {
+          _isLoadingInstructors = false;
+        });
+        return;
+      }
+
+      final url = '${AppConfig.apiBaseUrl}/api/event-instructors';
+      print('🔍 DEBUG: Making HTTP GET request to: $url');
+      print('🔍 DEBUG: Headers: homeID=${homeId.toString()}');
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': homeId.toString(),
+        },
+      );
+
+      print('🔍 DEBUG: Response received - Status Code: ${response.statusCode}');
+      print('🔍 DEBUG: Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> instructorsData = json.decode(response.body);
+        print('🔍 DEBUG: Successfully parsed ${instructorsData.length} instructors');
+        setState(() {
+          _instructors = instructorsData.cast<Map<String, dynamic>>();
+          _isLoadingInstructors = false;
+        });
+      } else {
+        print('❌ DEBUG: HTTP request failed with status ${response.statusCode}');
+        setState(() {
+          _isLoadingInstructors = false;
+        });
+      }
+    } catch (e) {
+      print('❌ DEBUG: Exception occurred during instructors HTTP request: $e');
+      setState(() {
+        _isLoadingInstructors = false;
       });
     }
   }
@@ -447,6 +511,17 @@ class _EventFormScreenState extends State<EventFormScreen> {
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
       });
+
+      // Add instructor fields if selected
+      if (_instructorName != null) {
+        request.fields['instructor_name'] = _instructorName!;
+      }
+      if (_instructorDesc != null) {
+        request.fields['instructor_desc'] = _instructorDesc!;
+      }
+      if (_instructorPhoto != null) {
+        request.fields['instructor_photo'] = _instructorPhoto!;
+      }
 
       if (_recurringEndDate != null) {
         request.fields['recurring_end_date'] = _recurringEndDate!.toIso8601String();
@@ -746,6 +821,146 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         ),
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Instructor Selection
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: _isLoadingInstructors
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : DropdownButtonFormField<Map<String, dynamic>>(
+                          value: _selectedInstructor,
+                          decoration: InputDecoration(
+                            labelText: l10n.eventInstructorOptional,
+                          ),
+                          items: [
+                            // Show "Instructor Exists" if there's existing instructor data, otherwise "No Instructor"
+                            DropdownMenuItem<Map<String, dynamic>>(
+                              value: null,
+                              child: Text(
+                                (_instructorName != null && _instructorName!.isNotEmpty)
+                                  ? l10n.instructorExists
+                                  : l10n.noInstructor
+                              ),
+                            ),
+                            ..._instructors.map((instructor) {
+                              return DropdownMenuItem<Map<String, dynamic>>(
+                                value: instructor,
+                                child: Text(instructor['name'] as String),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: _isFieldEditable ? (value) {
+                            setState(() {
+                              _selectedInstructor = value;
+                              if (value != null) {
+                                _instructorName = value['name'] as String?;
+                                _instructorDesc = value['description'] as String?;
+                                _instructorPhoto = value['photo'] as String?;
+                              } else {
+                                _instructorName = null;
+                                _instructorDesc = null;
+                                _instructorPhoto = null;
+                              }
+                            });
+                          } : null,
+                        ),
+                ),
+              ),
+              
+              // Show instructor details if selected from dropdown OR if there's existing instructor data
+              if (_selectedInstructor != null || (_instructorName != null && _instructorName!.isNotEmpty)) ...[
+                const SizedBox(height: AppSpacing.md),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Row(
+                      children: [
+                        // Instructor photo - use existing data or selected instructor
+                        Builder(
+                          builder: (context) {
+                            final photoUrl = _instructorPhoto ?? _selectedInstructor?['photo'];
+                            if (photoUrl != null && photoUrl.toString().isNotEmpty) {
+                              return Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.primary, width: 2),
+                                ),
+                                child: ClipOval(
+                                  child: Image.network(
+                                    photoUrl.toString(),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[300],
+                                        child: const Icon(Icons.person, color: Colors.grey),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[300],
+                                  border: Border.all(color: AppColors.primary, width: 2),
+                                ),
+                                child: const Icon(Icons.person, color: Colors.grey, size: 30),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        // Instructor details - use existing data or selected instructor
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                            children: [
+                              Text(
+                                _instructorName ?? _selectedInstructor?['name'] ?? 'Unknown',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Builder(
+                                builder: (context) {
+                                  final description = _instructorDesc ?? _selectedInstructor?['description'];
+                                  if (description != null && description.toString().isNotEmpty) {
+                                    return Column(
+                                      crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                                      children: [
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          description.toString(),
+                                          style: AppTextStyles.bodySmall.copyWith(
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
 
               // Max Participants

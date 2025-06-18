@@ -4,6 +4,7 @@ import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:flutter/material.dart';
+import 'event_gallery_screen.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({Key? key, required this.event}) : super(key: key);
@@ -134,6 +135,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
+  void _openGallery() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EventGalleryScreen(event: widget.event),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
@@ -149,6 +158,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
           fontWeight: FontWeight.bold,
         ),
         iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
+        actions: [
+          IconButton(
+            onPressed: _openGallery,
+            icon: Icon(Icons.photo_library),
+            tooltip: 'View Gallery',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

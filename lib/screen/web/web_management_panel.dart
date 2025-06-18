@@ -16,6 +16,7 @@ import 'events/event_registrations_web.dart';
 import 'rooms_management_web.dart';
 import 'service_provider_types_management_web.dart';
 import 'event_instructor_management_web.dart';
+import 'events/events_summary_web.dart';
 
 class WebManagementPanel extends StatefulWidget {
   final String? initialTab;
@@ -122,6 +123,14 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       ));
       availableTabs.add('events');
       
+      // Events Summary
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.analytics),
+        selectedIcon: const Icon(Icons.analytics),
+        label: const Text('Events Summary'),
+      ));
+      availableTabs.add('events_summary');
+      
       // Event Registrations (only for manager and staff)
       if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
         destinations.add(NavigationRailDestination(
@@ -222,6 +231,13 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           return _buildAccessDeniedPage(AppLocalizations.of(context)!.eventsManagementRequiresRole);
         }
       
+      case 'events_summary':
+        // Check if user has manager, staff, or instructor role
+        if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff || userRole == AppConfig.userRoleInstructor) {
+          return const EventsSummaryWeb();
+        } else {
+          return _buildAccessDeniedPage('Events Summary requires manager, staff, or instructor role');
+        }
       
       case 'create_user':
         // Check if user has manager role
@@ -370,6 +386,16 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           description: AppLocalizations.of(context)!.manageExistingEvents,
           onTap: () => setState(() => _selectedTab = 'events'),
           color: Colors.green,
+        ),
+      );
+      
+      cards.add(
+        _buildFeatureCard(
+          icon: Icons.analytics,
+          title: 'Events Summary',
+          description: 'View comprehensive events analysis and load_events_for_home results',
+          onTap: () => setState(() => _selectedTab = 'events_summary'),
+          color: Colors.deepOrange,
         ),
       );
       
