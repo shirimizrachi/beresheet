@@ -186,6 +186,20 @@ class AppConfig {
     userRoleService
   ];
   
+  /// Notification Status Constants
+  static const String notificationStatusPendingApproval = 'pending-approval';
+  static const String notificationStatusApproved = 'approved';
+  static const String notificationStatusCanceled = 'canceled';
+  static const String notificationStatusSent = 'sent';
+  
+  /// Available notification status options
+  static const List<String> notificationStatusOptions = [
+    notificationStatusPendingApproval,
+    notificationStatusApproved,
+    notificationStatusCanceled,
+    notificationStatusSent
+  ];
+  
 
   /// Unsplash API configuration
   /// Replace this with your actual Unsplash API access key

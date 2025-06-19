@@ -38,6 +38,7 @@ from rooms import room_db
 from events_registration import events_registration_db
 from event_instructor import event_instructor_db
 from event_gallery import event_gallery_db
+from home_notification import router as home_notification_router
 from users import user_db
 from service_provider_types import service_provider_type_db
 from request_service import request_db
@@ -1833,6 +1834,7 @@ async def logout(request: dict):
 
 # Include the API router
 app.include_router(api_router)
+app.include_router(home_notification_router, prefix="/api")
 
 # Serve Flutter web app at /web
 @app.get("/web")

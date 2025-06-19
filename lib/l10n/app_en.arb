@@ -2684,5 +2684,150 @@
   "serviceProviderTypeLabel": "Service Provider Type",
   "@serviceProviderTypeLabel": {
     "description": "Service provider type label instead of service provider"
+  },
+  
+  "addNotification": "Add Notification",
+  "@addNotification": {
+    "description": "Add notification button"
+  },
+  "updateNotification": "Update Notification",
+  "@updateNotification": {
+    "description": "Update notification title"
+  },
+  "notificationsManagement": "Notifications Management",
+  "@notificationsManagement": {
+    "description": "Notifications management title"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications label"
+  },
+  "notificationDetails": "Notification Details",
+  "@notificationDetails": {
+    "description": "Notification details title"
+  },
+  "message": "Message",
+  "@message": {
+    "description": "Message field label"
+  },
+  "pleaseEnterMessage": "Please enter a message",
+  "@pleaseEnterMessage": {
+    "description": "Please enter message validation"
+  },
+  "sendFloor": "Send Floor",
+  "@sendFloor": {
+    "description": "Send floor field label"
+  },
+  "leaveEmptyForAllResidents": "Leave empty for all residents",
+  "@leaveEmptyForAllResidents": {
+    "description": "Leave empty for all residents hint"
+  },
+  "sendType": "Send Type",
+  "@sendType": {
+    "description": "Send type field label"
+  },
+  "regular": "Regular",
+  "@regular": {
+    "description": "Regular send type"
+  },
+  "urgent": "Urgent",
+  "@urgent": {
+    "description": "Urgent send type"
+  },
+  "selectSendDatetime": "Select Send Date & Time",
+  "@selectSendDatetime": {
+    "description": "Select send datetime hint"
+  },
+  "createNotification": "Create Notification",
+  "@createNotification": {
+    "description": "Create notification button"
+  },
+  "notificationCreatedSuccessfully": "Notification created successfully",
+  "@notificationCreatedSuccessfully": {
+    "description": "Notification created successfully message"
+  },
+  "createdBy": "Created By",
+  "@createdBy": {
+    "description": "Created by field label"
+  },
+  "userRole": "User Role",
+  "@userRole": {
+    "description": "User role field label"
+  },
+  "serviceProviderType": "Service Provider Type",
+  "@serviceProviderType": {
+    "description": "Service provider type field label"
+  },
+  "sendDatetime": "Send Date & Time",
+  "@sendDatetime": {
+    "description": "Send datetime field label"
+  },
+  "createdAt": "Created At",
+  "@createdAt": {
+    "description": "Created at field label"
+  },
+  "allResidents": "All Residents",
+  "@allResidents": {
+    "description": "All residents label"
+  },
+  "updateStatus": "Update Status",
+  "@updateStatus": {
+    "description": "Update status section title"
+  },
+  "sendStatus": "Send Status",
+  "@sendStatus": {
+    "description": "Send status field label"
+  },
+  "pendingApproval": "Pending Approval",
+  "@pendingApproval": {
+    "description": "Pending approval status"
+  },
+  "canceled": "Canceled",
+  "@canceled": {
+    "description": "Canceled status"
+  },
+  "sent": "Sent",
+  "@sent": {
+    "description": "Sent status"
+  },
+  "confirmApproval": "Confirm Approval",
+  "@confirmApproval": {
+    "description": "Confirm approval dialog title"
+  },
+  "approvalWarningMessage": "Approving this notification will create individual notifications for all residents. This action cannot be undone. Are you sure?",
+  "@approvalWarningMessage": {
+    "description": "Approval warning message"
+  },
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm button"
+  },
+  "notificationUpdatedSuccessfully": "Notification updated successfully",
+  "@notificationUpdatedSuccessfully": {
+    "description": "Notification updated successfully message"
+  },
+  "noNotificationsFound": "No notifications found",
+  "@noNotificationsFound": {
+    "description": "No notifications found message"
+  },
+  "floor": "Floor",
+  "@floor": {
+    "description": "Floor label"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+  "pullToRefresh": "Pull to refresh",
+  "@pullToRefresh": {
+    "description": "Pull to refresh hint"
+  },
+  "notificationTime": "Notification Time",
+  "@notificationTime": {
+    "description": "Notification time label"
+  },
+  "readAt": "Read At",
+  "@readAt": {
+    "description": "Read at time label"
   }
 }

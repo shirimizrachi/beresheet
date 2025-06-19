@@ -106,4 +106,21 @@ class DisplayNameUtils {
         return recurring;
     }
   }
+  
+  /// Get display name for notification status using localization
+  static String getNotificationStatusDisplayName(String status, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (status) {
+      case AppConfig.notificationStatusPendingApproval:
+        return localizations.pendingApproval;
+      case AppConfig.notificationStatusApproved:
+        return localizations.approved;
+      case AppConfig.notificationStatusCanceled:
+        return localizations.canceled;
+      case AppConfig.notificationStatusSent:
+        return localizations.sent;
+      default:
+        return status;
+    }
+  }
 }

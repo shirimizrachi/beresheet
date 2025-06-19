@@ -17,6 +17,7 @@ import 'rooms_management_web.dart';
 import 'service_provider_types_management_web.dart';
 import 'event_instructor_management_web.dart';
 import 'events/events_summary_web.dart';
+import 'notifications/notifications_list_web.dart';
 
 class WebManagementPanel extends StatefulWidget {
   final String? initialTab;
@@ -131,6 +132,14 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       ));
       availableTabs.add('events_summary');
       
+      // Notifications Management
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(Icons.notifications),
+        selectedIcon: const Icon(Icons.notifications),
+        label: const Text('Notifications'),
+      ));
+      availableTabs.add('notifications');
+      
       // Event Registrations (only for manager and staff)
       if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
         destinations.add(NavigationRailDestination(
@@ -237,6 +246,14 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
           return const EventsSummaryWeb();
         } else {
           return _buildAccessDeniedPage('Events Summary requires manager, staff, or instructor role');
+        }
+      
+      case 'notifications':
+        // Check if user has manager, staff, or instructor role
+        if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff || userRole == AppConfig.userRoleInstructor) {
+          return const NotificationsListWeb();
+        } else {
+          return _buildAccessDeniedPage('Notifications management requires manager, staff, or instructor role');
         }
       
       case 'create_user':
