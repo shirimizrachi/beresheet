@@ -2605,23 +2605,13 @@
       }
     }
   },
-  "errorPickingImage": "Error picking image: {error}",
+  "errorPickingImage": "Error picking image",
   "@errorPickingImage": {
-    "description": "Error picking image message",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
+    "description": "Error picking image message"
   },
-  "errorTakingPhoto": "Error taking photo: {error}",
+  "errorTakingPhoto": "Error taking photo",
   "@errorTakingPhoto": {
-    "description": "Error taking photo message",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
+    "description": "Error taking photo message"
   },
   "errorPickingVideo": "Error picking video: {error}",
   "@errorPickingVideo": {
