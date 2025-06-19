@@ -402,23 +402,33 @@ class UserDatabase:
                     from sqlalchemy import text
                     query_sql = text(f"""
                         SELECT DISTINCT u.*,
-                               COALESCE(MAX(r.updated_at), MAX(r.request_created_at), '1900-01-01') as last_interaction
+                               spt.name as service_provider_type_name,
+                               spt.description as service_provider_type_description,
+                               COALESCE(MAX(r.updated_at), MAX(r.request_created_at), '1900-01-01') as last_interaction,
+                               COUNT(CASE WHEN r.resident_id = :user_id THEN r.id END) as request_count
                         FROM [{schema_name}].[users] u
-                        LEFT JOIN [{schema_name}].[requests] r ON u.id = r.service_provider_id AND r.resident_id = :user_id
+                        LEFT JOIN [{schema_name}].[requests] r ON u.id = r.service_provider_id
+                        LEFT JOIN [{schema_name}].[service_provider_types] spt ON u.service_provider_type_id = spt.id
                         WHERE u.role = 'service'
                         GROUP BY u.id, u.firebase_id, u.home_id, u.phone_number, u.password, u.full_name, u.role,
                                  u.birthday, u.apartment_number, u.marital_status, u.gender, u.religious,
                                  u.native_language, u.photo, u.created_at, u.updated_at, u.firebase_fcm_token,
-                                 u.service_provider_type, u.service_provider_type_id
+                                 u.service_provider_type, u.service_provider_type_id, spt.name, spt.description
+                        HAVING COUNT(CASE WHEN r.resident_id = :user_id THEN r.id END) >= 0
                         ORDER BY last_interaction DESC
                     """)
                     
                     results = conn.execute(query_sql, {'user_id': user_id}).fetchall()
                 else:
-                    # Fallback: just get all service providers without ordering
-                    results = conn.execute(
-                        users_table.select().where(users_table.c.role == 'service')
-                    ).fetchall()
+                    # Fallback: just get all service providers without ordering, but still join with service_provider_types
+                    from sqlalchemy import text
+                    fallback_query_sql = text(f"""
+                        SELECT u.*, spt.name as service_provider_type_name, spt.description as service_provider_type_description, 0 as request_count
+                        FROM [{schema_name}].[users] u
+                        LEFT JOIN [{schema_name}].[service_provider_types] spt ON u.service_provider_type_id = spt.id
+                        WHERE u.role = 'service'
+                    """)
+                    results = conn.execute(fallback_query_sql).fetchall()
                 
                 service_providers = []
                 for result in results:
@@ -437,6 +447,12 @@ class UserDatabase:
                         religious=result.religious,
                         native_language=result.native_language,
                         photo=result.photo,
+                        service_provider_type=result.service_provider_type,
+                        service_provider_type_id=result.service_provider_type_id,
+                        service_provider_type_name=getattr(result, 'service_provider_type_name', None),
+                        service_provider_type_description=getattr(result, 'service_provider_type_description', None),
+                        request_count=getattr(result, 'request_count', 0),
+                        firebase_fcm_token=getattr(result, 'firebase_fcm_token', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     ))

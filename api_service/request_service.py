@@ -176,26 +176,49 @@ class RequestDatabase:
             return None
 
     def get_requests_by_resident(self, resident_id: str, home_id: int, status_filter: Optional[str] = None) -> List[Request]:
-        """Get all requests created by a specific resident"""
+        """Get all requests created by a specific resident with service provider details"""
         try:
             schema_name = get_schema_for_home(home_id)
             if not schema_name:
                 return []
 
-            requests_table = self._get_requests_table(schema_name)
-            if requests_table is None:
-                return []
-
-            with self.engine.connect() as conn:
-                query = requests_table.select().where(requests_table.c.resident_id == resident_id)
+            schema_engine = get_schema_engine(schema_name)
+            with schema_engine.connect() as conn:
+                # Enhanced query with service provider information
+                query_sql = text(f"""
+                    SELECT r.*,
+                           u.full_name as service_provider_full_name,
+                           u.photo as service_provider_photo,
+                           spt.name as service_provider_type_name,
+                           spt.description as service_provider_type_description
+                    FROM [{schema_name}].[requests] r
+                    LEFT JOIN [{schema_name}].[users] u ON r.service_provider_id = u.id
+                    LEFT JOIN [{schema_name}].[service_provider_types] spt ON u.service_provider_type_id = spt.id
+                    WHERE r.resident_id = :resident_id
+                    {f"AND r.request_status = :status" if status_filter else ""}
+                    ORDER BY r.request_created_at DESC
+                """)
                 
+                params = {'resident_id': resident_id}
                 if status_filter:
-                    query = query.where(requests_table.c.request_status == status_filter)
+                    params['status'] = status_filter
                 
-                query = query.order_by(requests_table.c.request_created_at.desc())
+                results = conn.execute(query_sql, params).fetchall()
                 
-                results = conn.execute(query).fetchall()
-                return [self._row_to_request(row) for row in results]
+                # Convert results to Request objects with additional fields
+                requests = []
+                for row in results:
+                    request_dict = dict(row._mapping)
+                    # Add service provider details to the request
+                    request_dict['service_provider_full_name'] = request_dict.get('service_provider_full_name')
+                    request_dict['service_provider_photo'] = request_dict.get('service_provider_photo')
+                    request_dict['service_provider_type_name'] = request_dict.get('service_provider_type_name')
+                    request_dict['service_provider_type_description'] = request_dict.get('service_provider_type_description')
+                    
+                    request = self._row_to_request(type('Row', (), request_dict)())
+                    requests.append(request)
+                
+                return requests
         except Exception as exc:
             print(f"Error retrieving requests for resident {resident_id}: {exc}")
             return []
@@ -474,11 +497,13 @@ class RequestDatabase:
             service_provider_full_name=row.service_provider_full_name,
             service_provider_phone_number=row.service_provider_phone_number,
             service_provider_fcm_token=row.service_provider_fcm_token,
+            service_provider_photo=getattr(row, 'service_provider_photo', None),
             service_provider_type_name=getattr(row, 'service_provider_type_name', None),
             service_provider_type_description=getattr(row, 'service_provider_type_description', None),
             request_message=row.request_message,
             request_status=row.request_status,
             request_created_at=row.request_created_at,
+            request_modified_at=getattr(row, 'request_modified_at', None),
             request_read_at=row.request_read_at,
             request_closed_by_resident_at=row.request_closed_by_resident_at,
             request_closed_by_service_provider_at=row.request_closed_by_service_provider_at,

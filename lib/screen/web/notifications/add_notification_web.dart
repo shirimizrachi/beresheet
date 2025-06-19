@@ -24,7 +24,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(ModernLocalizationService.of(context).translate('add_notification')),
+        title: Text(context.l10n.add),
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
       ),
@@ -42,20 +42,20 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ModernLocalizationService.of(context).translate('notification_details'),
+                        context.l10n.eventDetails, // Using closest available translation
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _messageController,
                         decoration: InputDecoration(
-                          labelText: ModernLocalizationService.of(context).translate('message'),
+                          labelText: 'Message',
                           border: const OutlineInputBorder(),
                         ),
                         maxLines: 4,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return ModernLocalizationService.of(context).translate('please_enter_message');
+                            return context.l10n.fieldRequired;
                           }
                           return null;
                         },
@@ -67,8 +67,8 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
                             child: TextFormField(
                               controller: _sendFloorController,
                               decoration: InputDecoration(
-                                labelText: ModernLocalizationService.of(context).translate('send_floor'),
-                                hintText: ModernLocalizationService.of(context).translate('leave_empty_for_all_residents'),
+                                labelText: 'Send Floor',
+                                hintText: 'Leave empty for all residents',
                                 border: const OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.number,
@@ -79,17 +79,17 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
                             child: DropdownButtonFormField<String>(
                               value: _sendType,
                               decoration: InputDecoration(
-                                labelText: ModernLocalizationService.of(context).translate('send_type'),
+                                labelText: 'Send Type',
                                 border: const OutlineInputBorder(),
                               ),
                               items: [
                                 DropdownMenuItem(
                                   value: 'regular',
-                                  child: Text(ModernLocalizationService.of(context).translate('regular')),
+                                  child: Text('Regular'),
                                 ),
                                 DropdownMenuItem(
                                   value: 'urgent',
-                                  child: Text(ModernLocalizationService.of(context).translate('urgent')),
+                                  child: Text('Urgent'),
                                 ),
                               ],
                               onChanged: (value) {
@@ -141,7 +141,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
                               Text(
                                 _sendDateTime != null
                                     ? '${_sendDateTime!.day}/${_sendDateTime!.month}/${_sendDateTime!.year} ${_sendDateTime!.hour}:${_sendDateTime!.minute.toString().padLeft(2, '0')}'
-                                    : ModernLocalizationService.of(context).translate('select_send_datetime'),
+                                    : 'Select Send Date & Time',
                               ),
                             ],
                           ),
@@ -158,12 +158,12 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
                             ),
                             child: _isLoading
                                 ? const CircularProgressIndicator(color: Colors.white)
-                                : Text(ModernLocalizationService.of(context).translate('create_notification')),
+                                : Text(context.l10n.add),
                           ),
                           const SizedBox(width: 16),
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: Text(ModernLocalizationService.of(context).translate('cancel')),
+                            child: Text(context.l10n.cancel),
                           ),
                         ],
                       ),
@@ -188,9 +188,8 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
     });
 
     try {
-      final token = await WebAuthService.getStoredToken();
-      if (token == null) {
-        throw Exception('Authentication token not found');
+      if (!WebAuthService.isLoggedIn) {
+        throw Exception('User not authenticated');
       }
 
       final requestBody = {
@@ -199,7 +198,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
       };
 
       if (_sendFloorController.text.isNotEmpty) {
-        requestBody['send_floor'] = int.parse(_sendFloorController.text);
+        requestBody['send_floor'] = _sendFloorController.text; // Keep as string to avoid type error
       }
 
       if (_sendDateTime != null) {
@@ -207,10 +206,9 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
       }
 
       final response = await http.post(
-        Uri.parse('${AppConfig.apiUrl}/api/home-notifications'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications'),
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          ...WebAuthService.getAuthHeaders(),
         },
         body: json.encode(requestBody),
       );
@@ -218,7 +216,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ModernLocalizationService.of(context).translate('notification_created_successfully')),
+            content: Text(context.l10n.operationSuccessful),
             backgroundColor: Colors.green,
           ),
         );
@@ -229,7 +227,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${ModernLocalizationService.of(context).translate('error')}: $e'),
+          content: Text('${context.l10n.error}: $e'),
           backgroundColor: Colors.red,
         ),
       );

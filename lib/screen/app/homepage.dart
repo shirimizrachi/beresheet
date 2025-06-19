@@ -5,6 +5,7 @@ import 'package:beresheet_app/screen/app/users/new_profilepage.dart';
 import 'package:beresheet_app/screen/app/events/events_management_screen.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/screen/app/service_request_screen.dart';
+import 'package:beresheet_app/screen/app/notifications/notifications_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -507,6 +508,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            color: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [

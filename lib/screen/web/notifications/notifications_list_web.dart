@@ -29,7 +29,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(ModernLocalizationService.of(context).translate('notifications_management')),
+        title: Text(context.l10n.manageEvents), // Using closest available translation
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
         actions: [
@@ -45,7 +45,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
             },
             icon: const Icon(Icons.add, color: Colors.white),
             label: Text(
-              ModernLocalizationService.of(context).translate('add_notification'),
+              context.l10n.add,
               style: const TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
@@ -61,7 +61,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
               onRefresh: _loadNotifications,
               child: _notifications.isEmpty
                   ? Center(
-                      child: Text(ModernLocalizationService.of(context).translate('no_notifications_found')),
+                      child: Text(context.l10n.noEventsFound), // Using closest available translation
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -171,7 +171,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
                   Icon(Icons.business, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    '${ModernLocalizationService.of(context).translate('floor')}: ${notification['send_floor']}',
+                    'Floor: ${notification['send_floor']}', // Direct text since no translation available
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -184,7 +184,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
                 TextButton.icon(
                   onPressed: () => _showNotificationDetails(notification),
                   icon: const Icon(Icons.visibility),
-                  label: Text(ModernLocalizationService.of(context).translate('view_details')),
+                  label: Text(context.l10n.viewDetails),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -200,7 +200,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
                     }
                   },
                   icon: const Icon(Icons.edit),
-                  label: Text(ModernLocalizationService.of(context).translate('update')),
+                  label: Text(context.l10n.edit),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[600],
                     foregroundColor: Colors.white,
@@ -229,25 +229,25 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(ModernLocalizationService.of(context).translate('notification_details')),
+          title: Text(context.l10n.eventDetails), // Using closest available translation
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildDetailRow(ModernLocalizationService.of(context).translate('status'), DisplayNameUtils.getNotificationStatusDisplayName(notification['send_status'] ?? '', context)),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('created_by'), notification['create_by_user_name'] ?? ''),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('user_role'), notification['create_by_user_role_name'] ?? ''),
+                _buildDetailRow('Status', DisplayNameUtils.getNotificationStatusDisplayName(notification['send_status'] ?? '', context)),
+                _buildDetailRow('Created By', notification['create_by_user_name'] ?? ''),
+                _buildDetailRow(context.l10n.role, notification['create_by_user_role_name'] ?? ''),
                 if (notification['create_by_user_service_provider_type_name'] != null)
-                  _buildDetailRow(ModernLocalizationService.of(context).translate('service_provider_type'), notification['create_by_user_service_provider_type_name']),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('send_type'), notification['send_type'] ?? ''),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('send_floor'), 
-                  notification['send_floor']?.toString() ?? ModernLocalizationService.of(context).translate('all_residents')),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('send_datetime'), _formatDateTime(notification['send_datetime'])),
-                _buildDetailRow(ModernLocalizationService.of(context).translate('created_at'), _formatDateTime(notification['created_at'])),
+                  _buildDetailRow('Service Provider Type', notification['create_by_user_service_provider_type_name']),
+                _buildDetailRow('Send Type', notification['send_type'] ?? ''),
+                _buildDetailRow('Send Floor',
+                  notification['send_floor']?.toString() ?? 'All Residents'),
+                _buildDetailRow(context.l10n.dateTime, _formatDateTime(notification['send_datetime'])),
+                _buildDetailRow('Created At', _formatDateTime(notification['created_at'])),
                 const SizedBox(height: 16),
                 Text(
-                  ModernLocalizationService.of(context).translate('message'),
+                  'Message',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
@@ -267,7 +267,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(ModernLocalizationService.of(context).translate('close')),
+              child: Text(context.l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -282,7 +282,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
                   _loadNotifications();
                 }
               },
-              child: Text(ModernLocalizationService.of(context).translate('update')),
+              child: Text(context.l10n.edit),
             ),
           ],
         );
@@ -317,16 +317,13 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
     });
 
     try {
-      final token = await WebAuthService.getStoredToken();
-      if (token == null) {
-        throw Exception('Authentication token not found');
+      if (!WebAuthService.isLoggedIn) {
+        throw Exception('User not authenticated');
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiUrl}/api/home-notifications'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications'),
+        headers: WebAuthService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -340,7 +337,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${ModernLocalizationService.of(context).translate('error')}: $e'),
+          content: Text('${context.l10n.error}: $e'),
           backgroundColor: Colors.red,
         ),
       );

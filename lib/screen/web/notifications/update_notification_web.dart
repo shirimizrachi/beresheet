@@ -28,7 +28,7 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(ModernLocalizationService.of(context).translate('update_notification')),
+        title: Text(context.l10n.edit),
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
       ),
@@ -44,63 +44,63 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ModernLocalizationService.of(context).translate('notification_details'),
+                      context.l10n.eventDetails, // Using closest available translation
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     _buildReadOnlyField(
-                      ModernLocalizationService.of(context).translate('created_by'),
+                      'Created By',
                       widget.notification['create_by_user_name'] ?? '',
                     ),
                     const SizedBox(height: 12),
                     _buildReadOnlyField(
-                      ModernLocalizationService.of(context).translate('message'),
+                      'Message',
                       widget.notification['message'] ?? '',
                     ),
                     const SizedBox(height: 12),
                     _buildReadOnlyField(
-                      ModernLocalizationService.of(context).translate('send_type'),
+                      'Send Type',
                       widget.notification['send_type'] ?? '',
                     ),
                     const SizedBox(height: 12),
                     _buildReadOnlyField(
-                      ModernLocalizationService.of(context).translate('send_floor'),
-                      widget.notification['send_floor']?.toString() ?? 
-                          ModernLocalizationService.of(context).translate('all_residents'),
+                      'Send Floor',
+                      widget.notification['send_floor']?.toString() ??
+                          'All Residents',
                     ),
                     const SizedBox(height: 12),
                     _buildReadOnlyField(
-                      ModernLocalizationService.of(context).translate('send_datetime'),
+                      context.l10n.dateTime,
                       _formatDateTime(widget.notification['send_datetime']),
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      ModernLocalizationService.of(context).translate('update_status'),
+                      'Update Status',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _currentStatus,
                       decoration: InputDecoration(
-                        labelText: ModernLocalizationService.of(context).translate('send_status'),
+                        labelText: 'Send Status',
                         border: const OutlineInputBorder(),
                       ),
                       items: [
                         DropdownMenuItem(
                           value: 'pending-approval',
-                          child: Text(ModernLocalizationService.of(context).translate('pending_approval')),
+                          child: Text('Pending Approval'),
                         ),
                         DropdownMenuItem(
                           value: 'approved',
-                          child: Text(ModernLocalizationService.of(context).translate('approved')),
+                          child: Text('Approved'),
                         ),
                         DropdownMenuItem(
                           value: 'canceled',
-                          child: Text(ModernLocalizationService.of(context).translate('canceled')),
+                          child: Text('Canceled'),
                         ),
                         DropdownMenuItem(
                           value: 'sent',
-                          child: Text(ModernLocalizationService.of(context).translate('sent')),
+                          child: Text('Sent'),
                         ),
                       ],
                       onChanged: (value) {
@@ -120,12 +120,12 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
                           ),
                           child: _isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(ModernLocalizationService.of(context).translate('update_status')),
+                              : Text('Update Status'),
                         ),
                         const SizedBox(width: 16),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text(ModernLocalizationService.of(context).translate('cancel')),
+                          child: Text(context.l10n.cancel),
                         ),
                       ],
                     ),
@@ -179,17 +179,17 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text(ModernLocalizationService.of(context).translate('confirm_approval')),
-            content: Text(ModernLocalizationService.of(context).translate('approval_warning_message')),
+            title: Text('Confirm Approval'),
+            content: Text('Are you sure you want to approve this notification? This action will send it to all recipients.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(ModernLocalizationService.of(context).translate('cancel')),
+                child: Text(context.l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                child: Text(ModernLocalizationService.of(context).translate('confirm')),
+                child: Text('Confirm'),
               ),
             ],
           );
@@ -206,16 +206,14 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
     });
 
     try {
-      final token = await WebAuthService.getStoredToken();
-      if (token == null) {
-        throw Exception('Authentication token not found');
+      if (!WebAuthService.isLoggedIn) {
+        throw Exception('User not authenticated');
       }
 
       final response = await http.put(
-        Uri.parse('${AppConfig.apiUrl}/api/home-notifications/${widget.notification['id']}'),
+        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications/${widget.notification['id']}'),
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          ...WebAuthService.getAuthHeaders(),
         },
         body: json.encode({
           'send_status': _currentStatus,
@@ -225,7 +223,7 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ModernLocalizationService.of(context).translate('notification_updated_successfully')),
+            content: Text(context.l10n.operationSuccessful),
             backgroundColor: Colors.green,
           ),
         );
@@ -236,7 +234,7 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${ModernLocalizationService.of(context).translate('error')}: $e'),
+          content: Text('${context.l10n.error}: $e'),
           backgroundColor: Colors.red,
         ),
       );

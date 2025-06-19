@@ -525,15 +525,27 @@ async def get_home_notification(
 
 @router.get("/user-notifications", response_model=List[UserNotification])
 async def get_user_notifications(
-    authorization: str = Header(None)
+    authorization: str = Header(None),
+    home_id: Optional[str] = Header(None, alias="homeID"),
+    user_id: Optional[str] = Header(None, alias="userId")
 ):
     """Get all user notifications for the current user with status 'sent'"""
     try:
+        # Try mobile authentication first (homeID and userId headers)
+        if home_id and user_id:
+            try:
+                home_id_int = int(home_id)
+                notifications = home_notification_db.get_user_notifications(user_id, home_id_int)
+                return notifications
+            except ValueError:
+                raise HTTPException(status_code=400, detail="homeID must be a valid integer")
+        
+        # Fall back to web session authentication
         current_user = await get_current_user_from_session(authorization)
-        home_id = current_user['home_id']
+        home_id_int = current_user['home_id']
         user_id = current_user['id']
         
-        notifications = home_notification_db.get_user_notifications(user_id, home_id)
+        notifications = home_notification_db.get_user_notifications(user_id, home_id_int)
         return notifications
         
     except HTTPException:

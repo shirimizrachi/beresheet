@@ -13,6 +13,7 @@ class ServiceRequestHistoryScreen extends StatefulWidget {
   final String? serviceProviderName;
   final String? serviceProviderPhoto;
   final String? serviceProviderType;
+  final String? serviceProviderTypeDescription;
   
   const ServiceRequestHistoryScreen({
     Key? key,
@@ -20,6 +21,7 @@ class ServiceRequestHistoryScreen extends StatefulWidget {
     this.serviceProviderName,
     this.serviceProviderPhoto,
     this.serviceProviderType,
+    this.serviceProviderTypeDescription,
   }) : super(key: key);
 
   @override
@@ -160,6 +162,7 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
         builder: (context) => ServiceRequestConversationScreen(
           serviceProviderId: request['service_provider_id'],
           serviceProviderName: request['service_provider_full_name'] ?? 'Service Provider',
+          serviceProviderPhoto: request['service_provider_photo'],
           serviceProviderTypeDescription: request['service_provider_type_description'],
           existingRequestId: request['id'],
         ),
@@ -319,9 +322,9 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
                             fontSize: 16,
                           ),
                         ),
-                        if (requests.isNotEmpty && requests.first['service_provider_type_description'] != null)
+                        if (widget.serviceProviderTypeDescription != null)
                           Text(
-                            requests.first['service_provider_type_description']!,
+                            widget.serviceProviderTypeDescription!,
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
@@ -333,14 +336,6 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
-                            ),
-                          ),
-                        if (!isLoading && errorMessage == null)
-                          Text(
-                            context.l10n.requestsCount(requests.length, requests.length != 1 ? 's' : ''),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
                             ),
                           ),
                       ],
