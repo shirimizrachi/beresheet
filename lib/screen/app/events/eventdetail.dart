@@ -3,6 +3,7 @@ import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 import 'event_gallery_screen.dart';
 
@@ -210,7 +211,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          widget.event.type.toUpperCase(),
+                          DisplayNameUtils.getEventTypeDisplayName(widget.event.type, context).toUpperCase(),
                           style: TextStyle(
                             color: typeColor,
                             fontSize: 12,
@@ -243,7 +244,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           _buildDetailRow(
                             Icons.access_time,
                             context.l10n.dateTime,
-                            '${widget.event.formattedDate} at ${widget.event.formattedTime}',
+                            '${DisplayNameUtils.getLocalizedFormattedDate(widget.event.dateTime, context)} at ${widget.event.formattedTime}',
                           ),
                           const Divider(),
                           _buildDetailRow(

@@ -56,13 +56,37 @@ class RequestDatabase:
             return {
                 'full_name': user.full_name,
                 'phone_number': user.phone_number,
-                'fcm_token': user.firebase_fcm_token
+                'fcm_token': user.firebase_fcm_token,
+                'service_provider_type': user.service_provider_type,
+                'service_provider_type_id': user.service_provider_type_id
             }
         return {
             'full_name': None,
             'phone_number': None,
-            'fcm_token': None
+            'fcm_token': None,
+            'service_provider_type': None
         }
+    
+    def _get_service_provider_type_details(self, service_provider_type_id: int, home_id: int) -> dict:
+        """Get service provider type name and description by ID"""
+        try:
+            from service_provider_types import service_provider_type_db
+            service_type = service_provider_type_db.get_service_provider_type_by_id(service_provider_type_id, home_id)
+            if service_type:
+                return {
+                    'name': service_type.name,
+                    'description': service_type.description
+                }
+            return {
+                'name': None,
+                'description': None
+            }
+        except Exception as e:
+            print(f"Error getting service provider type details: {e}")
+            return {
+                'name': None,
+                'description': None
+            }
 
     def _calculate_duration(self, created_at: datetime, closed_at: Optional[datetime]) -> Optional[int]:
         """Calculate request duration in minutes"""
@@ -89,9 +113,9 @@ class RequestDatabase:
             resident_info = self._get_user_info(resident_id, home_id)
             service_provider_info = self._get_user_info(request_data.service_provider_id, home_id)
             
-            # Get service provider type from their profile
-            service_provider_user = user_db.get_user_profile(request_data.service_provider_id, home_id)
-            service_provider_type = service_provider_user.service_provider_type if service_provider_user else None
+            # Get service provider type details
+            service_provider_type_id = service_provider_info['service_provider_type_id']
+            service_provider_type_details = self._get_service_provider_type_details(service_provider_type_id, home_id) if service_provider_type_id else {'name': None, 'description': None}
 
             # Generate unique request ID
             request_id = str(uuid.uuid4())
@@ -108,7 +132,8 @@ class RequestDatabase:
                         service_provider_full_name=service_provider_info['full_name'],
                         service_provider_phone_number=service_provider_info['phone_number'],
                         service_provider_fcm_token=service_provider_info['fcm_token'],
-                        service_provider_type=service_provider_type,
+                        service_provider_type_name=service_provider_type_details['name'],
+                        service_provider_type_description=service_provider_type_details['description'],
                         request_message=request_data.request_message,
                         request_status='open'
                     )
@@ -449,7 +474,8 @@ class RequestDatabase:
             service_provider_full_name=row.service_provider_full_name,
             service_provider_phone_number=row.service_provider_phone_number,
             service_provider_fcm_token=row.service_provider_fcm_token,
-            service_provider_type=row.service_provider_type,
+            service_provider_type_name=getattr(row, 'service_provider_type_name', None),
+            service_provider_type_description=getattr(row, 'service_provider_type_description', None),
             request_message=row.request_message,
             request_status=row.request_status,
             request_created_at=row.request_created_at,

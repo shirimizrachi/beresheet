@@ -2675,5 +2675,14 @@
         "type": "String"
       }
     }
+  },
+  
+  "newRequest": "New Request",
+  "@newRequest": {
+    "description": "New request button text"
+  },
+  "serviceProviderTypeLabel": "Service Provider Type",
+  "@serviceProviderTypeLabel": {
+    "description": "Service provider type label instead of service provider"
   }
 }

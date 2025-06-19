@@ -99,7 +99,6 @@ Columns:
 - `religious` (NVARCHAR(50))
 - `native_language` (NVARCHAR(50))
 - `role` (NVARCHAR(50), Default: 'resident')
-- `profile_photo_url` (NVARCHAR(500))
 - `photo` (NVARCHAR(500))
 - `created_at` (DATETIME2, Default: Current timestamp)
 - `updated_at` (DATETIME2, Default: Current timestamp)

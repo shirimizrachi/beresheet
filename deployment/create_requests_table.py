@@ -50,7 +50,8 @@ def create_requests_table(schema_name: str):
                     service_provider_full_name NVARCHAR(100),
                     service_provider_phone_number NVARCHAR(20),
                     service_provider_fcm_token NVARCHAR(500),
-                    service_provider_type NVARCHAR(100),
+                    service_provider_type_name NVARCHAR(100),
+                    service_provider_type_description NVARCHAR(500),
                     
                     -- Request details
                     request_message NTEXT NOT NULL,
@@ -103,13 +104,13 @@ def create_requests_table(schema_name: str):
                 CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_resident_status
                 ON [{schema_name}].[requests](resident_id, request_status);
                 
-                -- Index on service_provider_type for filtering by service type
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_provider_type
-                ON [{schema_name}].[requests](service_provider_type);
+                -- Index on service_provider_type_name for filtering by service type
+                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_provider_type_name
+                ON [{schema_name}].[requests](service_provider_type_name);
                 
                 -- Composite index for filtering by service provider type and status
                 CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_type_status
-                ON [{schema_name}].[requests](service_provider_type, request_status);
+                ON [{schema_name}].[requests](service_provider_type_name, request_status);
             """)
             conn.execute(indexes_sql)
             

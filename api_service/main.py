@@ -1410,13 +1410,16 @@ async def get_all_users(home_id: int = Depends(get_home_id)):
     return users
 
 @api_router.get("/users/service-providers", response_model=List[UserProfile])
-async def get_service_providers(home_id: int = Depends(get_home_id)):
-    """Get all users with service provider role"""
+async def get_service_providers(
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_user_id)
+):
+    """Get all users with service provider role, ordered by most recent request interaction"""
     try:
-        print(f"Getting service providers for home_id: {home_id}")
-        all_users = user_db.get_all_users(home_id)
-        print(f"Total users found: {len(all_users)}")
-        service_providers = [user for user in all_users if user.role == "service"]
+        print(f"Getting service providers for home_id: {home_id}, user_id: {user_id}")
+        
+        # Get service providers ordered by most recent request interaction
+        service_providers = user_db.get_service_providers_ordered_by_requests(home_id, user_id)
         print(f"Service providers found: {len(service_providers)}")
         return service_providers
     except Exception as e:

@@ -66,7 +66,7 @@ BEGIN
         gender NVARCHAR(10),
         city NVARCHAR(50),
         address NVARCHAR(255),
-        profile_photo_url NVARCHAR(500),
+        photo NVARCHAR(500),
         created_at DATETIME2 DEFAULT GETDATE(),
         updated_at DATETIME2 DEFAULT GETDATE()
     );

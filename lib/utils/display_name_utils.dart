@@ -5,6 +5,28 @@ import '../config/app_config.dart';
 /// Utility class for getting localized display names for various enums and constants
 class DisplayNameUtils {
   
+  /// Get localized formatted date
+  static String getLocalizedFormattedDate(DateTime dateTime, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    
+    final months = [
+      localizations.january,
+      localizations.february,
+      localizations.march,
+      localizations.april,
+      localizations.may,
+      localizations.june,
+      localizations.july,
+      localizations.august,
+      localizations.september,
+      localizations.october,
+      localizations.november,
+      localizations.december,
+    ];
+    
+    return "${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}";
+  }
+  
   /// Get display name for user role using localization
   static String getUserRoleDisplayName(String role, BuildContext context) {
     final localizations = AppLocalizations.of(context)!;

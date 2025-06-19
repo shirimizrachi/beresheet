@@ -380,6 +380,72 @@ class UserDatabase:
     def get_available_homes(self) -> List[Dict]:
         """Get all available homes from home mapping"""
         return get_all_homes()
+    
+    def get_service_providers_ordered_by_requests(self, home_id: int, user_id: Optional[str] = None) -> List[UserProfile]:
+        """Get service providers ordered by most recent request interaction with the requesting user"""
+        try:
+            # Get schema for home
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return []
+
+            # Get the users table
+            users_table = self.get_user_table(schema_name)
+            if users_table is None:
+                return []
+
+            # Use schema-specific engine
+            schema_engine = get_schema_engine(schema_name)
+            with schema_engine.connect() as conn:
+                if user_id:
+                    # Get service providers ordered by most recent request from this specific user
+                    from sqlalchemy import text
+                    query_sql = text(f"""
+                        SELECT DISTINCT u.*,
+                               COALESCE(MAX(r.updated_at), MAX(r.request_created_at), '1900-01-01') as last_interaction
+                        FROM [{schema_name}].[users] u
+                        LEFT JOIN [{schema_name}].[requests] r ON u.id = r.service_provider_id AND r.resident_id = :user_id
+                        WHERE u.role = 'service'
+                        GROUP BY u.id, u.firebase_id, u.home_id, u.phone_number, u.password, u.full_name, u.role,
+                                 u.birthday, u.apartment_number, u.marital_status, u.gender, u.religious,
+                                 u.native_language, u.photo, u.created_at, u.updated_at, u.firebase_fcm_token,
+                                 u.service_provider_type, u.service_provider_type_id
+                        ORDER BY last_interaction DESC
+                    """)
+                    
+                    results = conn.execute(query_sql, {'user_id': user_id}).fetchall()
+                else:
+                    # Fallback: just get all service providers without ordering
+                    results = conn.execute(
+                        users_table.select().where(users_table.c.role == 'service')
+                    ).fetchall()
+                
+                service_providers = []
+                for result in results:
+                    service_providers.append(UserProfile(
+                        id=result.id,
+                        firebase_id=result.firebase_id,
+                        home_id=result.home_id,
+                        phone_number=result.phone_number,
+                        password=result.password,
+                        full_name=result.full_name,
+                        role=result.role,
+                        birthday=result.birthday,
+                        apartment_number=result.apartment_number,
+                        marital_status=result.marital_status,
+                        gender=result.gender,
+                        religious=result.religious,
+                        native_language=result.native_language,
+                        photo=result.photo,
+                        created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
+                        updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
+                    ))
+                return service_providers
+
+        except Exception as e:
+            print(f"Error getting service providers ordered by requests for home {home_id}: {e}")
+            # Fallback to the original method
+            return [user for user in self.get_all_users(home_id) if user.role == "service"]
 
     def authenticate_user(self, phone_number: str, password: str, home_id: int) -> Optional[UserProfile]:
         """Authenticate user with phone number and password"""

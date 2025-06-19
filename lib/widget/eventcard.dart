@@ -1,8 +1,10 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
+import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatefulWidget {
@@ -101,7 +103,7 @@ class _EventCardState extends State<EventCard> {
                           ),
                           const SizedBox(width: 2),
                           Text(
-                            widget.event.type.toUpperCase(),
+                            DisplayNameUtils.getEventTypeDisplayName(widget.event.type, context).toUpperCase(),
                             style: TextStyle(
                               color: typeColor,
                               fontSize: 8,
@@ -167,7 +169,7 @@ class _EventCardState extends State<EventCard> {
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
-                            widget.event.formattedDate,
+                            DisplayNameUtils.getLocalizedFormattedDate(widget.event.dateTime, context),
                             style: TextStyle(
                               fontSize: 9,
                               color: Colors.grey[600],

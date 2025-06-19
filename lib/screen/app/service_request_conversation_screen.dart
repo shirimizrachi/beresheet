@@ -16,12 +16,18 @@ import 'package:path_provider/path_provider.dart';
 class ServiceRequestConversationScreen extends StatefulWidget {
   final String serviceProviderId;
   final String serviceProviderName;
+  final String? serviceProviderPhoto;
+  final String? serviceProviderType;
+  final String? serviceProviderTypeDescription;
   final String? existingRequestId;
 
   const ServiceRequestConversationScreen({
     Key? key,
     required this.serviceProviderId,
     required this.serviceProviderName,
+    this.serviceProviderPhoto,
+    this.serviceProviderType,
+    this.serviceProviderTypeDescription,
     this.existingRequestId,
   }) : super(key: key);
 
@@ -45,6 +51,8 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
   String? errorMessage;
   bool showAutoResponse = false;
   bool hasText = false;
+  bool showAttachmentMenu = false;
+  bool showEmojiPanel = false;
 
   @override
   void initState() {
@@ -263,8 +271,8 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
         });
       }
 
-      // Show auto-response for first message
-      if (isFirstMessage && textMessage != null && textMessage.trim().isNotEmpty) {
+      // Show auto-response for first message (any type: text, video, voice, image)
+      if (isFirstMessage) {
         setState(() {
           showAutoResponse = true;
         });
@@ -416,6 +424,8 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
       if (await _audioRecorder.hasPermission()) {
         setState(() {
           isRecording = true;
+          showAttachmentMenu = false;
+          showEmojiPanel = false;
         });
         
         final String path = '${(await getTemporaryDirectory()).path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
@@ -468,48 +478,26 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
   }
 
   void _showMediaOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text(context.l10n.gallery),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.camera_alt),
-                title: Text(context.l10n.camera),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _takePhoto();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.video_library),
-                title: Text(context.l10n.videoGallery),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickVideo();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.videocam),
-                title: Text(context.l10n.recordVideo),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _recordVideo();
-                },
-              ),
-            ],
-          ),
-        );
-      },
+    setState(() {
+      showAttachmentMenu = !showAttachmentMenu;
+      showEmojiPanel = false;
+    });
+  }
+
+  void _showEmojiOptions() {
+    setState(() {
+      showEmojiPanel = !showEmojiPanel;
+      showAttachmentMenu = false;
+    });
+  }
+
+  void _insertEmoji(String emoji) {
+    final currentPosition = _messageController.selection.base.offset;
+    final text = _messageController.text;
+    final newText = text.substring(0, currentPosition) + emoji + text.substring(currentPosition);
+    _messageController.text = newText;
+    _messageController.selection = TextSelection.fromPosition(
+      TextPosition(offset: currentPosition + emoji.length),
     );
   }
 
@@ -532,45 +520,31 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
     final mediaType = message['media_type'];
     final mediaUrl = message['media_url'];
     final timestamp = message['timestamp'];
-    
-    // Get text direction
-    final isRTL = Directionality.of(context) == TextDirection.rtl;
-    
-    // In RTL: user on right, service provider on left
-    // In LTR: user on left, service provider on right
-    final shouldAlignEnd = isRTL ? isResident : !isResident;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: shouldAlignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isResident ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          // Show avatar on the left only for non-resident, non-system messages in LTR
-          // or on the right for non-resident, non-system messages in RTL
-          if (!isResident && !isSystem && !isRTL) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                widget.serviceProviderName[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
+          if (!isResident && !isSystem) SizedBox(width: 50),
           Flexible(
             child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: isSystem
                     ? Colors.blue.shade100
                     : isResident
-                        ? AppColors.primary
-                        : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(16),
+                        ? Color(0xFFDCF8C6)
+                        : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 1,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,12 +580,12 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.audiotrack, color: isResident ? Colors.white : AppColors.primary),
+                          Icon(Icons.audiotrack, color: isResident ? Colors.black87 : Colors.black87),
                           const SizedBox(width: 8),
                           Text(
                             context.l10n.audioMessage,
                             style: TextStyle(
-                              color: isResident ? Colors.white : Colors.black87,
+                              color: Colors.black87,
                             ),
                           ),
                         ],
@@ -622,44 +596,230 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
                     Text(
                       messageText,
                       style: TextStyle(
-                        color: isSystem
-                            ? Colors.blue.shade700
-                            : isResident
-                                ? Colors.white
-                                : Colors.black87,
-                        fontSize: 16,
+                        fontSize: 14,
+                        color: isSystem ? Colors.blue.shade700 : Colors.black87,
                       ),
+                      textDirection: TextDirection.rtl,
                     ),
-                  if (timestamp != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatTimestamp(timestamp),
-                      style: TextStyle(
-                        color: isSystem
-                            ? Colors.blue.shade500
-                            : isResident
-                                ? Colors.white70
-                                : Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                  SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (timestamp != null)
+                        Text(
+                          _formatTimestamp(timestamp),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      if (isResident) ...[
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.done_all,
+                          size: 16,
+                          color: Color(0xFF4FC3F7),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
-          // Show avatar on the right only for non-resident, non-system messages in RTL
-          if (!isResident && !isSystem && isRTL) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                widget.serviceProviderName[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+          if (isResident) SizedBox(width: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentMenu() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          showAttachmentMenu = false;
+        });
+      },
+      child: Container(
+        color: Colors.black.withOpacity(0.3),
+        child: Column(
+          children: [
+            Expanded(child: Container()),
+            Container(
+              margin: EdgeInsets.only(bottom: 80),
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildAttachmentOption(
+                        icon: Icons.photo,
+                        label: context.l10n.gallery,
+                        color: Color(0xFF2196F3),
+                        onTap: () {
+                          setState(() {
+                            showAttachmentMenu = false;
+                          });
+                          _pickImage();
+                        },
+                      ),
+                      _buildAttachmentOption(
+                        icon: Icons.camera_alt,
+                        label: context.l10n.camera,
+                        color: Color(0xFF424242),
+                        onTap: () {
+                          setState(() {
+                            showAttachmentMenu = false;
+                          });
+                          _takePhoto();
+                        },
+                      ),
+                      _buildAttachmentOption(
+                        icon: Icons.video_library,
+                        label: context.l10n.videoGallery,
+                        color: Color(0xFF4CAF50),
+                        onTap: () {
+                          setState(() {
+                            showAttachmentMenu = false;
+                          });
+                          _pickVideo();
+                        },
+                      ),
+                      _buildAttachmentOption(
+                        icon: Icons.videocam,
+                        label: context.l10n.recordVideo,
+                        color: Color(0xFF757575),
+                        onTap: () {
+                          setState(() {
+                            showAttachmentMenu = false;
+                          });
+                          _recordVideo();
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmojiPanel() {
+    final List<String> emojis = [
+      '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+      '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+      '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+      '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+      '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+      '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠',
+      '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
+      '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥',
+      '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧',
+      '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+      '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑',
+      '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻',
+      '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸',
+    ];
+
+    return Container(
+      height: 350,
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.symmetric(vertical: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8,
+                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+                itemCount: emojis.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      _insertEmoji(emojis[index]);
+                    },
+                    child: Container(
+                      margin: EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          emojis[index],
+                          style: TextStyle(fontSize: 20),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -688,20 +848,66 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Color(0xFFE5DDD5),
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        title: Text(
-          widget.serviceProviderName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        backgroundColor: Color(0xFF075E54),
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
-          onPressed: () => Navigator.of(context).pop(),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: Color(0xFF25D366),
+              backgroundImage: widget.serviceProviderPhoto != null && widget.serviceProviderPhoto!.isNotEmpty
+                  ? NetworkImage(widget.serviceProviderPhoto!)
+                  : null,
+              child: widget.serviceProviderPhoto == null || widget.serviceProviderPhoto!.isEmpty
+                  ? Text(
+                      widget.serviceProviderName.isNotEmpty ? widget.serviceProviderName[0].toUpperCase() : 'S',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.serviceProviderName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (widget.serviceProviderTypeDescription != null)
+                    Text(
+                      widget.serviceProviderTypeDescription!,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    )
+                  else if (widget.serviceProviderType != null)
+                    Text(
+                      widget.serviceProviderType!,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: isLoading
@@ -729,152 +935,203 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
                     ),
                   ),
                 )
-              : Column(
+              : Stack(
                   children: [
-                    // Messages Area
-                    Expanded(
-                      child: messages.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.chat_bubble_outline,
-                                      size: 80,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    Text(
-                                      context.l10n.sendMessageTo(widget.serviceProviderName),
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.grey[600],
+                    Column(
+                      children: [
+                        // Messages Area
+                        Expanded(
+                          child: Container(
+                            color: showAttachmentMenu || showEmojiPanel
+                                ? Color(0xFFE5DDD5).withOpacity(0.7)
+                                : Color(0xFFE5DDD5),
+                            child: messages.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.chat_bubble_outline,
+                                            size: 80,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(height: 24),
+                                          Text(
+                                            context.l10n.sendMessageTo(widget.serviceProviderName),
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.grey[600],
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount: messages.length,
-                              itemBuilder: (context, index) {
-                                return _buildMessage(messages[index]);
-                              },
-                            ),
-                    ),
-
-                    // Media Upload Progress
-                    if (isUploadingMedia)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        color: Colors.grey.shade100,
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(context.l10n.uploadingMedia),
-                          ],
-                        ),
-                      ),
-
-                    // Input Area
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, -2),
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    itemCount: messages.length,
+                                    itemBuilder: (context, index) {
+                                      return _buildMessage(messages[index]);
+                                    },
+                                  ),
                           ),
-                        ],
-                      ),
-                      child: SafeArea(
-                        child: Row(
-                          children: [
-                            // Media button
-                            IconButton(
-                              onPressed: isUploadingMedia ? null : _showMediaOptions,
-                              icon: Icon(Icons.attach_file, color: AppColors.primary),
-                            ),
-                            
-                            // Voice record button (when recording)
-                            if (isRecording)
-                              GestureDetector(
-                                onTap: _stopRecording,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.stop, color: Colors.white),
-                                ),
-                              )
-                            // Text input (always visible when not recording)
-                            else ...[
-                              Expanded(
-                                child: TextField(
-                                  controller: _messageController,
-                                  decoration: InputDecoration(
-                                    hintText: context.l10n.typeMessage,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade100,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                  maxLines: 5,
-                                  minLines: 1,
-                                  textInputAction: TextInputAction.send,
-                                  onSubmitted: (_) => _sendMessage(),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Send button (when has text) or Voice button (when no text)
-                              if (hasText)
-                                IconButton(
-                                  onPressed: (isSending || isUploadingMedia) ? null : _sendMessage,
-                                  icon: isSending
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : Icon(Icons.send, color: AppColors.primary),
-                                )
-                              else
-                                GestureDetector(
-                                  onTap: isUploadingMedia ? null : _startRecording,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(Icons.mic, color: Colors.white),
-                                  ),
-                                ),
-                            ],
-                          ],
                         ),
-                      ),
+
+                        // Media Upload Progress
+                        if (isUploadingMedia)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            color: Colors.grey.shade100,
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(context.l10n.uploadingMedia),
+                              ],
+                            ),
+                          ),
+
+                        // Input Area
+                        SafeArea(
+                          child: Container(
+                            color: Colors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.add, color: Colors.grey[600], size: 28),
+                                  onPressed: isUploadingMedia ? null : _showMediaOptions,
+                                ),
+                                // Voice recording indication when recording
+                                if (isRecording) ...[
+                                  Expanded(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(25),
+                                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Recording...',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Spacer(),
+                                          Icon(Icons.graphic_eq, color: Colors.red),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  CircleAvatar(
+                                    backgroundColor: Colors.red,
+                                    radius: 25,
+                                    child: IconButton(
+                                      icon: Icon(Icons.stop, color: Colors.white, size: 22),
+                                      onPressed: _stopRecording,
+                                    ),
+                                  ),
+                                ]
+                                // Normal input field when not recording
+                                else ...[
+                                  Expanded(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextField(
+                                              controller: _messageController,
+                                              textAlign: TextAlign.right,
+                                              textDirection: TextDirection.rtl,
+                                              decoration: InputDecoration(
+                                                hintText: 'הודעה',
+                                                hintStyle: TextStyle(
+                                                  color: Colors.grey[500],
+                                                  fontSize: 16,
+                                                ),
+                                                border: InputBorder.none,
+                                                contentPadding: EdgeInsets.zero,
+                                              ),
+                                              style: TextStyle(fontSize: 16),
+                                              maxLines: null,
+                                              textInputAction: TextInputAction.send,
+                                              onSubmitted: (_) => _sendMessage(),
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            child: IconButton(
+                                              icon: Icon(
+                                                showEmojiPanel ? Icons.keyboard : Icons.description,
+                                                color: Colors.grey[600],
+                                                size: 20,
+                                              ),
+                                              onPressed: _showEmojiOptions,
+                                              padding: EdgeInsets.zero,
+                                              constraints: BoxConstraints(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  CircleAvatar(
+                                    backgroundColor: hasText ? Color(0xFF25D366) : Color(0xFF25D366),
+                                    radius: 25,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        hasText ? Icons.send : Icons.mic,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                      onPressed: hasText
+                                          ? (isSending || isUploadingMedia ? null : _sendMessage)
+                                          : (isUploadingMedia || isRecording ? null : _startRecording),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (showEmojiPanel)
+                          SafeArea(
+                            top: false,
+                            child: _buildEmojiPanel(),
+                          ),
+                      ],
                     ),
+                    if (showAttachmentMenu) _buildAttachmentMenu(),
                   ],
                 ),
     );

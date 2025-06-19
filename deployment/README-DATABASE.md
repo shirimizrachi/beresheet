@@ -83,7 +83,7 @@ Stores user profile information.
 | gender | NVARCHAR(10) | User's gender |
 | city | NVARCHAR(50) | User's city |
 | address | NVARCHAR(255) | User's address |
-| profile_photo_url | NVARCHAR(500) | URL to profile photo |
+| photo | NVARCHAR(500) | URL to profile photo |
 | created_at | DATETIME2 | Record creation timestamp |
 | updated_at | DATETIME2 | Record last update timestamp |
 

@@ -66,30 +66,38 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
     }
   }
 
-  void _openNewRequest(String serviceProviderId, String serviceProviderName) {
+  void _openNewRequest(String serviceProviderId, String serviceProviderName, String? serviceProviderPhoto, String? serviceProviderType) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ServiceRequestConversationScreen(
           serviceProviderId: serviceProviderId,
           serviceProviderName: serviceProviderName,
+          serviceProviderPhoto: serviceProviderPhoto,
+          serviceProviderType: serviceProviderType,
+          serviceProviderTypeDescription: serviceProviderType, // Use the same value for now
         ),
       ),
     );
   }
 
-  void _openHistory() {
+  void _openHistory(String serviceProviderId, String serviceProviderName, String? serviceProviderPhoto, String? serviceProviderType) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ServiceRequestHistoryScreen(),
+        builder: (context) => ServiceRequestHistoryScreen(
+          serviceProviderId: serviceProviderId,
+          serviceProviderName: serviceProviderName,
+          serviceProviderPhoto: serviceProviderPhoto,
+          serviceProviderType: serviceProviderType,
+        ),
       ),
     );
   }
 
   Widget _buildServiceProviderCard(Map<String, dynamic> provider) {
     final name = provider['full_name'] ?? context.l10n.unknownProvider;
-    final serviceType = provider['service_provider_type'] ?? context.l10n.serviceProvider;
+    final serviceType = provider['service_provider_type_name'] ?? provider['service_provider_type'] ?? context.l10n.serviceProvider;
     final photo = provider['photo'];
 
     return Card(
@@ -146,15 +154,15 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                 SizedBox(
                   width: 80,
                   child: ElevatedButton(
-                    onPressed: () => _openNewRequest(provider['id'], name),
+                    onPressed: () => _openNewRequest(provider['id'], name, photo, serviceType),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     child: Text(
-                      context.l10n.request,
-                      style: const TextStyle(fontSize: 12),
+                      context.l10n.newRequest,
+                      style: const TextStyle(fontSize: 11),
                     ),
                   ),
                 ),
@@ -162,7 +170,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                 SizedBox(
                   width: 80,
                   child: OutlinedButton(
-                    onPressed: () => _openHistory(),
+                    onPressed: () => _openHistory(provider['id'], name, photo, serviceType),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: BorderSide(color: AppColors.primary),

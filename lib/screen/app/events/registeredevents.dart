@@ -5,6 +5,7 @@ import 'package:beresheet_app/screen/app/events/event_vote_review_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 
 class RegisteredEventsScreen extends StatefulWidget {
@@ -264,7 +265,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            event.type.toUpperCase(),
+                                            DisplayNameUtils.getEventTypeDisplayName(event.type, context).toUpperCase(),
                                             style: TextStyle(
                                               color: typeColor,
                                               fontSize: 10,
@@ -331,7 +332,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '${event.formattedDate} at ${event.formattedTime}',
+                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.dateTime, context)} at ${event.formattedTime}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey[600],

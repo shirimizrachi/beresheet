@@ -3,12 +3,24 @@ import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/screen/app/service_request_conversation_screen.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ServiceRequestHistoryScreen extends StatefulWidget {
-  const ServiceRequestHistoryScreen({Key? key}) : super(key: key);
+  final String? serviceProviderId;
+  final String? serviceProviderName;
+  final String? serviceProviderPhoto;
+  final String? serviceProviderType;
+  
+  const ServiceRequestHistoryScreen({
+    Key? key,
+    this.serviceProviderId,
+    this.serviceProviderName,
+    this.serviceProviderPhoto,
+    this.serviceProviderType,
+  }) : super(key: key);
 
   @override
   State<ServiceRequestHistoryScreen> createState() => _ServiceRequestHistoryScreenState();
@@ -50,8 +62,35 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        List<Map<String, dynamic>> allRequests = data.map((item) => item as Map<String, dynamic>).toList();
+        
+        // Filter requests by service provider if specified
+        if (widget.serviceProviderId != null) {
+          allRequests = allRequests.where((request) =>
+            request['service_provider_id'] == widget.serviceProviderId
+          ).toList();
+        }
+        
+        // Sort by modified date descending (most recent first)
+        allRequests.sort((a, b) {
+          final aModified = a['request_modified_at'] ?? a['request_created_at'];
+          final bModified = b['request_modified_at'] ?? b['request_created_at'];
+          
+          if (aModified == null && bModified == null) return 0;
+          if (aModified == null) return 1;
+          if (bModified == null) return -1;
+          
+          try {
+            final aDate = DateTime.parse(aModified);
+            final bDate = DateTime.parse(bModified);
+            return bDate.compareTo(aDate); // Descending order
+          } catch (e) {
+            return 0;
+          }
+        });
+        
         setState(() {
-          requests = data.map((item) => item as Map<String, dynamic>).toList();
+          requests = allRequests;
           isLoading = false;
         });
       } else {
@@ -77,7 +116,7 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
       } else if (difference.inDays == 1) {
         return '${context.l10n.yesterday} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
       } else {
-        return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+        return '${DisplayNameUtils.getLocalizedFormattedDate(dateTime, context)} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
       }
     } catch (e) {
       return dateTimeString;
@@ -121,6 +160,7 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
         builder: (context) => ServiceRequestConversationScreen(
           serviceProviderId: request['service_provider_id'],
           serviceProviderName: request['service_provider_full_name'] ?? 'Service Provider',
+          serviceProviderTypeDescription: request['service_provider_type_description'],
           existingRequestId: request['id'],
         ),
       ),
@@ -132,10 +172,9 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
 
   Widget _buildRequestCard(Map<String, dynamic> request) {
     final serviceProviderName = request['service_provider_full_name'] ?? context.l10n.unknownProvider;
-    final serviceProviderType = request['service_provider_type'] ?? context.l10n.serviceProvider;
     final requestMessage = request['request_message'] ?? '';
     final status = request['request_status'] ?? 'unknown';
-    final createdAt = _formatDateTime(request['request_created_at'], context);
+    final modifiedAt = _formatDateTime(request['request_modified_at'] ?? request['request_created_at'], context);
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusDisplayText(status, context);
 
@@ -155,38 +194,17 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with provider info and status
+              // Header with status and date
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: Icon(
-                      Icons.person,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          serviceProviderName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          serviceProviderType,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      modifiedAt,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                   Container(
@@ -243,22 +261,9 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
               
               const SizedBox(height: 12),
               
-              // Footer with date and action
+              // Footer with action indicator
               Row(
                 children: [
-                  Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: Colors.grey[500],
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    createdAt,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
-                  ),
                   const Spacer(),
                   Icon(
                     Icons.arrow_forward_ios,
@@ -280,13 +285,91 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: Text(
-          context.l10n.requestHistory,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: widget.serviceProviderName != null
+            ? Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundImage: widget.serviceProviderPhoto != null && widget.serviceProviderPhoto!.isNotEmpty
+                        ? NetworkImage(widget.serviceProviderPhoto!)
+                        : null,
+                    child: widget.serviceProviderPhoto == null || widget.serviceProviderPhoto!.isEmpty
+                        ? Text(
+                            widget.serviceProviderName!.isNotEmpty ? widget.serviceProviderName![0].toUpperCase() : 'S',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.serviceProviderName!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (requests.isNotEmpty && requests.first['service_provider_type_description'] != null)
+                          Text(
+                            requests.first['service_provider_type_description']!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          )
+                        else if (widget.serviceProviderType != null)
+                          Text(
+                            widget.serviceProviderType!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        if (!isLoading && errorMessage == null)
+                          Text(
+                            context.l10n.requestsCount(requests.length, requests.length != 1 ? 's' : ''),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    context.l10n.requestHistory,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  if (!isLoading && errorMessage == null)
+                    Text(
+                      context.l10n.requestsCount(requests.length, requests.length != 1 ? 's' : ''),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           color: Colors.white,
@@ -349,7 +432,9 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              context.l10n.noServiceRequestsYet,
+                              widget.serviceProviderName != null
+                                ? 'No service requests with ${widget.serviceProviderName} yet'
+                                : context.l10n.noServiceRequestsYet,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
@@ -360,64 +445,12 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
                         ),
                       ),
                     )
-                  : Column(
-                      children: [
-                        // Header
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: AppColors.primary.withOpacity(0.2),
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.history,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      context.l10n.requestHistory,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    Text(
-                                      context.l10n.requestsCount(requests.length, requests.length != 1 ? 's' : ''),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        // Requests List
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: requests.length,
-                            itemBuilder: (context, index) {
-                              return _buildRequestCard(requests[index]);
-                            },
-                          ),
-                        ),
-                      ],
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        return _buildRequestCard(requests[index]);
+                      },
                     ),
     );
   }

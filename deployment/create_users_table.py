@@ -56,8 +56,8 @@ def create_users_table(schema_name: str):
                     native_language NVARCHAR(50),
                     role NVARCHAR(50) DEFAULT 'resident',
                     service_provider_type NVARCHAR(100) NULL,
+                    service_provider_type_id INT NULL,
                     firebase_fcm_token NVARCHAR(500),
-                    profile_photo_url NVARCHAR(500),
                     photo NVARCHAR(500),
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE()
@@ -86,6 +86,10 @@ def create_users_table(schema_name: str):
                 -- Index on service_provider_type
                 CREATE NONCLUSTERED INDEX IX_{schema_name}_users_service_provider_type
                 ON [{schema_name}].[users](service_provider_type);
+                
+                -- Index on service_provider_type_id
+                CREATE NONCLUSTERED INDEX IX_{schema_name}_users_service_provider_type_id
+                ON [{schema_name}].[users](service_provider_type_id);
                 
                 -- Index on firebase_fcm_token
                 CREATE NONCLUSTERED INDEX IX_{schema_name}_users_firebase_fcm_token

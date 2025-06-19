@@ -144,6 +144,7 @@ class UserProfileBase(BaseModel):
     id: str  # Unique user identifier (primary key)
     photo: Optional[str] = None
     service_provider_type: Optional[str] = None
+    service_provider_type_id: Optional[int] = None
     firebase_fcm_token: Optional[str] = None
 
 class UserProfileCreate(BaseModel):
@@ -163,6 +164,7 @@ class UserProfileUpdate(BaseModel):
     home_id: Optional[int] = None
     photo: Optional[str] = None
     service_provider_type: Optional[str] = None
+    service_provider_type_id: Optional[int] = None
     firebase_fcm_token: Optional[str] = None
 
 class UserProfile(UserProfileBase):
@@ -244,7 +246,8 @@ class Request(BaseModel):
     service_provider_full_name: Optional[str] = None
     service_provider_phone_number: Optional[str] = None
     service_provider_fcm_token: Optional[str] = None
-    service_provider_type: Optional[str] = None
+    service_provider_type_name: Optional[str] = None
+    service_provider_type_description: Optional[str] = None
     
     # Request details
     request_message: str

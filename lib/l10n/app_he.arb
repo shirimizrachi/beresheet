@@ -633,5 +633,8 @@
   "errorStoppingRecording": "שגיאה בעצירת ההקלטה: {error}",
   "errorLoadingConversation": "שגיאה בטעינת השיחה: {error}",
   "failedToLoadConversation": "נכשל בטעינת השיחה: {statusCode}",
-  "serviceProviderAutoResponse": "{serviceProviderName} קיבל את הבקשה שלך ומתחייב לענות על הבקשה בתוך מקסימום 30 דקות"
+  "serviceProviderAutoResponse": "{serviceProviderName} קיבל את הבקשה שלך ומתחייב לענות על הבקשה בתוך מקסימום 30 דקות",
+  
+  "newRequest": "בקשה חדשה",
+  "serviceProviderTypeLabel": "סוג ספק שירותים"
 }
