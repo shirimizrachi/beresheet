@@ -38,7 +38,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
     try {
       // Show ALL events for everyone - no user filtering
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -93,7 +93,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
       
       final request = http.MultipartRequest(
         'PUT',
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/$eventId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/$eventId'),
       );
       
       // Add headers using WebAuthService method

@@ -129,7 +129,7 @@ class _EventFormWebState extends State<EventFormWeb> {
       });
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms/public'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/rooms/public'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -161,7 +161,7 @@ class _EventFormWebState extends State<EventFormWeb> {
       });
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -322,8 +322,8 @@ class _EventFormWebState extends State<EventFormWeb> {
     try {
       // Create multipart request
       final uri = widget.event == null
-          ? Uri.parse('${AppConfig.apiBaseUrl}/api/events')
-          : Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}');
+          ? Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events')
+          : Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event!.id}');
       
       final request = widget.event == null
           ? http.MultipartRequest('POST', uri)
@@ -564,7 +564,7 @@ class _EventFormWebState extends State<EventFormWeb> {
 
     try {
       final response = await http.delete(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event!.id}'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),

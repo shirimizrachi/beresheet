@@ -49,7 +49,7 @@ class _UserListWebState extends State<UserListWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/users'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users'),
         headers: headers,
       );
 

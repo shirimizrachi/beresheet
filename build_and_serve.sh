@@ -5,7 +5,7 @@ echo ""
 
 echo "Step 1: Building Flutter Web App..."
 echo ""
-flutter build web --target lib/main_web.dart --base-href /web/
+flutter build web --target lib/main_web.dart
 if [ $? -ne 0 ]; then
     echo "Error: Flutter build failed"
     exit 1

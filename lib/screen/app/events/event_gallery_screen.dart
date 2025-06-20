@@ -81,7 +81,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event.id}/gallery'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),
@@ -157,7 +157,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event.id}/gallery'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery'),
       );
 
       // Add headers
@@ -248,7 +248,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
         }
 
         final response = await http.delete(
-          Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event.id}/gallery/${photo.photoId}'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery/${photo.photoId}'),
           headers: {
             'Content-Type': 'application/json',
             'homeID': homeId.toString(),

@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from sqlalchemy import create_engine, MetaData, Table, text
-from models import Request, RequestCreate, RequestUpdate, RequestStatusUpdate, ChatMessage
+from models import ServiceRequest, ServiceRequestCreate, ServiceRequestUpdate, RequestStatusUpdate, ChatMessage
 from home_mapping import get_connection_string, get_schema_for_home
 from database_utils import get_schema_engine, get_engine_for_home
 from users import user_db
@@ -98,7 +98,7 @@ class RequestDatabase:
     # --------------------------------------------------------------------- #
     # CRUD operations                                                       #
     # --------------------------------------------------------------------- #
-    def create_request(self, request_data: RequestCreate, resident_id: str, home_id: int) -> Optional[Request]:
+    def create_request(self, request_data: ServiceRequestCreate, resident_id: str, home_id: int) -> Optional[ServiceRequest]:
         """Create a new request from resident to service provider"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -155,7 +155,7 @@ class RequestDatabase:
             print(f"Error creating request for resident {resident_id} and service provider {request_data.service_provider_id}: {exc}")
             return None
 
-    def get_request_by_id(self, request_id: str, home_id: int) -> Optional[Request]:
+    def get_request_by_id(self, request_id: str, home_id: int) -> Optional[ServiceRequest]:
         """Get a specific request by ID"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -178,7 +178,7 @@ class RequestDatabase:
             print(f"Error retrieving request {request_id}: {exc}")
             return None
 
-    def get_requests_by_resident(self, resident_id: str, home_id: int, status_filter: Optional[str] = None) -> List[Request]:
+    def get_requests_by_resident(self, resident_id: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests created by a specific resident with service provider details"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -226,7 +226,7 @@ class RequestDatabase:
             print(f"Error retrieving requests for resident {resident_id}: {exc}")
             return []
 
-    def get_requests_by_service_provider(self, service_provider_id: str, home_id: int, status_filter: Optional[str] = None) -> List[Request]:
+    def get_requests_by_service_provider(self, service_provider_id: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests assigned to a specific service provider"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -251,7 +251,7 @@ class RequestDatabase:
             print(f"Error retrieving requests for service provider {service_provider_id}: {exc}")
             return []
 
-    def get_requests_by_service_provider_type(self, service_provider_type: str, home_id: int, status_filter: Optional[str] = None) -> List[Request]:
+    def get_requests_by_service_provider_type(self, service_provider_type: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests for a specific service provider type"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -276,7 +276,7 @@ class RequestDatabase:
             print(f"Error retrieving requests for service provider type {service_provider_type}: {exc}")
             return []
 
-    def get_all_requests(self, home_id: int, status_filter: Optional[str] = None) -> List[Request]:
+    def get_all_requests(self, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests (admin view)"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -301,7 +301,7 @@ class RequestDatabase:
             print(f"Error retrieving all requests for home {home_id}: {exc}")
             return []
 
-    def update_request(self, request_id: str, request_data: RequestUpdate, home_id: int) -> Optional[Request]:
+    def update_request(self, request_id: str, request_data: ServiceRequestUpdate, home_id: int) -> Optional[ServiceRequest]:
         """Update a request"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -349,7 +349,7 @@ class RequestDatabase:
             print(f"Error updating request {request_id}: {exc}")
             return None
 
-    def update_request_status(self, request_id: str, status_update: RequestStatusUpdate, home_id: int) -> Optional[Request]:
+    def update_request_status(self, request_id: str, status_update: RequestStatusUpdate, home_id: int) -> Optional[ServiceRequest]:
         """Update request status with timestamps"""
         try:
             schema_name = get_schema_for_home(home_id)
@@ -396,7 +396,7 @@ class RequestDatabase:
             print(f"Error updating request status {request_id}: {exc}")
             return None
 
-    def add_chat_message(self, request_id: str, sender_id: str, sender_type: str, message: str, home_id: int) -> Optional[Request]:
+    def add_chat_message(self, request_id: str, sender_id: str, sender_type: str, message: str, home_id: int) -> Optional[ServiceRequest]:
         """Add a chat message to a request"""
         try:
             existing_request = self.get_request_by_id(request_id, home_id)
@@ -422,7 +422,7 @@ class RequestDatabase:
             chat_messages.append(new_message)
 
             # Update request with new chat messages
-            update_data = RequestUpdate(chat_messages=json.dumps(chat_messages))
+            update_data = ServiceRequestUpdate(chat_messages=json.dumps(chat_messages))
             return self.update_request(request_id, update_data, home_id)
 
         except Exception as exc:
@@ -448,7 +448,7 @@ class RequestDatabase:
             print(f"Error getting chat messages for request {request_id}: {exc}")
             return []
 
-    def update_chat_messages(self, request_id: str, chat_messages: List[dict], home_id: int) -> Optional[Request]:
+    def update_chat_messages(self, request_id: str, chat_messages: List[dict], home_id: int) -> Optional[ServiceRequest]:
         """Update the entire chat messages array for a request"""
         try:
             # Validate that each message has required fields
@@ -457,7 +457,7 @@ class RequestDatabase:
                     raise ValueError("Each chat message must have 'message' and 'created_time' fields")
 
             # Update request with new chat messages
-            update_data = RequestUpdate(chat_messages=json.dumps(chat_messages))
+            update_data = ServiceRequestUpdate(chat_messages=json.dumps(chat_messages))
             return self.update_request(request_id, update_data, home_id)
 
         except Exception as exc:
@@ -488,7 +488,7 @@ class RequestDatabase:
     # --------------------------------------------------------------------- #
     # Helper methods                                                        #
     # --------------------------------------------------------------------- #
-    def _row_to_request(self, row) -> Request:
+    def _row_to_request(self, row) ->ServiceRequest:
         """Convert database row to Request model"""
         return Request(
             id=row.id,

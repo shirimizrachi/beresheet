@@ -206,7 +206,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
       }
 
       final response = await http.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications'),
         headers: {
           ...WebAuthService.getAuthHeaders(),
         },

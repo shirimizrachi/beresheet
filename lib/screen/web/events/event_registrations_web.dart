@@ -50,7 +50,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
         headers: headers,
       );
 
@@ -86,7 +86,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/event/$eventId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/event/$eventId'),
         headers: headers,
       );
 
@@ -137,7 +137,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
       final headers = WebAuthService.getAuthHeaders();
       
       final response = await http.delete(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/admin/$eventId/$userId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/admin/$eventId/$userId'),
         headers: headers,
       );
 

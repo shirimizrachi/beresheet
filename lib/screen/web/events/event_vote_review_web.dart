@@ -44,7 +44,7 @@ class _EventVoteReviewWebState extends State<EventVoteReviewWeb> {
 
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.eventId}/votes-reviews/all'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.eventId}/votes-reviews/all'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),

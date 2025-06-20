@@ -49,7 +49,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
 
   Future<void> _loadAllEvents() async {
     final response = await http.get(
-      Uri.parse('${AppConfig.apiBaseUrl}/events'),
+      Uri.parse('${AppConfig.apiUrlWithPrefix}/events'),
       headers: {
         'Content-Type': 'application/json',
         'homeID': WebAuthService.homeId.toString(),
@@ -67,7 +67,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
 
   Future<void> _loadHomeEvents() async {
     final response = await http.get(
-      Uri.parse('${AppConfig.apiBaseUrl}/events/home'),
+      Uri.parse('${AppConfig.apiUrlWithPrefix}/events/home'),
       headers: {
         'Content-Type': 'application/json',
         'homeID': WebAuthService.homeId.toString(),

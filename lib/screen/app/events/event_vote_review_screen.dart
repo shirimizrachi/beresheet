@@ -58,7 +58,7 @@ class _EventVoteReviewScreenState extends State<EventVoteReviewScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.eventId}/vote-review'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.eventId}/vote-review'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),
@@ -105,7 +105,7 @@ class _EventVoteReviewScreenState extends State<EventVoteReviewScreen> {
       }
 
       final response = await http.put(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.eventId}/vote-review'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.eventId}/vote-review'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),
@@ -168,7 +168,7 @@ class _EventVoteReviewScreenState extends State<EventVoteReviewScreen> {
       }
 
       final response = await http.put(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.eventId}/vote-review'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.eventId}/vote-review'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),

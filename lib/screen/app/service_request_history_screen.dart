@@ -54,7 +54,7 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/requests/resident/$userId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/requests/resident/$userId'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),

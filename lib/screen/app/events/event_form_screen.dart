@@ -465,8 +465,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
 
       // Create multipart request
       final uri = widget.event == null
-          ? Uri.parse('${AppConfig.apiBaseUrl}/api/events')
-          : Uri.parse('${AppConfig.apiBaseUrl}/api/events/${widget.event!.id}');
+          ? Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events')
+          : Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event!.id}');
       
       final request = widget.event == null
           ? http.MultipartRequest('POST', uri)

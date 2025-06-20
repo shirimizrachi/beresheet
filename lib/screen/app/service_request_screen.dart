@@ -41,7 +41,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/users/service-providers'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users/service-providers'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),

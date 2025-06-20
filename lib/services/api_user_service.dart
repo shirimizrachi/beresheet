@@ -11,8 +11,8 @@ import '../config/app_config.dart';
 import 'firebase_messaging_service.dart';
 
 class ApiUserService {
-  // Use different URLs for web vs mobile platforms
-  static String get baseUrl => AppConfig.apiBaseUrl;
+  // Use different URLs for web vs mobile platforms with API prefix
+  static String get baseUrl => AppConfig.apiUrlWithPrefix;
 
   /// Get user profile by user ID
   static Future<UserModel?> getUserProfile(String userId) async {

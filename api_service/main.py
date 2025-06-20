@@ -27,9 +27,9 @@ from models import (
     ServiceProviderType,
     ServiceProviderTypeCreate,
     ServiceProviderTypeUpdate,
-    Request,
-    RequestCreate,
-    RequestUpdate,
+    ServiceRequest,
+    ServiceRequestCreate,
+    ServiceRequestUpdate,
     RequestStatusUpdate,
     ChatMessage,
     ServiceProviderProfile,
@@ -50,10 +50,36 @@ import json
 
 # Create FastAPI app
 app = FastAPI(
-    title="Beresheet Events API",
-    description="API for managing events in the Beresheet Flutter application",
-    version="1.0.0"
+    title="Multi-Tenant Events API",
+    description="Multi-tenant API for managing events with tenant-specific routing",
+    version="2.0.0"
 )
+
+# Add middleware for request logging
+from fastapi import Request
+from fastapi.responses import Response
+import time
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    # Log incoming request details
+    print(f"\n=== INCOMING REQUEST ===")
+    print(f"Method: {request.method}")
+    print(f"URL: {request.url}")
+    print(f"Path: {request.url.path}")
+    print(f"Query: {request.url.query}")
+    print(f"Headers: {dict(request.headers)}")
+    
+    response = await call_next(request)
+    
+    process_time = time.time() - start_time
+    print(f"Status: {response.status_code}")
+    print(f"Process time: {process_time:.4f}s")
+    print(f"========================\n")
+    
+    return response
 
 # Add CORS middleware to allow requests from Flutter web and mobile
 app.add_middleware(
@@ -64,7 +90,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create API router
+# Import multi-tenant routing components
+from admin import admin_router, admin_api_router
+from tenant_config import get_all_tenants
+from tenant_auto_router import create_tenant_api_router
+
+# Create API router (will be automatically wrapped with tenant routing)
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
 
@@ -105,13 +136,45 @@ async def require_manager_role(user_id: str, home_id: int):
 
 @app.get("/")
 async def root():
-    """Root endpoint - redirect to web app"""
-    return FileResponse(os.path.join(web_build_path, "index.html")) if os.path.exists(web_build_path) else {
-        "message": "Beresheet Events API",
-        "version": "1.0.0",
-        "api_docs": "/docs",
-        "web_app": "/web"
-    }
+    """Root endpoint - show available tenants"""
+    try:
+        tenants = get_all_tenants()
+        tenant_links = {}
+        for tenant in tenants:
+            tenant_links[tenant.name] = {
+                "web": f"/{tenant.name}/web",
+                "api": f"/{tenant.name}/api",
+                "docs": f"/{tenant.name}/docs"
+            }
+        
+        return {
+            "message": "Multi-Tenant Events API",
+            "version": "2.0.0",
+            "available_tenants": tenant_links,
+            "admin": "/home/admin",
+            "api_docs": "/docs"
+        }
+    except Exception as e:
+        return {
+            "message": "Multi-Tenant Events API",
+            "version": "2.0.0",
+            "error": f"Could not load tenants: {str(e)}",
+            "admin": "/home/admin",
+            "api_docs": "/docs"
+        }
+
+@app.get("/debug/routes")
+async def debug_routes():
+    """Debug endpoint to show all registered routes"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            routes.append({
+                "path": route.path,
+                "methods": getattr(route, 'methods', []),
+                "name": getattr(route, 'name', None)
+            })
+    return {"total_routes": len(routes), "routes": routes}
 
 @api_router.get("/")
 async def api_root():
@@ -1038,9 +1101,9 @@ async def delete_service_provider_type(
 
 
 # ------------------------- Requests Endpoints ------------------------- #
-@api_router.post("/requests", response_model=Request, status_code=201)
+@api_router.post("/requests", response_model=ServiceRequest, status_code=201)
 async def create_request(
-    request: RequestCreate,
+    request: ServiceRequestCreate,
     home_id: int = Depends(get_home_id),
     user_id: str = Depends(get_user_id),
 ):
@@ -1054,7 +1117,7 @@ async def create_request(
     return new_request
 
 
-@api_router.get("/requests", response_model=List[Request])
+@api_router.get("/requests", response_model=List[ServiceRequest])
 async def get_requests(
     home_id: int = Depends(get_home_id),
     user_id: Optional[str] = Depends(get_user_id),
@@ -1089,7 +1152,7 @@ async def get_requests(
     return requests
 
 
-@api_router.get("/requests/{request_id}", response_model=Request)
+@api_router.get("/requests/{request_id}", response_model=ServiceRequest)
 async def get_request(
     request_id: str,
     home_id: int = Depends(get_home_id),
@@ -1110,10 +1173,10 @@ async def get_request(
     return request
 
 
-@api_router.put("/requests/{request_id}", response_model=Request)
+@api_router.put("/requests/{request_id}", response_model=ServiceRequest)
 async def update_request(
     request_id: str,
-    request_update: RequestUpdate,
+    request_update: ServiceRequestUpdate,
     home_id: int = Depends(get_home_id),
     user_id: str = Depends(get_user_id),
 ):
@@ -1135,7 +1198,7 @@ async def update_request(
     return updated_request
 
 
-@api_router.put("/requests/{request_id}/status", response_model=Request)
+@api_router.put("/requests/{request_id}/status", response_model=ServiceRequest)
 async def update_request_status(
     request_id: str,
     status_update: RequestStatusUpdate,
@@ -1160,7 +1223,7 @@ async def update_request_status(
     return updated_request
 
 
-@api_router.post("/requests/{request_id}/chat", response_model=Request)
+@api_router.post("/requests/{request_id}/chat", response_model=ServiceRequest)
 async def add_chat_message(
     request_id: str,
     chat_message: dict,
@@ -1269,8 +1332,8 @@ async def upload_request_media_with_creation(
         
         # If no request_id provided, create a new request
         if not actual_request_id:
-            from models import RequestCreate
-            request_data = RequestCreate(
+            from models import ServiceRequestCreate
+            request_data = ServiceRequestCreate(
                 service_provider_id=service_provider_id,
                 request_message=request_message or "Media message"
             )
@@ -1335,7 +1398,7 @@ async def upload_request_media_with_creation(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@api_router.get("/requests/resident/{resident_id}", response_model=List[Request])
+@api_router.get("/requests/resident/{resident_id}", response_model=List[ServiceRequest])
 async def get_requests_by_resident(
     resident_id: str,
     home_id: int = Depends(get_home_id),
@@ -1353,7 +1416,7 @@ async def get_requests_by_resident(
     return requests
 
 
-@api_router.get("/requests/service-provider/{service_provider_id}", response_model=List[Request])
+@api_router.get("/requests/service-provider/{service_provider_id}", response_model=List[ServiceRequest])
 async def get_requests_by_service_provider(
     service_provider_id: str,
     home_id: int = Depends(get_home_id),
@@ -1371,7 +1434,7 @@ async def get_requests_by_service_provider(
     return requests
 
 
-@api_router.get("/requests/service-provider-type/{service_provider_type}", response_model=List[Request])
+@api_router.get("/requests/service-provider-type/{service_provider_type}", response_model=List[ServiceRequest])
 async def get_requests_by_service_provider_type(
     service_provider_type: str,
     home_id: int = Depends(get_home_id),
@@ -1737,7 +1800,8 @@ async def admin_unregister_user(
     
     return {"message": "User successfully unregistered from event", "event_id": event_id, "user_id": user_id}
 
-# Authentication endpoints
+# Authentication endpoints - these need special handling in tenant routing
+# They should not require homeID header since that's what users get after login
 @api_router.post("/auth/login")
 async def login(login_request: dict):
     """Authenticate user and create web session"""
@@ -1768,7 +1832,8 @@ async def login(login_request: dict):
                 "message": "Failed to create session"
             }
         
-        return {
+        # Create JSON response
+        response_data = {
             "success": True,
             "session_id": session_id,
             "user_id": user.id,
@@ -1776,6 +1841,20 @@ async def login(login_request: dict):
             "user_role": user.role,
             "message": "Login successful"
         }
+        
+        # Create response with session cookie for web browsers
+        from fastapi.responses import JSONResponse
+        response = JSONResponse(content=response_data)
+        response.set_cookie(
+            key="web_session_id",
+            value=session_id,
+            max_age=86400,  # 24 hours (same as session expiry)
+            httponly=True,  # Prevent JavaScript access for security
+            secure=False,   # Set to True in production with HTTPS
+            samesite="lax"
+        )
+        
+        return response
         
     except Exception as e:
         return {
@@ -1839,38 +1918,28 @@ async def logout(request: dict):
             "message": f"Logout failed: {str(e)}"
         }
 
-# Include the API router
-app.include_router(api_router)
-app.include_router(home_notification_router, prefix="/api")
+# Create complete tenant router with API and web endpoints
+tenant_router = create_tenant_api_router(api_router)
 
-# Serve Flutter web app at /web
-@app.get("/web")
-async def serve_web_app_root():
-    """Serve Flutter web app root"""
-    if not os.path.exists(web_build_path):
-        raise HTTPException(status_code=404, detail="Web app not built yet. Please run 'flutter build web' first.")
-    return FileResponse(os.path.join(web_build_path, "index.html"))
+# Create tenant-aware notification router
+from tenant_auto_router import create_tenant_api_router
+tenant_notification_router = create_tenant_api_router(home_notification_router)
 
-@app.get("/web/")
-async def serve_web_app_root_slash():
-    """Serve Flutter web app root with slash"""
-    if not os.path.exists(web_build_path):
-        raise HTTPException(status_code=404, detail="Web app not built yet. Please run 'flutter build web' first.")
-    return FileResponse(os.path.join(web_build_path, "index.html"))
+# Include routers in the correct order
+# 1. Admin routes (highest priority)
+app.include_router(admin_router)
+app.include_router(admin_api_router)
 
-@app.get("/web/{full_path:path}")
-async def serve_web_app(full_path: str):
-    """Serve Flutter web app"""
-    if not os.path.exists(web_build_path):
-        raise HTTPException(status_code=404, detail="Web app not built yet. Please run 'flutter build web' first.")
-    
-    # Try to serve the requested file
-    file_path = os.path.join(web_build_path, full_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-    
-    # Fall back to index.html for client-side routing
-    return FileResponse(os.path.join(web_build_path, "index.html"))
+# 2. Complete tenant router (/{tenant_name}/api/* and /{tenant_name}/web)
+app.include_router(tenant_router)
+
+# 3. Tenant notification routes (/{tenant_name}/api/notifications/*)
+app.include_router(tenant_notification_router)
+
+# Note: ALL endpoints are now tenant-specific:
+# - /{tenant_name}/api/* for all API endpoints
+# - /{tenant_name}/web for web interface
+# - /home/admin for tenant management
 
 if __name__ == "__main__":
     uvicorn.run(

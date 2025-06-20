@@ -38,7 +38,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     try {
       // Get all registrations
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/all'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/all'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -71,7 +71,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     try {
       // Load all events for managers to get event names
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/events'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -117,7 +117,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     if (confirmed == true) {
       try {
         final response = await http.delete(
-          Uri.parse('${AppConfig.apiBaseUrl}/api/registrations/admin/$eventId/$userId'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/admin/$eventId/$userId'),
           headers: {
             'Content-Type': 'application/json',
             'homeID': WebAuthService.homeId.toString(),

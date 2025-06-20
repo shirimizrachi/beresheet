@@ -77,7 +77,15 @@ class AppConfig {
   /// For production: 'https://your-production-api.com'
   /// For staging: 'https://your-staging-api.com'
   
-  /// Get the API base URL based on platform
+  /// API prefix for tenant routing
+  /// This prefix will be prepended to all API calls
+  /// Default value is 'beresheet' - can be configured per deployment
+  static const String apiPrefix = 'beresheet';
+  
+  /// Get the API prefix
+  static String get prefix => apiPrefix;
+  
+  /// Get the API base URL based on platform (without prefix)
   static String get apiBaseUrl {
     if (kIsWeb) {
       return 'http://localhost:8000';    // Web can use localhost
@@ -89,8 +97,12 @@ class AppConfig {
   /// Get the API base URL (alias for compatibility)
   static String get baseUrl => apiBaseUrl;
   
+  /// Get the full API URL with prefix for API calls
+  /// This method constructs URLs like: http://localhost:8000/beresheet/api/...
+  static String get apiUrlWithPrefix => '$apiBaseUrl/$apiPrefix';
+  
   /// Get the web homepage URL
-  static String get webHomepageUrl => '$apiBaseUrl/web';
+  static String get webHomepageUrl => '$apiBaseUrl/$apiPrefix/web';
   
   /// Environment-specific configuration
   /// You can also use this approach for different environments:

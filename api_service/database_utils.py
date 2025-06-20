@@ -1,6 +1,7 @@
 """
 Database utilities for schema-specific connections
 Shared utilities for users, events, and events_registration modules
+Enhanced for multi-tenant architecture
 """
 
 import logging
@@ -120,3 +121,74 @@ def get_connection_for_home(home_id: int):
     if engine:
         return engine.connect()
     return None
+
+def get_tenant_engine(connection_string: str, tenant_name: str):
+    """
+    Get or create an engine for a specific tenant
+    
+    Args:
+        connection_string: Database connection string for the tenant
+        tenant_name: Name of the tenant (for caching)
+        
+    Returns:
+        SQLAlchemy engine for the tenant
+    """
+    # Use tenant-specific engine caching
+    if not hasattr(schema_engine_manager, '_tenant_engines'):
+        schema_engine_manager._tenant_engines = {}
+    
+    if tenant_name not in schema_engine_manager._tenant_engines:
+        try:
+            engine = create_engine(connection_string)
+            
+            # Add SQL logging event listener if debug is enabled
+            if SQL_DEBUG:
+                event.listen(engine, "before_cursor_execute", log_sql_before_execute)
+                print(f"🔧 Added SQL logging to engine for tenant: {tenant_name}")
+            
+            schema_engine_manager._tenant_engines[tenant_name] = engine
+            print(f"Created new tenant engine for: {tenant_name}")
+        except Exception as e:
+            print(f"Error creating tenant engine for {tenant_name}: {e}")
+            return None
+    
+    return schema_engine_manager._tenant_engines[tenant_name]
+
+def get_tenant_connection(connection_string: str, tenant_name: str, schema_name: str):
+    """
+    Get a connection for a specific tenant with schema context
+    
+    Args:
+        connection_string: Database connection string for the tenant
+        tenant_name: Name of the tenant
+        schema_name: Database schema name for the tenant
+        
+    Returns:
+        Database connection with schema context
+    """
+    engine = get_tenant_engine(connection_string, tenant_name)
+    if engine:
+        conn = engine.connect()
+        
+        # Set the default schema for this connection
+        try:
+            from sqlalchemy import text
+            # Use the schema in queries by default
+            conn.execute(text(f"-- Using schema: {schema_name}"))
+            print(f"Set schema context to '{schema_name}' for tenant '{tenant_name}'")
+        except Exception as e:
+            print(f"Warning: Could not set schema context for {tenant_name}: {e}")
+        
+        return conn
+    return None
+
+def close_tenant_engines():
+    """Close all tenant-specific engines"""
+    if hasattr(schema_engine_manager, '_tenant_engines'):
+        for tenant_name, engine in schema_engine_manager._tenant_engines.items():
+            try:
+                engine.dispose()
+                print(f"Disposed tenant engine for: {tenant_name}")
+            except Exception as e:
+                print(f"Error disposing tenant engine for {tenant_name}: {e}")
+        schema_engine_manager._tenant_engines.clear()

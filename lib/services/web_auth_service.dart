@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class WebAuthService {
-  static String get _baseUrl => AppConfig.apiBaseUrl;
+  static String get _baseUrl => AppConfig.apiUrlWithPrefix;
   
   // SharedPreferences keys
   static const String _sessionIdKey = 'web_session_id';
@@ -88,6 +88,58 @@ class WebAuthService {
         Uri.parse('$_baseUrl/api/auth/login'),
         headers: {
           'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'phone_number': phoneNumber,
+          'password': password,
+          'home_id': homeId,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        _sessionId = responseData['session_id'];
+        _userId = responseData['user_id'];
+        _homeId = responseData['home_id'];
+        _userRole = responseData['user_role'];
+
+        // Fetch user profile to get full name
+        await _fetchUserProfile();
+
+        // Save session to persistent storage
+        await _saveSession();
+
+        return LoginResult(
+          success: true,
+          message: responseData['message'],
+          sessionId: _sessionId,
+          userId: _userId,
+          homeId: _homeId,
+          userRole: _userRole,
+        );
+      } else {
+        return LoginResult(
+          success: false,
+          message: responseData['message'] ?? 'Login failed',
+        );
+      }
+    } catch (e) {
+      return LoginResult(
+        success: false,
+        message: 'Network error: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Login with phone number and password, including homeId in headers for tenant routing
+  static Future<LoginResult> loginWithHomeId(String phoneNumber, String password, int homeId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': homeId.toString(), // Add homeId to headers for tenant validation
         },
         body: jsonEncode({
           'phone_number': phoneNumber,

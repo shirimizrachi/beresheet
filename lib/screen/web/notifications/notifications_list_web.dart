@@ -322,7 +322,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications'),
         headers: WebAuthService.getAuthHeaders(),
       );
 

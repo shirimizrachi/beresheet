@@ -5,7 +5,7 @@ import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/services/web_auth_service.dart';
 
 class ServiceProviderTypeService {
-  static String get _baseUrl => '${AppConfig.apiBaseUrl}/api/service-provider-types';
+  static String get _baseUrl => '${AppConfig.apiUrlWithPrefix}/api/service-provider-types';
 
   /// Get all service provider types
   static Future<List<ServiceProviderType>> getServiceProviderTypes({

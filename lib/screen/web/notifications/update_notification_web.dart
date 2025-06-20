@@ -211,7 +211,7 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
       }
 
       final response = await http.put(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/home-notifications/${widget.notification['id']}'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications/${widget.notification['id']}'),
         headers: {
           ...WebAuthService.getAuthHeaders(),
         },

@@ -151,7 +151,7 @@ class _EditUserWebState extends State<EditUserWeb> {
         // Create multipart request for image upload
         var request = http.MultipartRequest(
           'PUT',
-          Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users/${widget.user.id}'),
         );
         
         // Add headers but remove Content-Type for multipart requests
@@ -206,7 +206,7 @@ class _EditUserWebState extends State<EditUserWeb> {
         // Use multipart request even without image for consistency with mobile version
         var request = http.MultipartRequest(
           'PUT',
-          Uri.parse('${AppConfig.apiBaseUrl}/api/users/${widget.user.id}'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users/${widget.user.id}'),
         );
         
         // Add headers but remove Content-Type for multipart requests

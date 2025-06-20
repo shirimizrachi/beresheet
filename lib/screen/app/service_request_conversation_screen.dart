@@ -98,7 +98,7 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/requests/${widget.existingRequestId}/chat'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/requests/${widget.existingRequestId}/chat'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': homeId.toString(),
@@ -160,7 +160,7 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
       if (requestId == null && textMessage != null && textMessage.trim().isNotEmpty) {
         final initialMessage = textMessage.trim();
         final createResponse = await http.post(
-          Uri.parse('${AppConfig.apiBaseUrl}/api/requests'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/requests'),
           headers: {
             'Content-Type': 'application/json',
             'homeID': homeId.toString(),
@@ -189,7 +189,7 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
         final fileName = file.path.split('/').last;
 
         // Use the unified upload endpoint that can create request if needed
-        final uri = Uri.parse('${AppConfig.apiBaseUrl}/api/requests/upload-media');
+        final uri = Uri.parse('${AppConfig.apiUrlWithPrefix}/api/requests/upload-media');
         final request = http.MultipartRequest('POST', uri);
         
         request.headers.addAll({
@@ -244,7 +244,7 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
       else if (textMessage != null && textMessage.trim().isNotEmpty) {
         // Send text message to existing request
         final addMessageResponse = await http.post(
-          Uri.parse('${AppConfig.apiBaseUrl}/api/requests/$requestId/chat'),
+          Uri.parse('${AppConfig.apiUrlWithPrefix}/api/requests/$requestId/chat'),
           headers: {
             'Content-Type': 'application/json',
             'homeID': homeId.toString(),

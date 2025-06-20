@@ -82,7 +82,7 @@ class _CreateUserWebState extends State<CreateUserWeb> {
       };
       
       final response = await http.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/users'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users'),
         headers: headers,
         body: json.encode(minimalData),
       );

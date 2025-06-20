@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:html' as html;
 import '../../config/app_config.dart';
 import '../../services/web_auth_service.dart';
 
@@ -15,16 +16,46 @@ class _WebLoginWebState extends State<WebLoginWeb> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _homeIdController = TextEditingController();
   
   bool _isLoading = false;
   bool _isCheckingSession = true;
   String? _errorMessage;
+  int? _homeId;
 
   @override
   void initState() {
     super.initState();
+    _extractHomeIdFromCookie();
     _checkExistingSession();
+  }
+  
+  void _extractHomeIdFromCookie() {
+    try {
+      // Read the tenant_info cookie set by the server
+      final cookieValue = html.document.cookie;
+      if (cookieValue != null) {
+        final cookies = cookieValue.split(';');
+        for (final cookie in cookies) {
+          final parts = cookie.trim().split('=');
+          if (parts.length == 2 && parts[0] == 'tenant_info') {
+            // Cookie format: "tenant_name:tenant_id"
+            final tenantInfo = parts[1].split(':');
+            if (tenantInfo.length == 2) {
+              _homeId = int.tryParse(tenantInfo[1]);
+              print('Extracted homeId from cookie: $_homeId (tenant: ${tenantInfo[0]})');
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error reading tenant cookie: $e');
+    }
+    
+    // Fallback if cookie not found
+    setState(() {
+      _errorMessage = 'Could not determine tenant information. Please refresh the page.';
+    });
   }
 
   Future<void> _checkExistingSession() async {
@@ -49,12 +80,19 @@ class _WebLoginWebState extends State<WebLoginWeb> {
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
-    _homeIdController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Validate that we have homeId from cookie
+    if (_homeId == null) {
+      setState(() {
+        _errorMessage = 'Could not determine tenant information. Please refresh the page.';
+      });
       return;
     }
 
@@ -64,10 +102,10 @@ class _WebLoginWebState extends State<WebLoginWeb> {
     });
 
     try {
-      final result = await WebAuthService.login(
+      final result = await WebAuthService.loginWithHomeId(
         _phoneController.text.trim(),
         _passwordController.text,
-        int.parse(_homeIdController.text.trim()),
+        _homeId!,
       );
 
       if (result.success) {
@@ -185,29 +223,6 @@ class _WebLoginWebState extends State<WebLoginWeb> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Home ID Field
-                TextFormField(
-                  controller: _homeIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Home ID',
-                    hintText: 'Enter home ID',
-                    prefixIcon: Icon(Icons.home),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter home ID';
-                    }
-                    final homeId = int.tryParse(value.trim());
-                    if (homeId == null) {
-                      return 'Please enter a valid home ID';
                     }
                     return null;
                   },

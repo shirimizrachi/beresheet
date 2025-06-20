@@ -226,24 +226,24 @@ class ServiceProviderTypeUpdate(BaseModel):
     description: Optional[str] = None  # Only description can be updated
 
 # Request Models for communication between residents and service providers
-class RequestBase(BaseModel):
+class ServiceRequestBase(BaseModel):
     resident_id: str
     service_provider_id: str
     request_message: str
     request_status: str = "open"  # "open", "in_progress", "closed", "abandoned"
 
-class RequestCreate(BaseModel):
+class ServiceRequestCreate(BaseModel):
     service_provider_id: str
     request_message: str
 
-class RequestUpdate(BaseModel):
+class ServiceRequestUpdate(BaseModel):
     request_message: Optional[str] = None
     request_status: Optional[str] = None
     service_rating: Optional[int] = None  # 1-5 rating
     service_comment: Optional[str] = None
     chat_messages: Optional[str] = None  # JSON string
 
-class Request(BaseModel):
+class ServiceRequest(BaseModel):
     id: str
     
     # Resident information

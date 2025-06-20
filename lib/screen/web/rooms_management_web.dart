@@ -39,7 +39,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
 
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/rooms'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -81,7 +81,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
 
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/rooms'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -146,7 +146,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
 
     try {
       final response = await http.delete(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/rooms/$roomId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/rooms/$roomId'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),

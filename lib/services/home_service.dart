@@ -32,7 +32,7 @@ class Home {
 }
 
 class HomeService {
-  static String get baseUrl => AppConfig.apiBaseUrl;
+  static String get baseUrl => AppConfig.apiUrlWithPrefix;
 
   /// Get all available homes
   static Future<List<Home>> getAvailableHomes() async {

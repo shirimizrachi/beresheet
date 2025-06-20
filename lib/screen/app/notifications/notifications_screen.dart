@@ -36,7 +36,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/user-notifications'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/user-notifications'),
         headers: headers,
       );
 
@@ -70,7 +70,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       
       // Create a PATCH request to mark notification as read
       final response = await http.patch(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/user-notifications/$notificationId/read'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/user-notifications/$notificationId/read'),
         headers: headers,
       );
 

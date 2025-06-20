@@ -50,7 +50,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
 
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
@@ -92,7 +92,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
       );
 
       request.headers.addAll({
@@ -160,7 +160,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
     try {
       final request = http.MultipartRequest(
         'PUT',
-        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors/${_editingInstructor!['id']}'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors/${_editingInstructor!['id']}'),
       );
 
       request.headers.addAll({
@@ -241,7 +241,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
 
     try {
       final response = await http.delete(
-        Uri.parse('${AppConfig.apiBaseUrl}/api/event-instructors/$instructorId'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors/$instructorId'),
         headers: {
           'Content-Type': 'application/json',
           'homeID': WebAuthService.homeId.toString(),
