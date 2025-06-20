@@ -13,6 +13,8 @@ class UserModel {
   final String id; // Unique user identifier (primary key)
   final String? photo;
   final String? firebaseFcmToken;
+  final int? serviceProviderTypeId;
+  final String? serviceProviderType;
   final String? createdAt;
   final String? updatedAt;
 
@@ -31,6 +33,8 @@ class UserModel {
     required this.id,
     this.photo,
     this.firebaseFcmToken,
+    this.serviceProviderTypeId,
+    this.serviceProviderType,
     this.createdAt,
     this.updatedAt,
   });
@@ -52,6 +56,8 @@ class UserModel {
       id: json['id'] as String,
       photo: json['photo'] as String?,
       firebaseFcmToken: json['firebase_fcm_token'] as String?,
+      serviceProviderTypeId: json['service_provider_type_id'] as int?,
+      serviceProviderType: json['service_provider_type'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
     );
@@ -73,6 +79,8 @@ class UserModel {
       'id': id,
       if (photo != null) 'photo': photo,
       if (firebaseFcmToken != null) 'firebase_fcm_token': firebaseFcmToken,
+      if (serviceProviderTypeId != null) 'service_provider_type_id': serviceProviderTypeId,
+      if (serviceProviderType != null) 'service_provider_type': serviceProviderType,
     };
   }
 
@@ -96,6 +104,8 @@ class UserModel {
     String? id,
     String? photo,
     String? firebaseFcmToken,
+    int? serviceProviderTypeId,
+    String? serviceProviderType,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -114,6 +124,8 @@ class UserModel {
       id: id ?? this.id,
       photo: photo ?? this.photo,
       firebaseFcmToken: firebaseFcmToken ?? this.firebaseFcmToken,
+      serviceProviderTypeId: serviceProviderTypeId ?? this.serviceProviderTypeId,
+      serviceProviderType: serviceProviderType ?? this.serviceProviderType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

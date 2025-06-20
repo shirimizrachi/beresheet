@@ -64,6 +64,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _markNotificationAsRead(int notificationId) async {
+    try {
+      final headers = await UserSessionService.getApiHeaders();
+      
+      // Create a PATCH request to mark notification as read
+      final response = await http.patch(
+        Uri.parse('${AppConfig.apiBaseUrl}/api/user-notifications/$notificationId/read'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        // Reload notifications to reflect the change
+        _loadNotifications();
+      } else {
+        print('Failed to mark notification as read: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error marking notification as read: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,11 +106,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final notification = _notifications[index];
                       return Card(
                         child: ListTile(
-                          title: Text(notification['title'] ?? 'No title'),
-                          subtitle: Text(notification['content'] ?? 'No content'),
-                          trailing: notification['read'] == true
+                          title: Text(notification['notification_sender_user_name'] ?? 'Unknown Sender'),
+                          subtitle: Text(notification['notification_message'] ?? 'No message'),
+                          trailing: notification['user_read_date'] != null
                               ? const Icon(Icons.check, color: Colors.green)
                               : const Icon(Icons.circle, color: Colors.blue),
+                          leading: CircleAvatar(
+                            child: Text(
+                              (notification['notification_sender_user_name'] ?? 'U')[0].toUpperCase(),
+                            ),
+                          ),
+                          onTap: () {
+                            // Mark as read when tapped
+                            _markNotificationAsRead(notification['id']);
+                          },
                         ),
                       );
                     },

@@ -8,6 +8,8 @@ import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:beresheet_app/model/service_provider_type.dart';
+import 'package:beresheet_app/services/service_provider_type_service.dart';
 import 'package:file_picker/file_picker.dart';
 
 class EditUserWeb extends StatefulWidget {
@@ -34,10 +36,15 @@ class _EditUserWebState extends State<EditUserWeb> {
   String _selectedReligious = 'secular';
   String _selectedLanguage = 'hebrew';
   DateTime? _selectedBirthday;
+  int? _selectedServiceProviderTypeId;
   
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  
+  // Service provider types
+  List<ServiceProviderType> _serviceProviderTypes = [];
+  bool _loadingServiceProviderTypes = false;
   
   // Photo upload variables
   Uint8List? _selectedImageBytes;
@@ -87,7 +94,13 @@ class _EditUserWebState extends State<EditUserWeb> {
     _selectedReligious = widget.user.religious.isNotEmpty ? widget.user.religious : 'secular';
     _selectedLanguage = widget.user.nativeLanguage;
     _selectedBirthday = widget.user.birthday;
+    _selectedServiceProviderTypeId = widget.user.serviceProviderTypeId;
     _currentPhotoUrl = widget.user.photo;
+    
+    // Load service provider types if role is service
+    if (_selectedRole == 'service') {
+      _loadServiceProviderTypes();
+    }
   }
 
   Future<void> _pickImage() async {
@@ -174,6 +187,9 @@ class _EditUserWebState extends State<EditUserWeb> {
         if (_selectedLanguage.isNotEmpty) {
           request.fields['native_language'] = _selectedLanguage;
         }
+        if (_selectedServiceProviderTypeId != null) {
+          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId.toString();
+        }
         
         // Add image file with proper content type
         request.files.add(http.MultipartFile.fromBytes(
@@ -225,6 +241,9 @@ class _EditUserWebState extends State<EditUserWeb> {
         }
         if (_selectedLanguage.isNotEmpty) {
           request.fields['native_language'] = _selectedLanguage;
+        }
+        if (_selectedServiceProviderTypeId != null) {
+          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId.toString();
         }
         
         // Send request and get response
@@ -326,6 +345,25 @@ class _EditUserWebState extends State<EditUserWeb> {
       case 'french': return 'French';
       case 'spanish': return 'Spanish';
       default: return language.toUpperCase();
+    }
+  }
+
+  Future<void> _loadServiceProviderTypes() async {
+    setState(() {
+      _loadingServiceProviderTypes = true;
+    });
+    
+    try {
+      final types = await ServiceProviderTypeService.getServiceProviderTypesWeb();
+      setState(() {
+        _serviceProviderTypes = types;
+        _loadingServiceProviderTypes = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load service provider types: $e';
+        _loadingServiceProviderTypes = false;
+      });
     }
   }
 
@@ -528,10 +566,56 @@ class _EditUserWebState extends State<EditUserWeb> {
                         onChanged: (String? newValue) {
                           setState(() {
                             _selectedRole = newValue!;
+                            // Reset service provider type when role changes
+                            if (_selectedRole != 'service') {
+                              _selectedServiceProviderTypeId = null;
+                            } else {
+                              // Load service provider types when role becomes service
+                              _loadServiceProviderTypes();
+                            }
                           });
                         },
                       ),
                       const SizedBox(height: 16),
+                      
+                      // Service Provider Type (only shown when role is 'service')
+                      if (_selectedRole == 'service') ...[
+                        _loadingServiceProviderTypes
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            : DropdownButtonFormField<int>(
+                                value: _selectedServiceProviderTypeId,
+                                decoration: const InputDecoration(
+                                  labelText: 'Service Provider Type',
+                                  border: OutlineInputBorder(),
+                                ),
+                                hint: const Text('Select service provider type'),
+                                items: _serviceProviderTypes.map((ServiceProviderType type) {
+                                  return DropdownMenuItem<int>(
+                                    value: type.id,
+                                    child: Text(type.name),
+                                  );
+                                }).toList(),
+                                onChanged: (int? newValue) {
+                                  setState(() {
+                                    _selectedServiceProviderTypeId = newValue;
+                                  });
+                                },
+                                validator: _selectedRole == 'service'
+                                    ? (value) {
+                                        if (value == null) {
+                                          return 'Please select a service provider type';
+                                        }
+                                        return null;
+                                      }
+                                    : null,
+                              ),
+                        const SizedBox(height: 16),
+                      ],
                       
                       // Birthday
                       InkWell(

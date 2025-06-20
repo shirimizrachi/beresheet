@@ -236,7 +236,7 @@ class HomeNotificationDatabase:
                             'notification_sender_user_name': current_notification.create_by_user_name,
                             'notification_sender_user_role_name': current_notification.create_by_user_role_name,
                             'notification_sender_user_service_provider_type_name': current_notification.create_by_user_service_provider_type_name,
-                            'notification_status': 'pending',
+                            'notification_status': 'sent',
                             'notification_time': current_notification.send_datetime,
                             'notification_message': current_notification.message,
                             'notification_type': current_notification.send_type,
@@ -369,7 +369,7 @@ class HomeNotificationDatabase:
                                notification_status, notification_time, notification_message,
                                notification_type, created_at, updated_at
                         FROM [{schema_name}].[user_notification]
-                        WHERE user_id = :user_id AND notification_status = 'sent'
+                        WHERE user_id = :user_id AND notification_status IN ('sent', 'pending')
                         ORDER BY notification_time DESC
                     """),
                     {'user_id': user_id}
@@ -400,6 +400,37 @@ class HomeNotificationDatabase:
         except Exception as e:
             print(f"Error getting user notifications: {e}")
             return []
+
+    def mark_user_notification_as_read(self, notification_id: int, user_id: str, home_id: int) -> bool:
+        """Mark a user notification as read by setting user_read_date"""
+        try:
+            schema_name = get_schema_for_home(home_id)
+            if not schema_name:
+                return False
+
+            user_notification_table = self.get_user_notification_table(schema_name)
+            if user_notification_table is None:
+                return False
+
+            schema_engine = get_schema_engine(schema_name)
+            
+            with schema_engine.connect() as conn:
+                # Update the user_read_date for the specific notification and user
+                result = conn.execute(
+                    user_notification_table.update()
+                    .where(
+                        (user_notification_table.c.id == notification_id) &
+                        (user_notification_table.c.user_id == user_id)
+                    )
+                    .values(user_read_date=datetime.now())
+                )
+                
+                conn.commit()
+                return result.rowcount > 0
+
+        except Exception as e:
+            print(f"Error marking user notification as read: {e}")
+            return False
 
 # Create global instance
 home_notification_db = HomeNotificationDatabase()
@@ -518,6 +549,43 @@ async def get_home_notification(
         else:
             raise HTTPException(status_code=404, detail="Notification not found")
             
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.patch("/user-notifications/{notification_id}/read")
+async def mark_user_notification_as_read(
+    notification_id: int,
+    authorization: str = Header(None),
+    home_id: Optional[str] = Header(None, alias="homeID"),
+    user_id: Optional[str] = Header(None, alias="userId")
+):
+    """Mark a user notification as read"""
+    try:
+        # Try mobile authentication first (homeID and userId headers)
+        if home_id and user_id:
+            try:
+                home_id_int = int(home_id)
+                success = home_notification_db.mark_user_notification_as_read(notification_id, user_id, home_id_int)
+                if success:
+                    return {"message": "Notification marked as read successfully"}
+                else:
+                    raise HTTPException(status_code=404, detail="Notification not found or already read")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="homeID must be a valid integer")
+        
+        # Fall back to web session authentication
+        current_user = await get_current_user_from_session(authorization)
+        home_id_int = current_user['home_id']
+        user_id = current_user['id']
+        
+        success = home_notification_db.mark_user_notification_as_read(notification_id, user_id, home_id_int)
+        if success:
+            return {"message": "Notification marked as read successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Notification not found or already read")
+        
     except HTTPException:
         raise
     except Exception as e:

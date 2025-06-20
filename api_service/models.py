@@ -178,6 +178,15 @@ class UserProfile(UserProfileBase):
     class Config:
         from_attributes = True
 
+class ServiceProviderProfile(UserProfileBase):
+    """Extended user profile for service providers in service request screens"""
+    service_provider_type_name: Optional[str] = None
+    service_provider_type_description: Optional[str] = None
+    request_count: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
 # Authentication Models
 class LoginRequest(BaseModel):
     phone_number: str

@@ -143,6 +143,8 @@ class UserDatabase:
                         religious=result.religious,
                         native_language=result.native_language,
                         photo=result.photo,
+                        service_provider_type_id=getattr(result, 'service_provider_type_id', None),
+                        service_provider_type=getattr(result, 'service_provider_type', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     )
@@ -189,6 +191,8 @@ class UserDatabase:
                         religious=result.religious,
                         native_language=result.native_language,
                         photo=result.photo,
+                        service_provider_type_id=getattr(result, 'service_provider_type_id', None),
+                        service_provider_type=getattr(result, 'service_provider_type', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     )
@@ -252,6 +256,8 @@ class UserDatabase:
                             religious=updated_result.religious,
                             native_language=updated_result.native_language,
                             photo=updated_result.photo,
+                            service_provider_type_id=getattr(updated_result, 'service_provider_type_id', None),
+                            service_provider_type=getattr(updated_result, 'service_provider_type', None),
                             created_at=updated_result.created_at.isoformat() if isinstance(updated_result.created_at, datetime) else updated_result.created_at,
                             updated_at=updated_result.updated_at.isoformat() if isinstance(updated_result.updated_at, datetime) else updated_result.updated_at
                         )
@@ -381,7 +387,7 @@ class UserDatabase:
         """Get all available homes from home mapping"""
         return get_all_homes()
     
-    def get_service_providers_ordered_by_requests(self, home_id: int, user_id: Optional[str] = None) -> List[UserProfile]:
+    def get_service_providers_ordered_by_requests(self, home_id: int, user_id: Optional[str] = None) -> List['ServiceProviderProfile']:
         """Get service providers ordered by most recent request interaction with the requesting user"""
         try:
             # Get schema for home
@@ -432,7 +438,8 @@ class UserDatabase:
                 
                 service_providers = []
                 for result in results:
-                    service_providers.append(UserProfile(
+                    from models import ServiceProviderProfile
+                    service_providers.append(ServiceProviderProfile(
                         id=result.id,
                         firebase_id=result.firebase_id,
                         home_id=result.home_id,

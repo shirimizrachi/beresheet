@@ -32,6 +32,7 @@ from models import (
     RequestUpdate,
     RequestStatusUpdate,
     ChatMessage,
+    ServiceProviderProfile,
 )
 from events import event_db
 from rooms import room_db
@@ -1410,7 +1411,7 @@ async def get_all_users(home_id: int = Depends(get_home_id)):
     users = user_db.get_all_users(home_id)
     return users
 
-@api_router.get("/users/service-providers", response_model=List[UserProfile])
+@api_router.get("/users/service-providers", response_model=List[ServiceProviderProfile])
 async def get_service_providers(
     home_id: int = Depends(get_home_id),
     user_id: Optional[str] = Depends(get_user_id)
@@ -1480,6 +1481,7 @@ async def update_user_profile(
     gender: Optional[str] = Form(None),
     religious: Optional[str] = Form(None),
     native_language: Optional[str] = Form(None),
+    service_provider_type_id: Optional[str] = Form(None),
     photo: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id)
 ):
@@ -1509,6 +1511,11 @@ async def update_user_profile(
             update_data['religious'] = religious
         if native_language is not None:
             update_data['native_language'] = native_language
+        if service_provider_type_id is not None:
+            try:
+                update_data['service_provider_type_id'] = int(service_provider_type_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid service_provider_type_id format")
         
         # Parse birthday if provided
         if birthday is not None:
