@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, Table, MetaData, text
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Header
-from home_mapping import get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine
 from users import user_db
 
@@ -120,7 +120,7 @@ class HomeNotificationDatabase:
                                  current_user: dict) -> Optional[HomeNotification]:
         """Create a new home notification (always as pending-approval)"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -182,7 +182,7 @@ class HomeNotificationDatabase:
                                    home_id: int, current_user: dict) -> bool:
         """Update notification status and create user notifications when approved"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -256,7 +256,7 @@ class HomeNotificationDatabase:
     def get_all_notifications(self, home_id: int) -> List[HomeNotification]:
         """Get all home notifications ordered by pending-approval first, then by date desc"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -308,7 +308,7 @@ class HomeNotificationDatabase:
     def get_notification_by_id(self, notification_id: int, home_id: int) -> Optional[HomeNotification]:
         """Get a specific home notification by ID"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -348,7 +348,7 @@ class HomeNotificationDatabase:
     def get_user_notifications(self, user_id: str, home_id: int) -> List[UserNotification]:
         """Get all user notifications for a specific user with status 'sent' ordered by date desc"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -404,7 +404,7 @@ class HomeNotificationDatabase:
     def mark_user_notification_as_read(self, notification_id: int, user_id: str, home_id: int) -> bool:
         """Mark a user notification as read by setting user_read_date"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 

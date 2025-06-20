@@ -6,21 +6,16 @@ Usage: python create_service_provider_types_data.py <schema_name>
 import sys
 from sqlalchemy import create_engine, text
 
-def insert_service_provider_types_data(schema_name: str):
+def insert_service_provider_types_data(engine, schema_name: str):
     """
-    Insert Hebrew service provider types data into the service_provider_types table
+    Insert Hebrew service provider types data into the service_provider_types table using provided engine
     
     Args:
+        engine: SQLAlchemy engine object
         schema_name: Name of the schema where the table exists
     """
     
-    # Connection string for the home database (using Windows Authentication)
-    connection_string = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
-    
     try:
-        # Create SQLAlchemy engine
-        engine = create_engine(connection_string)
-        
         with engine.connect() as conn:
             # Insert Hebrew service provider types
             insert_default_types_sql = text(f"""

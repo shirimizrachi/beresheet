@@ -7,7 +7,7 @@ Enhanced for multi-tenant architecture
 import logging
 from sqlalchemy import create_engine, event
 from typing import Dict, Optional
-from home_mapping import get_connection_string_for_schema, get_schema_for_home
+from tenant_config import get_tenant_connection_string_by_home_id, get_schema_name_by_home_id, get_tenant_connection_string, load_tenant_config_from_db
 
 # SQL Debug flag - set to True to enable SQL logging
 SQL_DEBUG = False  # Change this to False to disable SQL debugging
@@ -45,11 +45,28 @@ class SchemaEngineManager:
         if schema_name in self._schema_engines:
             return self._schema_engines[schema_name]
         
-        # Get schema-specific connection string
-        schema_connection_string = get_connection_string_for_schema(schema_name)
-        if not schema_connection_string:
-            print(f"No connection string found for schema {schema_name}")
+        # Get tenant config for the schema
+        all_tenants = []
+        try:
+            from tenant_config import get_all_tenants
+            all_tenants = get_all_tenants()
+        except Exception as e:
+            print(f"Failed to load tenant configurations: {e}")
             return None
+        
+        # Find tenant with matching schema
+        tenant_config = None
+        for tenant in all_tenants:
+            if tenant.database_schema == schema_name:
+                tenant_config = tenant
+                break
+        
+        if not tenant_config:
+            print(f"No tenant configuration found for schema: {schema_name}")
+            return None
+        
+        # Get schema-specific connection string
+        schema_connection_string = get_tenant_connection_string(tenant_config)
         
         # Create and cache schema-specific engine
         try:
@@ -69,7 +86,7 @@ class SchemaEngineManager:
     
     def get_engine_for_home(self, home_id: int):
         """Get the engine for a specific home ID"""
-        schema_name = get_schema_for_home(home_id)
+        schema_name = get_schema_name_by_home_id(home_id)
         if not schema_name:
             print(f"No schema found for home ID {home_id}")
             return None

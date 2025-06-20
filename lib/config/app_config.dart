@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+// Import dart:html only for web platform
+import 'dart:html' as html show document;
 
 /// Application configuration constants
 class AppConfig {
@@ -79,11 +81,41 @@ class AppConfig {
   
   /// API prefix for tenant routing
   /// This prefix will be prepended to all API calls
-  /// Default value is 'beresheet' - can be configured per deployment
+  /// Default value is 'demo' - can be configured per deployment
   static const String apiPrefix = 'beresheet';
   
-  /// Get the API prefix
+  /// Get the API prefix for mobile apps (static)
   static String get prefix => apiPrefix;
+  
+  /// Get the API prefix from tenant_info cookie for web requests
+  /// Cookie format: "tenant_name:tenant_id" (e.g., "demo:2")
+  /// Returns the tenant_name part before the colon
+  static String getTenantPrefixFromCookie() {
+    if (kIsWeb) {
+      try {
+        final cookies = html.document.cookie!;
+        final cookiePairs = cookies.split(';');
+        
+        for (final cookiePair in cookiePairs) {
+          final parts = cookiePair.trim().split('=');
+          if (parts.length == 2 && parts[0] == 'tenant_info') {
+            final tenantInfo = parts[1];
+            // Extract tenant name before the colon
+            final colonIndex = tenantInfo.indexOf(':');
+            if (colonIndex > 0) {
+              return tenantInfo.substring(0, colonIndex);
+            }
+            // If no colon found, return the whole value
+            return tenantInfo;
+          }
+        }
+      } catch (e) {
+        print('Error reading tenant_info cookie: $e');
+      }
+    }
+    // Fallback to static prefix for mobile or if cookie not found
+    return apiPrefix;
+  }
   
   /// Get the API base URL based on platform (without prefix)
   static String get apiBaseUrl {
@@ -95,14 +127,23 @@ class AppConfig {
   }
 
   /// Get the API base URL (alias for compatibility)
-  static String get baseUrl => apiBaseUrl;
+  static String get basberesheeteUrl => apiBaseUrl;
   
   /// Get the full API URL with prefix for API calls
-  /// This method constructs URLs like: http://localhost:8000/beresheet/api/...
-  static String get apiUrlWithPrefix => '$apiBaseUrl/$apiPrefix';
+  /// For web: uses tenant_info cookie, for mobile: uses static prefix
+  /// This method constructs URLs like: http://localhost:8000/demo/api/...
+  static String get apiUrlWithPrefix {
+    if (kIsWeb) {
+      return '$apiBaseUrl/${getTenantPrefixFromCookie()}';
+    } else {
+      return '$apiBaseUrl/$apiPrefix';
+    }
+  }
   
-  /// Get the web homepage URL
-  static String get webHomepageUrl => '$apiBaseUrl/$apiPrefix/web';
+  /// Get the web homepage URL (uses cookie-based prefix for web)
+  static String get webHomepageUrl {
+    return '$apiBaseUrl/${getTenantPrefixFromCookie()}/web';
+  }
   
   /// Environment-specific configuration
   /// You can also use this approach for different environments:

@@ -6,21 +6,16 @@ Usage: python create_user_notification_data.py <schema_name>
 import sys
 from sqlalchemy import create_engine, text
 
-def insert_user_notification_data(schema_name: str):
+def insert_user_notification_data(engine, schema_name: str):
     """
-    Insert user notification data for all residents linking to the home notification
+    Insert user notification data for all residents linking to the home notification using provided engine
     
     Args:
+        engine: SQLAlchemy engine object
         schema_name: Name of the schema where the table exists
     """
     
-    # Connection string for the home database (using Windows Authentication)
-    connection_string = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
-    
     try:
-        # Create SQLAlchemy engine
-        engine = create_engine(connection_string)
-        
         with engine.connect() as conn:
             # First, get the notification_id from the home_notification table
             get_notification_id_sql = text(f"""

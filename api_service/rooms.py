@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from sqlalchemy import create_engine, MetaData, Table, text
 from models import Room, RoomCreate
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 
 
@@ -18,9 +18,9 @@ class RoomDatabase:
     """
 
     def __init__(self):
-        # Generic connection string (server-level); most ops will use schema-specific engines
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
+        pass
 
     # --------------------------------------------------------------------- #
     # Table reflection helper                                               #
@@ -48,7 +48,7 @@ class RoomDatabase:
     def get_all_rooms(self, home_id: int) -> List[Room]:
         """Return a list of all rooms for the given home."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -56,7 +56,10 @@ class RoomDatabase:
             if rooms_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(rooms_table.select()).fetchall()
                 return [Room(id=row.id, room_name=row.room_name) for row in results]
         except Exception as exc:
@@ -66,7 +69,7 @@ class RoomDatabase:
     def create_room(self, room_data: RoomCreate, home_id: int) -> Optional[Room]:
         """Insert a new room; returns the created Room or None on failure."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -74,7 +77,10 @@ class RoomDatabase:
             if rooms_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 insert_result = conn.execute(
                     rooms_table.insert().values(room_name=room_data.room_name)
                 )
@@ -96,7 +102,7 @@ class RoomDatabase:
     def delete_room(self, room_id: int, home_id: int) -> bool:
         """Delete room by ID; returns True if a row was removed."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -104,7 +110,10 @@ class RoomDatabase:
             if rooms_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     rooms_table.delete().where(rooms_table.c.id == room_id)
                 )

@@ -4,13 +4,16 @@ Handles loading tenant configurations from the admin database
 """
 
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlalchemy import create_engine, text
 from datetime import datetime
 import logging
+from residents_db_config import get_connection_string, SCHEMA_NAME, DATABASE_NAME
 
 # Admin database connection string
-ADMIN_CONNECTION_STRING = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
+ADMIN_CONNECTION_STRING = get_connection_string()
+ADMIN_SCHEMA = SCHEMA_NAME
+ADMIN_DATABASE = DATABASE_NAME
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -77,8 +80,8 @@ class TenantConfigDatabase:
         """
         try:
             with self.engine.connect() as conn:
-                select_sql = text("""
-                    SELECT 
+                select_sql = text(f"""
+                    SELECT
                         [id],
                         [name],
                         [database_name],
@@ -88,7 +91,7 @@ class TenantConfigDatabase:
                         [admin_user_password],
                         [created_at],
                         [updated_at]
-                    FROM [home].[home] 
+                    FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
                     WHERE [name] = :tenant_id
                 """)
                 
@@ -123,8 +126,8 @@ class TenantConfigDatabase:
         """
         try:
             with self.engine.connect() as conn:
-                select_sql = text("""
-                    SELECT 
+                select_sql = text(f"""
+                    SELECT
                         [id],
                         [name],
                         [database_name],
@@ -134,7 +137,7 @@ class TenantConfigDatabase:
                         [admin_user_password],
                         [created_at],
                         [updated_at]
-                    FROM [home].[home] 
+                    FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
                     ORDER BY [id]
                 """)
                 
@@ -172,8 +175,8 @@ class TenantConfigDatabase:
         """
         try:
             with self.engine.connect() as conn:
-                insert_sql = text("""
-                    INSERT INTO [home].[home] (
+                insert_sql = text(f"""
+                    INSERT INTO [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] (
                         [name],
                         [database_name],
                         [database_type],
@@ -241,7 +244,7 @@ class TenantConfigDatabase:
             
             with self.engine.connect() as conn:
                 update_sql = text(f"""
-                    UPDATE [home].[home] 
+                    UPDATE [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
                     SET {', '.join(update_fields)}
                     WHERE [id] = :tenant_id
                 """)
@@ -253,7 +256,7 @@ class TenantConfigDatabase:
                     logger.info(f"Updated tenant with ID {tenant_id}")
                     
                     # Get the tenant name to return the updated config
-                    name_sql = text("SELECT [name] FROM [home].[home] WHERE [id] = :tenant_id")
+                    name_sql = text(f"SELECT [name] FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] WHERE [id] = :tenant_id")
                     name_result = conn.execute(name_sql, {"tenant_id": tenant_id}).fetchone()
                     
                     if name_result:
@@ -277,7 +280,7 @@ class TenantConfigDatabase:
         """
         try:
             with self.engine.connect() as conn:
-                delete_sql = text("DELETE FROM [home].[home] WHERE [id] = :tenant_id")
+                delete_sql = text(f"DELETE FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] WHERE [id] = :tenant_id")
                 result = conn.execute(delete_sql, {"tenant_id": tenant_id})
                 
                 if result.rowcount > 0:
@@ -294,6 +297,7 @@ class TenantConfigDatabase:
 def get_tenant_connection_string(tenant_config: TenantConfig) -> str:
     """
     Generate connection string for a tenant
+    Uses schema name as username and schema name + "2025!" as password
     
     Args:
         tenant_config: Tenant configuration
@@ -302,9 +306,45 @@ def get_tenant_connection_string(tenant_config: TenantConfig) -> str:
         Connection string for the tenant's database
     """
     if tenant_config.database_type == "mssql":
-        return f"mssql+pyodbc://localhost\\SQLEXPRESS/{tenant_config.database_name}?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
+        username = tenant_config.database_schema
+        password = tenant_config.database_schema + "2025!"
+        return f"mssql+pyodbc://{username}:{password}@localhost\\SQLEXPRESS/{tenant_config.database_name}?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
     else:
         raise ValueError(f"Unsupported database type: {tenant_config.database_type}")
+
+def get_tenant_connection_string_by_home_id(home_id: int) -> Optional[str]:
+    """
+    Generate connection string for a tenant by home ID
+    
+    Args:
+        home_id: The home/tenant ID
+        
+    Returns:
+        Connection string for the tenant's database if found, None otherwise
+    """
+    # First try to find tenant by ID
+    all_tenants = get_all_tenants()
+    for tenant in all_tenants:
+        if tenant.id == home_id:
+            return get_tenant_connection_string(tenant)
+    return None
+
+def get_schema_name_by_home_id(home_id: int) -> Optional[str]:
+    """
+    Get schema name for a tenant by home ID
+    
+    Args:
+        home_id: The home/tenant ID
+        
+    Returns:
+        Schema name if found, None otherwise
+    """
+    # First try to find tenant by ID
+    all_tenants = get_all_tenants()
+    for tenant in all_tenants:
+        if tenant.id == home_id:
+            return tenant.database_schema
+    return None
 
 # Global instance for tenant configuration operations
 tenant_config_db = TenantConfigDatabase()
@@ -317,3 +357,20 @@ def load_tenant_config_from_db(tenant_id: str) -> Optional[TenantConfig]:
 def get_all_tenants() -> List[TenantConfig]:
     """Get all tenant configurations"""
     return tenant_config_db.get_all_tenants()
+
+def get_all_homes() -> List[Dict[str, any]]:
+    """
+    Get all available homes with their IDs and names (compatible with home_mapping format)
+    
+    Returns:
+        List of dictionaries containing home information
+    """
+    homes = []
+    all_tenants = get_all_tenants()
+    for tenant in all_tenants:
+        homes.append({
+            "id": tenant.id,
+            "name": tenant.name,
+            "schema": tenant.database_schema
+        })
+    return homes

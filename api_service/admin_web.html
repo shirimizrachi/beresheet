@@ -152,6 +152,85 @@
             padding: 20px;
             color: #7f8c8d;
         }
+        
+        .table-management {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .table-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .table-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .table-info {
+            flex-grow: 1;
+        }
+        
+        .table-name {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .table-stats {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .table-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .recreate-btn {
+            background: #ffc107;
+            color: #212529;
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .recreate-btn:hover {
+            background: #e0a800;
+        }
+        
+        .toggle-tables {
+            background: #17a2b8;
+            margin-top: 5px;
+        }
+        
+        .toggle-tables:hover {
+            background: #138496;
+        }
+        
+        .table-management h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        
+        .no-tables {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -184,7 +263,7 @@
                 
                 <div class="form-group">
                     <label for="database_name">Database Name:</label>
-                    <input type="text" id="database_name" name="database_name" value="home" required>
+                    <input type="text" id="database_name" name="database_name" value="residents" required>
                 </div>
                 
                 <div class="form-group">
@@ -268,6 +347,13 @@
                             <button onclick="editTenant(${tenant.id})">✏️ Edit</button>
                             <button onclick="viewTenant('${tenant.name}')" style="background: #27ae60;">🔗 View</button>
                             <button onclick="deleteTenant(${tenant.id})" class="delete">🗑️ Delete</button>
+                            <button onclick="toggleTables('${tenant.name}')" class="toggle-tables">🗂️ Tables</button>
+                        </div>
+                        <div id="tables-${tenant.name}" class="table-management" style="display: none;">
+                            <h4>Schema Tables</h4>
+                            <div id="table-list-${tenant.name}" class="table-list">
+                                <div class="loading">Loading tables...</div>
+                            </div>
                         </div>
                     </div>
                 `).join('');
@@ -407,6 +493,126 @@
                 
             } catch (error) {
                 showStatus(`Health check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function toggleTables(tenantName) {
+            const tablesDiv = document.getElementById(`tables-${tenantName}`);
+            const tableListDiv = document.getElementById(`table-list-${tenantName}`);
+            
+            if (tablesDiv.style.display === 'none') {
+                tablesDiv.style.display = 'block';
+                
+                // Load tables if not already loaded
+                if (tableListDiv.innerHTML.includes('Loading tables...')) {
+                    await loadTables(tenantName);
+                }
+            } else {
+                tablesDiv.style.display = 'none';
+            }
+        }
+
+        async function loadTables(tenantName) {
+            const tableListDiv = document.getElementById(`table-list-${tenantName}`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/tenants/${tenantName}/tables`);
+                const data = await response.json();
+                
+                if (data.tables.length === 0) {
+                    tableListDiv.innerHTML = '<div class="no-tables">No tables found in this schema</div>';
+                    return;
+                }
+                
+                tableListDiv.innerHTML = data.tables.map(table => {
+                    // Check if demo data is available for this table
+                    const hasData = ['users', 'service_provider_types', 'event_instructor', 'events', 'rooms', 'home_notification', 'user_notification'].includes(table.table_name.toLowerCase());
+                    
+                    return `
+                        <div class="table-item">
+                            <div class="table-info">
+                                <div class="table-name">${table.table_name}</div>
+                                <div class="table-stats">${table.column_count} columns • ${table.row_count} rows</div>
+                            </div>
+                            <div class="table-actions">
+                                <label style="font-size: 12px; margin-right: 10px;">
+                                    <input type="checkbox" id="drop-${tenantName}-${table.table_name}" checked> Drop first
+                                </label>
+                                <button class="recreate-btn" onclick="recreateTable('${tenantName}', '${table.table_name}')">
+                                    🔄 Recreate
+                                </button>
+                                ${hasData ? `<button class="recreate-btn" style="background: #28a745; margin-left: 5px;" onclick="loadTableData('${tenantName}', '${table.table_name}')">
+                                    📊 Load Data
+                                </button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                tableListDiv.innerHTML = `<div class="no-tables">Error loading tables: ${error.message}</div>`;
+            }
+        }
+
+        async function recreateTable(tenantName, tableName) {
+            const dropCheckbox = document.getElementById(`drop-${tenantName}-${tableName}`);
+            const dropFirst = dropCheckbox ? dropCheckbox.checked : true;
+            
+            let confirmMessage = `Are you sure you want to recreate table '${tableName}'?`;
+            if (dropFirst) {
+                confirmMessage += ' The table will be dropped first.';
+            } else {
+                confirmMessage += ' Existing data may be affected.';
+            }
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/tenants/${tenantName}/tables/${tableName}/recreate?drop_if_exists=${dropFirst}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showStatus(result.message || `Table '${tableName}' recreated successfully`);
+                    
+                    // Refresh the tables list
+                    await loadTables(tenantName);
+                } else {
+                    const error = await response.json();
+                    showStatus(`Error recreating table: ${error.detail}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`Error recreating table: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadTableData(tenantName, tableName) {
+            if (!confirm(`Are you sure you want to load demo data into table '${tableName}'? This will add or replace data in the table.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/tenants/${tenantName}/tables/${tableName}/load_data`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showStatus(result.message || `Demo data loaded successfully into table '${tableName}'`);
+                    
+                    // Refresh the tables list
+                    await loadTables(tenantName);
+                } else {
+                    const error = await response.json();
+                    showStatus(`Error loading data: ${error.detail}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`Error loading data: ${error.message}`, 'error');
             }
         }
 

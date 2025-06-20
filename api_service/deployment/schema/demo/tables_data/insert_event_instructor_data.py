@@ -6,21 +6,16 @@ Usage: python create_event_instructor_data.py <schema_name>
 import sys
 from sqlalchemy import create_engine, text
 
-def insert_event_instructor_data(schema_name: str):
+def insert_event_instructor_data(engine, schema_name: str):
     """
-    Insert sample Hebrew instructor data into the event_instructor table
+    Insert sample Hebrew instructor data into the event_instructor table using provided engine
     
     Args:
+        engine: SQLAlchemy engine object
         schema_name: Name of the schema where the table exists
     """
     
-    # Connection string for the home database (using Windows Authentication)
-    connection_string = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
-    
     try:
-        # Create SQLAlchemy engine
-        engine = create_engine(connection_string)
-        
         with engine.connect() as conn:
             # Insert Hebrew instructors
             insert_instructors_sql = text(f"""

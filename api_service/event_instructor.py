@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from sqlalchemy import create_engine, MetaData, Table, text
 from models import EventInstructor, EventInstructorCreate, EventInstructorUpdate
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 
 
@@ -18,9 +18,9 @@ class EventInstructorDatabase:
     """
 
     def __init__(self):
-        # Generic connection string (server-level); most ops will use schema-specific engines
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
+        pass
 
     # --------------------------------------------------------------------- #
     # Table reflection helper                                               #
@@ -48,7 +48,7 @@ class EventInstructorDatabase:
     def get_all_event_instructors(self, home_id: int) -> List[EventInstructor]:
         """Return a list of all event instructors for the given home."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -56,7 +56,10 @@ class EventInstructorDatabase:
             if event_instructor_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(event_instructor_table.select()).fetchall()
                 return [
                     EventInstructor(
@@ -74,7 +77,7 @@ class EventInstructorDatabase:
     def get_event_instructor_by_id(self, instructor_id: int, home_id: int) -> Optional[EventInstructor]:
         """Get a specific event instructor by ID."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -82,7 +85,10 @@ class EventInstructorDatabase:
             if event_instructor_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     event_instructor_table.select().where(event_instructor_table.c.id == instructor_id)
                 ).fetchone()
@@ -102,7 +108,7 @@ class EventInstructorDatabase:
     def create_event_instructor(self, instructor_data: EventInstructorCreate, home_id: int) -> Optional[EventInstructor]:
         """Insert a new event instructor; returns the created EventInstructor or None on failure."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -110,7 +116,10 @@ class EventInstructorDatabase:
             if event_instructor_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 insert_result = conn.execute(
                     event_instructor_table.insert().values(
                         name=instructor_data.name,
@@ -141,7 +150,7 @@ class EventInstructorDatabase:
     def update_event_instructor(self, instructor_id: int, instructor_data: EventInstructorUpdate, home_id: int) -> Optional[EventInstructor]:
         """Update an existing event instructor; returns the updated EventInstructor or None on failure."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -165,7 +174,10 @@ class EventInstructorDatabase:
                 # No fields to update
                 return self.get_event_instructor_by_id(instructor_id, home_id)
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     event_instructor_table.update()
                     .where(event_instructor_table.c.id == instructor_id)
@@ -184,7 +196,7 @@ class EventInstructorDatabase:
     def delete_event_instructor(self, instructor_id: int, home_id: int) -> bool:
         """Delete event instructor by ID; returns True if a row was removed."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -192,7 +204,10 @@ class EventInstructorDatabase:
             if event_instructor_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     event_instructor_table.delete().where(event_instructor_table.c.id == instructor_id)
                 )

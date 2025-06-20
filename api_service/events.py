@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from models import Event, EventCreate, EventUpdate
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id, get_tenant_connection_string_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 import json
 
@@ -123,9 +123,8 @@ def calculate_next_occurrence(event_datetime: datetime, recurring_pattern: str, 
 
 class EventDatabase:
     def __init__(self):
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
         self.metadata = MetaData()
 
     def get_events_table(self, schema_name: str):
@@ -149,7 +148,7 @@ class EventDatabase:
         """Get all events from the appropriate schema"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -159,7 +158,10 @@ class EventDatabase:
                 return []
 
             events = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(events_table.select()).fetchall()
                 
                 for result in results:
@@ -187,7 +189,7 @@ class EventDatabase:
     def get_approved_events(self, home_id: int) -> List[Event]:
         """Get all approved events ordered by date desc"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -196,7 +198,10 @@ class EventDatabase:
                 return []
 
             events = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     events_table.select()
                     .where(events_table.c.status == 'approved')
@@ -229,7 +234,7 @@ class EventDatabase:
     def get_all_events_ordered(self, home_id: int) -> List[Event]:
         """Get all events ordered by date desc (for staff/manager)"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -238,7 +243,10 @@ class EventDatabase:
                 return []
 
             events = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     events_table.select()
                     .order_by(events_table.c.dateTime.desc())
@@ -270,7 +278,7 @@ class EventDatabase:
         """Get a specific event by ID from the appropriate schema"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -280,7 +288,10 @@ class EventDatabase:
                 return None
 
             # Query event
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     events_table.select().where(events_table.c.id == event_id)
                 ).fetchone()
@@ -311,7 +322,7 @@ class EventDatabase:
         """Create a new event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 raise ValueError(f"No schema found for home ID {home_id}")
 
@@ -345,7 +356,10 @@ class EventDatabase:
             }
 
             # Insert event data
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(events_table.insert().values(**event_data_dict))
                 conn.commit()
 
@@ -374,7 +388,7 @@ class EventDatabase:
         """Update an existing event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -393,7 +407,10 @@ class EventDatabase:
             update_data['updated_at'] = datetime.now()
 
             # Update event
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
@@ -433,7 +450,7 @@ class EventDatabase:
         """Delete an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -443,7 +460,10 @@ class EventDatabase:
                 return False
 
             # Delete event
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     events_table.delete().where(events_table.c.id == event_id)
                 )
@@ -458,7 +478,7 @@ class EventDatabase:
         """Get events by type"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -468,7 +488,10 @@ class EventDatabase:
                 return []
 
             events = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     events_table.select().where(events_table.c.type == event_type)
                 ).fetchall()
@@ -499,7 +522,7 @@ class EventDatabase:
         """Get upcoming events (events in the future)"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -509,7 +532,10 @@ class EventDatabase:
                 return []
 
             events = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 now = datetime.now()
                 results = conn.execute(
                     events_table.select().where(events_table.c.dateTime > now)
@@ -542,7 +568,7 @@ class EventDatabase:
         """Register a user for an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -551,7 +577,10 @@ class EventDatabase:
             if events_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 # Get current event data
                 result = conn.execute(
                     events_table.select().where(events_table.c.id == event_id)
@@ -582,7 +611,7 @@ class EventDatabase:
         """Unregister a user from an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -591,7 +620,10 @@ class EventDatabase:
             if events_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 # Get current event data
                 result = conn.execute(
                     events_table.select().where(events_table.c.id == event_id)
@@ -632,7 +664,7 @@ class EventDatabase:
         """
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -643,13 +675,19 @@ class EventDatabase:
 
             # Get registration table
             metadata = MetaData(schema=schema_name)
-            metadata.reflect(bind=self.engine, only=['events_registration'])
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            metadata.reflect(bind=schema_engine, only=['events_registration'])
             registration_table = metadata.tables[f'{schema_name}.events_registration']
 
             events_with_status = []
             now = datetime.now()
             
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 # Query database according to requirements:
                 # 1. All events that dateTime is newer than now and recurring is 'none'
                 # 2. All events that recurring_end_date is newer than now and recurring is not 'none'

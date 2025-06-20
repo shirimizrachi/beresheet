@@ -10,7 +10,7 @@ from datetime import datetime
 
 from sqlalchemy import create_engine, MetaData, Table, text
 from models import ServiceRequest, ServiceRequestCreate, ServiceRequestUpdate, RequestStatusUpdate, ChatMessage
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 from users import user_db
 
@@ -22,9 +22,9 @@ class RequestDatabase:
     """
 
     def __init__(self):
-        # Generic connection string (server-level); most ops will use schema-specific engines
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
+        pass
 
     # --------------------------------------------------------------------- #
     # Table reflection helper                                               #
@@ -101,7 +101,7 @@ class RequestDatabase:
     def create_request(self, request_data: ServiceRequestCreate, resident_id: str, home_id: int) -> Optional[ServiceRequest]:
         """Create a new request from resident to service provider"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -123,7 +123,10 @@ class RequestDatabase:
             # Generate unique request ID
             request_id = str(uuid.uuid4())
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 insert_result = conn.execute(
                     requests_table.insert().values(
                         id=request_id,
@@ -158,7 +161,7 @@ class RequestDatabase:
     def get_request_by_id(self, request_id: str, home_id: int) -> Optional[ServiceRequest]:
         """Get a specific request by ID"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -166,7 +169,10 @@ class RequestDatabase:
             if requests_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     requests_table.select().where(requests_table.c.id == request_id)
                 ).fetchone()
@@ -181,7 +187,7 @@ class RequestDatabase:
     def get_requests_by_resident(self, resident_id: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests created by a specific resident with service provider details"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -229,7 +235,7 @@ class RequestDatabase:
     def get_requests_by_service_provider(self, service_provider_id: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests assigned to a specific service provider"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -237,7 +243,10 @@ class RequestDatabase:
             if requests_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 query = requests_table.select().where(requests_table.c.service_provider_id == service_provider_id)
                 
                 if status_filter:
@@ -254,7 +263,7 @@ class RequestDatabase:
     def get_requests_by_service_provider_type(self, service_provider_type: str, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests for a specific service provider type"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -262,7 +271,10 @@ class RequestDatabase:
             if requests_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 query = requests_table.select().where(requests_table.c.service_provider_type == service_provider_type)
                 
                 if status_filter:
@@ -279,7 +291,7 @@ class RequestDatabase:
     def get_all_requests(self, home_id: int, status_filter: Optional[str] = None) -> List[ServiceRequest]:
         """Get all requests (admin view)"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -287,7 +299,10 @@ class RequestDatabase:
             if requests_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 query = requests_table.select()
                 
                 if status_filter:
@@ -304,7 +319,7 @@ class RequestDatabase:
     def update_request(self, request_id: str, request_data: ServiceRequestUpdate, home_id: int) -> Optional[ServiceRequest]:
         """Update a request"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -312,7 +327,10 @@ class RequestDatabase:
             if requests_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 # Build update dictionary
                 update_data = {}
                 
@@ -352,7 +370,7 @@ class RequestDatabase:
     def update_request_status(self, request_id: str, status_update: RequestStatusUpdate, home_id: int) -> Optional[ServiceRequest]:
         """Update request status with timestamps"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -360,7 +378,10 @@ class RequestDatabase:
             if requests_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 update_data = {'request_status': status_update.request_status}
                 
                 current_time = datetime.now()
@@ -467,7 +488,7 @@ class RequestDatabase:
     def delete_request(self, request_id: str, home_id: int) -> bool:
         """Delete a request (admin only)"""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -475,7 +496,10 @@ class RequestDatabase:
             if requests_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     requests_table.delete().where(requests_table.c.id == request_id)
                 )

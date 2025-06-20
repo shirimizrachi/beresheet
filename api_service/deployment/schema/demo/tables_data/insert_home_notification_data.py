@@ -6,21 +6,16 @@ Usage: python create_home_notification_data.py <schema_name>
 import sys
 from sqlalchemy import create_engine, text
 
-def insert_home_notification_data(schema_name: str):
+def insert_home_notification_data(engine, schema_name: str):
     """
-    Insert welcome notification data into the home_notification table
+    Insert welcome notification data into the home_notification table using provided engine
     
     Args:
+        engine: SQLAlchemy engine object
         schema_name: Name of the schema where the table exists
     """
     
-    # Connection string for the home database (using Windows Authentication)
-    connection_string = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
-    
     try:
-        # Create SQLAlchemy engine
-        engine = create_engine(connection_string)
-        
         with engine.connect() as conn:
             # Insert Hebrew welcome notification from manager
             insert_notification_sql = text(f"""

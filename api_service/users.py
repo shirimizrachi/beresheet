@@ -10,14 +10,13 @@ from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from models import UserProfile, UserProfileCreate, UserProfileUpdate
-from home_mapping import get_connection_string, get_schema_for_home, get_all_homes
+from tenant_config import get_schema_name_by_home_id, get_all_homes
 from database_utils import get_schema_engine, get_engine_for_home, get_connection_for_home
 
 class UserDatabase:
     def __init__(self):
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
         self.metadata = MetaData()
 
     def get_user_table(self, schema_name: str):
@@ -42,7 +41,7 @@ class UserDatabase:
         """Create a new user profile with minimal required data and auto-generated password"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 raise ValueError(f"No schema found for home ID {home_id}")
 
@@ -110,7 +109,7 @@ class UserDatabase:
         """Get a user profile by phone number from the appropriate schema"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -158,7 +157,7 @@ class UserDatabase:
         """Get a user profile by id from the appropriate schema"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -206,7 +205,7 @@ class UserDatabase:
         """Update an existing user profile"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -271,7 +270,7 @@ class UserDatabase:
         """Delete a user profile"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -297,7 +296,7 @@ class UserDatabase:
         """Update only the Firebase FCM token for a user"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -331,7 +330,7 @@ class UserDatabase:
         """Get all users from the appropriate schema"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -384,14 +383,14 @@ class UserDatabase:
         return None
 
     def get_available_homes(self) -> List[Dict]:
-        """Get all available homes from home mapping"""
+        """Get all available homes from tenant configuration"""
         return get_all_homes()
     
     def get_service_providers_ordered_by_requests(self, home_id: int, user_id: Optional[str] = None) -> List['ServiceProviderProfile']:
         """Get service providers ordered by most recent request interaction with the requesting user"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -491,7 +490,7 @@ class UserDatabase:
         """Create a web session for authenticated user"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -548,7 +547,7 @@ class UserDatabase:
         """Validate web session and return session info"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -596,7 +595,7 @@ class UserDatabase:
         """Invalidate/logout web session"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 

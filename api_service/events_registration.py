@@ -9,7 +9,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
+from database_utils import get_schema_engine
 
 class EventRegistration:
     def __init__(self, id: str, event_id: str, user_id: str, user_name: str = None,
@@ -48,9 +49,8 @@ class EventRegistration:
 
 class EventRegistrationDatabase:
     def __init__(self):
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
         self.metadata = MetaData()
 
     def get_events_registration_table(self, schema_name: str):
@@ -58,7 +58,10 @@ class EventRegistrationDatabase:
         try:
             # Reflect the events_registration table from the specified schema
             metadata = MetaData(schema=schema_name)
-            metadata.reflect(bind=self.engine, only=['events_registration'])
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            metadata.reflect(bind=schema_engine, only=['events_registration'])
             return metadata.tables[f'{schema_name}.events_registration']
         except Exception as e:
             print(f"Error reflecting events_registration table for schema {schema_name}: {e}")
@@ -69,7 +72,10 @@ class EventRegistrationDatabase:
         try:
             # Reflect the events table from the specified schema
             metadata = MetaData(schema=schema_name)
-            metadata.reflect(bind=self.engine, only=['events'])
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            metadata.reflect(bind=schema_engine, only=['events'])
             return metadata.tables[f'{schema_name}.events']
         except Exception as e:
             print(f"Error reflecting events table for schema {schema_name}: {e}")
@@ -80,7 +86,7 @@ class EventRegistrationDatabase:
         """Register a user for an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -90,7 +96,10 @@ class EventRegistrationDatabase:
             if registration_table is None or events_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 # Check if already registered with 'registered' status
                 existing_registration = conn.execute(
                     registration_table.select().where(
@@ -199,7 +208,7 @@ class EventRegistrationDatabase:
         """Unregister a user from an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -209,7 +218,10 @@ class EventRegistrationDatabase:
             if registration_table is None or events_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 # Check if user is registered
                 existing_registration = conn.execute(
                     registration_table.select().where(
@@ -259,7 +271,7 @@ class EventRegistrationDatabase:
         """Check if a user is registered for an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -268,7 +280,10 @@ class EventRegistrationDatabase:
             if registration_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     registration_table.select().where(
                         (registration_table.c.event_id == event_id) &
@@ -287,7 +302,7 @@ class EventRegistrationDatabase:
         """Get all registrations for a user"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -297,7 +312,10 @@ class EventRegistrationDatabase:
                 return []
 
             registrations = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     registration_table.select()
                     .where(
@@ -333,7 +351,7 @@ class EventRegistrationDatabase:
         """Get all registrations for an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -343,7 +361,10 @@ class EventRegistrationDatabase:
                 return []
 
             registrations = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     registration_table.select()
                     .where(
@@ -379,7 +400,7 @@ class EventRegistrationDatabase:
         """Get all registrations (for management purposes)"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -389,7 +410,10 @@ class EventRegistrationDatabase:
                 return []
 
             registrations = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     registration_table.select()
                     .where(registration_table.c.status == 'registered')
@@ -426,7 +450,7 @@ class EventRegistrationDatabase:
             from datetime import datetime
             
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -435,7 +459,10 @@ class EventRegistrationDatabase:
             if registration_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 # Find the registration
                 registration = conn.execute(
                     registration_table.select().where(
@@ -507,7 +534,7 @@ class EventRegistrationDatabase:
             import json
             
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return {}
 
@@ -516,7 +543,10 @@ class EventRegistrationDatabase:
             if registration_table is None:
                 return {}
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 registration = conn.execute(
                     registration_table.select().where(
                         (registration_table.c.event_id == event_id) &

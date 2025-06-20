@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from models import EventGallery, EventGalleryCreate, EventGalleryUpdate
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 from azure_storage_service import azure_storage_service
 from PIL import Image
@@ -19,9 +19,8 @@ import io
 
 class EventGalleryDatabase:
     def __init__(self):
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
         self.metadata = MetaData()
 
     def get_event_gallery_table(self, schema_name: str):
@@ -82,7 +81,7 @@ class EventGalleryDatabase:
         """
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 raise ValueError(f"No schema found for home ID {home_id}")
 
@@ -145,7 +144,10 @@ class EventGalleryDatabase:
                     }
                     
                     # Insert into database
-                    with self.engine.connect() as conn:
+                    schema_engine = get_schema_engine(schema_name)
+                    if not schema_engine:
+                        return None
+                    with schema_engine.connect() as conn:
                         result = conn.execute(gallery_table.insert().values(**gallery_data))
                         conn.commit()
                     
@@ -175,7 +177,7 @@ class EventGalleryDatabase:
         """Get all gallery images for an event"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -185,7 +187,10 @@ class EventGalleryDatabase:
                 return []
 
             galleries = []
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(
                     gallery_table.select()
                     .where(gallery_table.c.event_id == event_id)
@@ -212,7 +217,7 @@ class EventGalleryDatabase:
         """Get a specific gallery photo by ID"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -221,7 +226,10 @@ class EventGalleryDatabase:
             if gallery_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return None
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     gallery_table.select().where(gallery_table.c.photo_id == photo_id)
                 ).fetchone()
@@ -246,7 +254,7 @@ class EventGalleryDatabase:
         """Delete a gallery photo"""
         try:
             # Get schema for home
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -261,7 +269,10 @@ class EventGalleryDatabase:
                 return False
 
             # Delete from database
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     gallery_table.delete().where(gallery_table.c.photo_id == photo_id)
                 )

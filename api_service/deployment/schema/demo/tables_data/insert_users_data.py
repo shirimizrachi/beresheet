@@ -1,26 +1,20 @@
 """
 Data insertion script for the users table with Hebrew examples
-Usage: python create_users_data.py <schema_name>
+Usage with API engine: insert_users_data(engine, schema_name)
 """
 
-import sys
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
-def insert_users_data(schema_name: str):
+def insert_users_data(engine, schema_name: str):
     """
-    Insert sample Hebrew user data into the users table
+    Insert sample Hebrew user data into the users table using provided engine
     
     Args:
+        engine: SQLAlchemy engine object
         schema_name: Name of the schema where the table exists
     """
     
-    # Connection string for the home database (using Windows Authentication)
-    connection_string = "mssql+pyodbc://localhost\\SQLEXPRESS/home?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&Trusted_Connection=yes"
-    
     try:
-        # Create SQLAlchemy engine
-        engine = create_engine(connection_string)
-        
         with engine.connect() as conn:
             # Insert Hebrew test users with proper values matching UserProfile validation
             insert_user_sql = text(f"""
@@ -56,23 +50,3 @@ def insert_users_data(schema_name: str):
     except Exception as e:
         print(f"Error inserting user data into schema '{schema_name}': {e}")
         return False
-
-def main():
-    """Main function to handle command line arguments"""
-    if len(sys.argv) != 2:
-        print("Usage: python create_users_data.py <schema_name>")
-        print("Example: python create_users_data.py beresheet")
-        sys.exit(1)
-    
-    schema_name = sys.argv[1]
-    
-    if not schema_name.isalnum():
-        print("Error: Schema name must be alphanumeric")
-        sys.exit(1)
-    
-    success = insert_users_data(schema_name)
-    if not success:
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()

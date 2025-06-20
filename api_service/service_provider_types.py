@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from sqlalchemy import create_engine, MetaData, Table, text
 from models import ServiceProviderType, ServiceProviderTypeCreate, ServiceProviderTypeUpdate
-from home_mapping import get_connection_string, get_schema_for_home
+from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 
 
@@ -18,9 +18,9 @@ class ServiceProviderTypeDatabase:
     """
 
     def __init__(self):
-        # Generic connection string (server-level); most ops will use schema-specific engines
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        # Note: This class now uses tenant-specific connections through database_utils
+        # No default engine is created as all operations use schema-specific engines
+        pass
 
     # --------------------------------------------------------------------- #
     # Table reflection helper                                               #
@@ -48,7 +48,7 @@ class ServiceProviderTypeDatabase:
     def get_all_service_provider_types(self, home_id: int) -> List[ServiceProviderType]:
         """Return a list of all service provider types for the given home."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return []
 
@@ -56,7 +56,10 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return []
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 results = conn.execute(types_table.select().order_by(types_table.c.name)).fetchall()
                 return [
                     ServiceProviderType(
@@ -72,7 +75,7 @@ class ServiceProviderTypeDatabase:
     def get_service_provider_type_by_id(self, type_id: int, home_id: int) -> Optional[ServiceProviderType]:
         """Get a single service provider type by ID."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -80,7 +83,10 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     types_table.select().where(types_table.c.id == type_id)
                 ).fetchone()
@@ -99,7 +105,7 @@ class ServiceProviderTypeDatabase:
     def create_service_provider_type(self, type_data: ServiceProviderTypeCreate, home_id: int) -> Optional[ServiceProviderType]:
         """Insert a new service provider type; returns the created ServiceProviderType or None on failure."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -107,7 +113,10 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 insert_result = conn.execute(
                     types_table.insert().values(
                         name=type_data.name,
@@ -136,7 +145,7 @@ class ServiceProviderTypeDatabase:
     def update_service_provider_type(self, type_id: int, type_data: ServiceProviderTypeUpdate, home_id: int) -> Optional[ServiceProviderType]:
         """Update a service provider type (only description can be updated); returns updated ServiceProviderType or None on failure."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return None
 
@@ -144,7 +153,10 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return None
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 # Update the record
                 update_data = {}
                 if type_data.description is not None:
@@ -181,7 +193,7 @@ class ServiceProviderTypeDatabase:
     def delete_service_provider_type(self, type_id: int, home_id: int) -> bool:
         """Delete service provider type by ID; returns True if a row was removed."""
         try:
-            schema_name = get_schema_for_home(home_id)
+            schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 return False
 
@@ -189,7 +201,10 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return False
 
-            with self.engine.connect() as conn:
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
                 result = conn.execute(
                     types_table.delete().where(types_table.c.id == type_id)
                 )
