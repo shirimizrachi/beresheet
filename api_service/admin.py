@@ -496,7 +496,31 @@ async def init_tables_for_tenant(tenant_name: str):
                     spec.loader.exec_module(module)
                     
                     if hasattr(module, function_name):
-                        success = module.__dict__[function_name](engine, tenant.database_schema)
+                        print(f"Executing {function_name} from {script_name} for tenant '{tenant_name}'")
+                        # Special handling for insert_users_data to pass home_id and home_index info
+                        if function_name == "insert_users_data":
+                            # Get home_index engine
+                            print("Creating home_index engine for tenant data initialization")
+                            try:
+                                from residents_db_config import get_home_index_connection_string
+                                from sqlalchemy import create_engine as create_home_index_engine
+                                home_index_engine = create_home_index_engine(get_home_index_connection_string())
+                                success = module.__dict__[function_name](
+                                    engine,
+                                    tenant.database_schema,
+                                    home_id=tenant.id,
+                                    home_index_engine=home_index_engine,
+                                    home_name=tenant.name
+                                )
+                            except Exception as e:
+                                logger.warning(f"Could not create home_index engine: {e}")
+                                success = module.__dict__[function_name](
+                                    engine,
+                                    tenant.database_schema,
+                                    home_id=tenant.id
+                                )
+                        else:
+                            success = module.__dict__[function_name](engine, tenant.database_schema)
                         
                         if success:
                             initialized_data.append(script_name.replace("create_", "").replace("_data", ""))
@@ -818,9 +842,32 @@ async def load_table_data(tenant_name: str, table_name: str, engine, schema_name
             # Add the module to sys.modules temporarily
             sys.modules[script_name] = module
             spec.loader.exec_module(module)
-            
+            print(f"Executing {function_name} from {script_name} for tenant '{tenant_name}'")
             if hasattr(module, function_name):
-                success = module.__dict__[function_name](engine, schema_name)
+                # Special handling for insert_users_data to pass home_id and home_index info
+                if function_name == "insert_users_data":
+                    print("Creating home_index engine for tenant data loading")
+                    # Get home_index engine and tenant info
+                    try:
+                        from residents_db_config import get_home_index_connection_string
+                        from sqlalchemy import create_engine as create_home_index_engine
+                        home_index_engine = create_home_index_engine(get_home_index_connection_string())
+                        success = module.__dict__[function_name](
+                            engine,
+                            schema_name,
+                            home_id=tenant_id,
+                            home_index_engine=home_index_engine,
+                            home_name=tenant_name
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not create home_index engine: {e}")
+                        success = module.__dict__[function_name](
+                            engine,
+                            schema_name,
+                            home_id=tenant_id
+                        )
+                else:
+                    success = module.__dict__[function_name](engine, schema_name)
                 
                 # Clean up module from sys.modules
                 del sys.modules[script_name]

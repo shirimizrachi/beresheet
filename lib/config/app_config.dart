@@ -129,6 +129,27 @@ class AppConfig {
   /// Get the API base URL (alias for compatibility)
   static String get basberesheeteUrl => apiBaseUrl;
   
+  /// Get the API prefix from user session for authenticated requests
+  static Future<String> getApiPrefixFromSession() async {
+    try {
+      // Import FlutterSecureStorage when needed
+      // final secureStorage = FlutterSecureStorage();
+      // final sessionPrefix = await secureStorage.read(key: 'user_api_prefix');
+      // return sessionPrefix ?? apiPrefix; // Fallback to static prefix
+      
+      // For now, return the static prefix until secure storage is implemented
+      return apiPrefix;
+    } catch (e) {
+      return apiPrefix; // Fallback to static prefix
+    }
+  }
+
+  /// Get the full API URL with session-based prefix for authenticated calls
+  static Future<String> getApiUrlWithSessionPrefix() async {
+    final prefix = await getApiPrefixFromSession();
+    return '$apiBaseUrl/$prefix';
+  }
+  
   /// Get the full API URL with prefix for API calls
   /// For web: uses tenant_info cookie, for mobile: uses static prefix
   /// This method constructs URLs like: http://localhost:8000/demo/api/...

@@ -1918,6 +1918,21 @@ async def logout(request: dict):
             "message": f"Logout failed: {str(e)}"
         }
 
+# Home Index endpoint - special endpoint that doesn't require homeID header
+@api_router.get("/users/get_user_home")
+async def get_user_home(phone_number: str = Query(...)):
+    """Get user's home information by phone number - used for initial authentication"""
+    try:
+        home_info = user_db.get_user_home_info(phone_number)
+        if not home_info:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found. Please contact support to set up your account."
+            )
+        return home_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Create complete tenant router with API and web endpoints
 tenant_router = create_tenant_api_router(api_router)
 

@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import UserProfile, UserProfileCreate, UserProfileUpdate
 from tenant_config import get_schema_name_by_home_id, get_all_homes
 from database_utils import get_schema_engine, get_engine_for_home, get_connection_for_home
+from home_index import home_index_db
 
 class UserDatabase:
     def __init__(self):
@@ -80,6 +81,29 @@ class UserDatabase:
             with schema_engine.connect() as conn:
                 result = conn.execute(users_table.insert().values(**user_data_dict))
                 conn.commit()
+
+            # Create matching entry in home_index table
+            try:
+                # Get home name from tenant config for home_index entry
+                from tenant_config import get_all_homes
+                home_name = None
+                for home in get_all_homes():
+                    if home['id'] == home_id:
+                        home_name = home['name']
+                        break
+                
+                if home_name:
+                    home_index_success = home_index_db.create_home_entry(
+                        phone_number=user_data.phone_number,
+                        home_id=home_id,
+                        home_name=home_name
+                    )
+                    if not home_index_success:
+                        print(f"Warning: Failed to create home_index entry for user {user_data.phone_number}")
+                else:
+                    print(f"Warning: Could not find home name for home_id {home_id}")
+            except Exception as e:
+                print(f"Warning: Error creating home_index entry for user {user_data.phone_number}: {e}")
 
             # Create and return UserProfile object
             return UserProfile(
@@ -615,6 +639,20 @@ class UserDatabase:
         except Exception as e:
             print(f"Error invalidating web session {session_id}: {e}")
             return False
+
+    def get_user_home_info(self, phone_number: str) -> Optional[Dict[str, any]]:
+        """Get user's home information by phone number using home_index"""
+        try:
+            home_info = home_index_db.get_home_by_phone(phone_number)
+            if home_info:
+                return {
+                    'home_id': home_info['home_id'],
+                    'home_name': home_info['home_name']
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting user home info for phone {phone_number}: {e}")
+            return None
 
 # Create global instance
 user_db = UserDatabase()
