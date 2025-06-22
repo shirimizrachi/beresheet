@@ -48,6 +48,11 @@ class DisplayNameUtils {
     }
   }
   
+  /// Format role display name (alias for getUserRoleDisplayName)
+  static String formatRoleDisplayName(String role, BuildContext context) {
+    return getUserRoleDisplayName(role, context);
+  }
+  
   /// Get display name for event type using localization
   static String getEventTypeDisplayName(String type, BuildContext context) {
     final localizations = AppLocalizations.of(context)!;

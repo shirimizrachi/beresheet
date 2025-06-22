@@ -72,7 +72,7 @@ This will automatically:
 #### 1. Build Flutter Web App
 
 ```bash
-flutter build web --target lib/main_web.dart --base-href /web/
+flutter build web --target lib/main_admin.dart --output build/web-admin
 ```
 
 #### 2. Start the Combined Server

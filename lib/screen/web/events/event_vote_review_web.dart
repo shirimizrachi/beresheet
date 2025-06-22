@@ -1,5 +1,5 @@
 import 'package:beresheet_app/services/modern_localization_service.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -43,12 +43,19 @@ class _EventVoteReviewWebState extends State<EventVoteReviewWeb> {
     });
 
     try {
+      // Get current user info from JWT
+      final user = await WebJwtAuthService.getCurrentUser();
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.eventId}/votes-reviews/all'),
         headers: {
           'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'currentUserId': WebAuthService.userId ?? '',
+          'homeID': user.homeId.toString(),
+          'currentUserId': user.id.toString(),
+          ...await WebJwtAuthService.getAuthHeaders(),
         },
       );
 

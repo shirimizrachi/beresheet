@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
-import '../../../services/web_auth_service.dart';
+import '../../../services/web/web_jwt_session_service.dart';
 import '../../../services/modern_localization_service.dart';
 import '../../../utils/display_name_utils.dart';
 import 'add_notification_web.dart';
@@ -317,13 +317,14 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
     });
 
     try {
-      if (!WebAuthService.isLoggedIn) {
+      final hasValidSession = await WebJwtSessionService.hasValidSession();
+      if (!hasValidSession) {
         throw Exception('User not authenticated');
       }
 
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications'),
-        headers: WebAuthService.getAuthHeaders(),
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {

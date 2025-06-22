@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 import '../../config/app_config.dart';
-import '../../services/web_auth_service.dart';
+import '../../services/web/web_jwt_session_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http_parser/http_parser.dart';
@@ -51,10 +51,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -95,10 +92,8 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
       );
 
-      request.headers.addAll({
-        'homeID': WebAuthService.homeId.toString(),
-        'currentUserId': WebAuthService.userId ?? '',
-      });
+      final headers = await WebJwtSessionService.getAuthHeaders();
+      request.headers.addAll(headers);
 
       request.fields['name'] = _nameController.text.trim();
       request.fields['description'] = _descriptionController.text.trim();
@@ -163,10 +158,8 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors/${_editingInstructor!['id']}'),
       );
 
-      request.headers.addAll({
-        'homeID': WebAuthService.homeId.toString(),
-        'currentUserId': WebAuthService.userId ?? '',
-      });
+      final headers = await WebJwtSessionService.getAuthHeaders();
+      request.headers.addAll(headers);
 
       request.fields['name'] = _nameController.text.trim();
       request.fields['description'] = _descriptionController.text.trim();
@@ -242,11 +235,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
     try {
       final response = await http.delete(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors/$instructorId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'currentUserId': WebAuthService.userId ?? '',
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {

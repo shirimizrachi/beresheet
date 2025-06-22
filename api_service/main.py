@@ -17,8 +17,6 @@ from models import (
     UserProfileCreate,
     UserProfileUpdate,
     LoginRequest,
-    LoginResponse,
-    SessionInfo,
     Room,
     RoomCreate,
     EventInstructor,
@@ -92,6 +90,7 @@ app.add_middleware(
 
 # Import multi-tenant routing components
 from admin import admin_router, admin_api_router
+from web_jwt_auth import web_jwt_router
 from tenant_config import get_all_tenants
 from tenant_auto_router import create_tenant_api_router
 
@@ -99,8 +98,17 @@ from tenant_auto_router import create_tenant_api_router
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
 
-# Web build path for Flutter web
-web_build_path = "../build/web"
+# Web build paths for Flutter web (dual builds)
+tenant_web_build_path = "../build/web-tenant"
+admin_web_build_path = "../build/web-admin"
+
+# Mount static files for Flutter web (dual builds)
+import os
+if os.path.exists(tenant_web_build_path):
+    app.mount("/static/tenant", StaticFiles(directory=tenant_web_build_path), name="tenant-static")
+
+if os.path.exists(admin_web_build_path):
+    app.mount("/static/admin", StaticFiles(directory=admin_web_build_path), name="admin-static")
 
 # Header dependencies
 async def get_home_id(home_id: str = Header(..., alias="homeID")):
@@ -1802,121 +1810,8 @@ async def admin_unregister_user(
 
 # Authentication endpoints - these need special handling in tenant routing
 # They should not require homeID header since that's what users get after login
-@api_router.post("/auth/login")
-async def login(login_request: dict):
-    """Authenticate user and create web session"""
-    try:
-        phone_number = login_request.get("phone_number")
-        password = login_request.get("password")
-        home_id = login_request.get("home_id")
-        
-        if not phone_number or not password or not home_id:
-            return {
-                "success": False,
-                "message": "Phone number, password, and home ID are required"
-            }
-        
-        # Authenticate user
-        user = user_db.authenticate_user(phone_number, password, home_id)
-        if not user:
-            return {
-                "success": False,
-                "message": "Invalid phone number or password"
-            }
-        
-        # Create web session
-        session_id = user_db.create_web_session(user.id, home_id, user.role)
-        if not session_id:
-            return {
-                "success": False,
-                "message": "Failed to create session"
-            }
-        
-        # Create JSON response
-        response_data = {
-            "success": True,
-            "session_id": session_id,
-            "user_id": user.id,
-            "home_id": home_id,
-            "user_role": user.role,
-            "message": "Login successful"
-        }
-        
-        # Create response with session cookie for web browsers
-        from fastapi.responses import JSONResponse
-        response = JSONResponse(content=response_data)
-        response.set_cookie(
-            key="web_session_id",
-            value=session_id,
-            max_age=86400,  # 24 hours (same as session expiry)
-            httponly=True,  # Prevent JavaScript access for security
-            secure=False,   # Set to True in production with HTTPS
-            samesite="lax"
-        )
-        
-        return response
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "message": f"Login failed: {str(e)}"
-        }
-
-@api_router.post("/auth/validate-session")
-async def validate_session(request: dict):
-    """Validate web session"""
-    try:
-        session_id = request.get("session_id")
-        home_id = request.get("home_id")
-        
-        if not session_id or not home_id:
-            return {
-                "valid": False,
-                "message": "Session ID and home ID are required"
-            }
-        
-        session_info = user_db.validate_web_session(session_id, home_id)
-        if session_info:
-            return {
-                "valid": True,
-                "session_info": session_info
-            }
-        else:
-            return {
-                "valid": False,
-                "message": "Invalid or expired session"
-            }
-            
-    except Exception as e:
-        return {
-            "valid": False,
-            "message": f"Session validation failed: {str(e)}"
-        }
-
-@api_router.post("/auth/logout")
-async def logout(request: dict):
-    """Logout user and invalidate session"""
-    try:
-        session_id = request.get("session_id")
-        home_id = request.get("home_id")
-        
-        if not session_id or not home_id:
-            return {
-                "success": False,
-                "message": "Session ID and home ID are required"
-            }
-        
-        success = user_db.invalidate_web_session(session_id, home_id)
-        return {
-            "success": success,
-            "message": "Logout successful" if success else "Failed to logout"
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "message": f"Logout failed: {str(e)}"
-        }
+# SESSION-BASED AUTHENTICATION ENDPOINTS REMOVED
+# Replaced with JWT authentication in web_jwt_auth.py
 
 # Home Index endpoint - special endpoint that doesn't require homeID header
 @api_router.get("/users/get_user_home")
@@ -1940,16 +1835,42 @@ tenant_router = create_tenant_api_router(api_router)
 from tenant_auto_router import create_tenant_api_router
 tenant_notification_router = create_tenant_api_router(home_notification_router)
 
+# Create tenant-aware web JWT auth router
+tenant_web_jwt_router = create_tenant_api_router(web_jwt_router)
+
+# Create global discovery router (not tenant-specific)
+global_router = APIRouter()
+
+@global_router.get("/api/users/get_user_home")
+async def global_get_user_home(phone_number: str = Query(...)):
+    """Global endpoint to get user's home information by phone number - used for tenant discovery"""
+    try:
+        home_info = user_db.get_user_home_info(phone_number)
+        if not home_info:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found. Please contact support to set up your account."
+            )
+        return home_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include routers in the correct order
 # 1. Admin routes (highest priority)
 app.include_router(admin_router)
 app.include_router(admin_api_router)
 
-# 2. Complete tenant router (/{tenant_name}/api/* and /{tenant_name}/web)
+# 2. Global discovery endpoints (no tenant prefix)
+app.include_router(global_router)
+
+# 3. Complete tenant router (/{tenant_name}/api/* and /{tenant_name}/web)
 app.include_router(tenant_router)
 
 # 3. Tenant notification routes (/{tenant_name}/api/notifications/*)
 app.include_router(tenant_notification_router)
+
+# 4. Tenant web JWT auth routes (/{tenant_name}/api/web-auth/*)
+app.include_router(tenant_web_jwt_router)
 
 # Note: ALL endpoints are now tenant-specific:
 # - /{tenant_name}/api/* for all API endpoints

@@ -1,6 +1,6 @@
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -36,13 +36,20 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
     });
 
     try {
+      // Get current user info from JWT
+      final user = await WebJwtAuthService.getCurrentUser();
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
       // Get all registrations
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/all'),
         headers: {
           'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'currentUserId': WebAuthService.userId ?? '',
+          'homeID': user.homeId.toString(),
+          'currentUserId': user.id.toString(),
+          ...await WebJwtAuthService.getAuthHeaders(),
         },
       );
 
@@ -69,13 +76,18 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
 
   Future<void> _loadEventNames() async {
     try {
+      // Get current user info from JWT
+      final user = await WebJwtAuthService.getCurrentUser();
+      if (user == null) return;
+
       // Load all events for managers to get event names
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
         headers: {
           'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'userId': WebAuthService.userId ?? '',
+          'homeID': user.homeId.toString(),
+          'userId': user.id.toString(),
+          ...await WebJwtAuthService.getAuthHeaders(),
         },
       );
       
@@ -116,12 +128,19 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
 
     if (confirmed == true) {
       try {
+        // Get current user info from JWT
+        final user = await WebJwtAuthService.getCurrentUser();
+        if (user == null) {
+          throw Exception('User not authenticated');
+        }
+
         final response = await http.delete(
           Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/admin/$eventId/$userId'),
           headers: {
             'Content-Type': 'application/json',
-            'homeID': WebAuthService.homeId.toString(),
-            'currentUserId': WebAuthService.userId ?? '',
+            'homeID': user.homeId.toString(),
+            'currentUserId': user.id.toString(),
+            ...await WebJwtAuthService.getAuthHeaders(),
           },
         );
 

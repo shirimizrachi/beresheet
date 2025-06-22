@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
-import '../../../services/web_auth_service.dart';
+import '../../../services/web/web_jwt_session_service.dart';
 import '../../../services/modern_localization_service.dart';
 
 class AddNotificationWeb extends StatefulWidget {
@@ -188,7 +188,8 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
     });
 
     try {
-      if (!WebAuthService.isLoggedIn) {
+      final hasValidSession = await WebJwtSessionService.hasValidSession();
+      if (!hasValidSession) {
         throw Exception('User not authenticated');
       }
 
@@ -207,9 +208,7 @@ class _AddNotificationWebState extends State<AddNotificationWeb> {
 
       final response = await http.post(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications'),
-        headers: {
-          ...WebAuthService.getAuthHeaders(),
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
         body: json.encode(requestBody),
       );
 

@@ -64,6 +64,7 @@ class ModernAppStrings {
   String get appTitle => _l10n.appTitle;
   String get appName => _l10n.appName;
   String get communitySubtitle => _l10n.communitySubtitle;
+  String get homePageTitle => _l10n.appTitle; // Use appTitle as fallback
 
   // Navigation
   String get profile => _l10n.profile;

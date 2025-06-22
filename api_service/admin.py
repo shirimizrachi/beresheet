@@ -5,7 +5,8 @@ Provides CRUD operations for managing tenant configurations
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse, HTMLResponse
-from typing import List
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import List, Optional
 from tenant_config import (
     TenantConfig,
     TenantCreate,
@@ -17,20 +18,168 @@ import logging
 import os
 import importlib.util
 import sys
+import jwt
+import bcrypt
+from datetime import datetime, timedelta
 from pathlib import Path
 from database_utils import get_tenant_engine, get_tenant_connection
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
 from azure_storage_service import azure_storage_service
+from pydantic import BaseModel
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# JWT Configuration
+JWT_SECRET_KEY = "admin_secret_key_2025"  # In production, use environment variable
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 8
+
+# Security
+security = HTTPBearer()
+
+# Pydantic models for authentication
+class AdminCredentials(BaseModel):
+    email: str
+    password: str
+
+class TokenResponse(BaseModel):
+    token: str
+    user: dict
+    expires_at: str
+    created_at: str
+
+class TokenValidation(BaseModel):
+    token: str
+    refresh: Optional[bool] = False
+
 # Create admin router
 admin_router = APIRouter(prefix="/home/admin", tags=["admin"])
 
-@admin_router.get("/", response_class=HTMLResponse)
-async def admin_root():
-    """Serve the admin web interface"""
+# Authentication helper functions
+def create_access_token(data: dict) -> str:
+    """Create JWT access token"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str) -> dict:
+    """Verify JWT token"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current authenticated admin user from token"""
+    token = credentials.credentials
+    payload = verify_token(token)
+    return payload
+
+async def authenticate_admin(email: str, password: str) -> dict:
+    """Authenticate admin against home table"""
+    try:
+        from residents_db_config import get_connection_string
+        engine = create_engine(get_connection_string())
+        
+        with engine.connect() as conn:
+            # Query home table for admin user
+            query = text("""
+                SELECT id, name, database_name, database_type, database_schema,
+                       admin_user_email, admin_user_password, created_at, updated_at
+                FROM home.home
+                WHERE admin_user_email = :email
+            """)
+            
+            result = conn.execute(query, {"email": email}).fetchone()
+            
+            if not result:
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+            # Verify password (assuming plain text for now - in production use bcrypt)
+            if result.admin_user_password != password:
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+            # Return user data
+            return {
+                "id": result.id,
+                "name": result.name,
+                "database_name": result.database_name,
+                "database_type": result.database_type,
+                "database_schema": result.database_schema,
+                "admin_user_email": result.admin_user_email,
+                "admin_user_password": result.admin_user_password,
+                "created_at": result.created_at.isoformat(),
+                "updated_at": result.updated_at.isoformat(),
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed")
+
+# Authentication endpoints
+@admin_router.post("/api/auth/login", response_model=TokenResponse)
+async def admin_login(credentials: AdminCredentials):
+    """Admin login endpoint"""
+    try:
+        user_data = await authenticate_admin(credentials.email, credentials.password)
+        
+        # Create JWT token
+        token_data = {"sub": user_data["admin_user_email"], "user_id": user_data["id"]}
+        access_token = create_access_token(token_data)
+        
+        # Calculate expiration time
+        expires_at = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+        created_at = datetime.utcnow()
+        
+        return TokenResponse(
+            token=access_token,
+            user=user_data,
+            expires_at=expires_at.isoformat(),
+            created_at=created_at.isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@admin_router.post("/api/auth/validate")
+async def validate_admin_token(validation: TokenValidation):
+    """Validate admin token"""
+    try:
+        payload = verify_token(validation.token)
+        
+        if validation.refresh:
+            # Create new token with extended expiration
+            new_token = create_access_token({"sub": payload["sub"], "user_id": payload["user_id"]})
+            return {"valid": True, "new_token": new_token}
+        
+        return {"valid": True}
+        
+    except HTTPException as e:
+        return {"valid": False, "error": str(e.detail)}
+    except Exception as e:
+        logger.error(f"Token validation error: {e}")
+        return {"valid": False, "error": "Validation failed"}
+
+@admin_router.post("/api/auth/logout")
+async def admin_logout(current_user: dict = Depends(get_current_admin_user)):
+    """Admin logout endpoint"""
+    # In a real implementation, you might blacklist the token
+    return {"message": "Logged out successfully"}
+
+@admin_router.get("/html", response_class=HTMLResponse)
+async def admin_html():
+    """Serve the legacy admin HTML interface"""
     try:
         # Path to the admin HTML file
         admin_html_path = os.path.join(os.path.dirname(__file__), "admin_web.html")
@@ -78,6 +227,69 @@ async def admin_root():
             <p><a href="/home/admin/api/tenants">View API directly</a></p>
         </body></html>
         """, status_code=500)
+
+# Flutter Web Admin Routes (admin-specific build)
+web_build_path = "../build/web-admin"
+
+@admin_router.get("/", response_class=HTMLResponse)
+async def serve_admin_flutter_web():
+    """Serve the Flutter web admin panel - main entry point"""
+    if os.path.exists(web_build_path):
+        index_path = os.path.join(web_build_path, "index.html")
+        if os.path.exists(index_path):
+            # Read and modify index.html to inject correct base href for admin
+            with open(index_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Replace base href with admin-specific path
+            content = content.replace('<base href="/">', '<base href="/home/admin/">')
+            content = content.replace('<base href="/web/">', '<base href="/home/admin/">')
+            # Also handle case where there's no base tag
+            if '<base href=' not in content and '<head>' in content:
+                content = content.replace('<head>', '<head>\n  <base href="/home/admin/">')
+            
+            return HTMLResponse(content=content, media_type="text/html")
+        else:
+            raise HTTPException(status_code=404, detail="Admin web interface not found")
+    else:
+        raise HTTPException(status_code=404, detail="Flutter web build not found. Run 'flutter build web' to generate web assets.")
+
+@admin_router.get("/login", response_class=HTMLResponse)
+async def serve_admin_login():
+    """Serve the Flutter web admin login page"""
+    # Same as main admin route - Flutter handles the routing internally
+    return await serve_admin_flutter_web()
+
+@admin_router.get("/dashboard", response_class=HTMLResponse)
+async def serve_admin_dashboard():
+    """Serve the Flutter web admin dashboard"""
+    # Same as main admin route - Flutter handles the routing internally
+    return await serve_admin_flutter_web()
+
+@admin_router.get("/{path:path}")
+async def serve_admin_assets(path: str):
+    """Serve Flutter web static assets for admin panel"""
+    # Skip API routes and HTML route
+    if path.startswith('api/') or path == 'html':
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Security check to prevent directory traversal
+    if ".." in path or path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    if os.path.exists(web_build_path):
+        asset_path = os.path.join(web_build_path, path)
+        if os.path.exists(asset_path) and os.path.isfile(asset_path):
+            return FileResponse(asset_path)
+        else:
+            # If asset not found, return the main index.html for SPA routing
+            index_path = os.path.join(web_build_path, "index.html")
+            if os.path.exists(index_path):
+                return await serve_admin_flutter_web()
+            else:
+                raise HTTPException(status_code=404, detail="Asset not found")
+    else:
+        raise HTTPException(status_code=404, detail="Flutter web build not found")
 
 # Admin API endpoints
 admin_api_router = APIRouter(prefix="/home/admin/api", tags=["admin-api"])

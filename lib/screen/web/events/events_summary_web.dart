@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
-import '../../../services/web_auth_service.dart';
+import '../../../services/web/web_jwt_session_service.dart';
 import '../../../model/event.dart';
 
 class EventsSummaryWeb extends StatefulWidget {
@@ -50,11 +50,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
   Future<void> _loadAllEvents() async {
     final response = await http.get(
       Uri.parse('${AppConfig.apiUrlWithPrefix}/events'),
-      headers: {
-        'Content-Type': 'application/json',
-        'homeID': WebAuthService.homeId.toString(),
-        'userId': WebAuthService.userId ?? '',
-      },
+      headers: await WebJwtSessionService.getAuthHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -68,11 +64,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
   Future<void> _loadHomeEvents() async {
     final response = await http.get(
       Uri.parse('${AppConfig.apiUrlWithPrefix}/events/home'),
-      headers: {
-        'Content-Type': 'application/json',
-        'homeID': WebAuthService.homeId.toString(),
-        'userId': WebAuthService.userId ?? '',
-      },
+      headers: await WebJwtSessionService.getAuthHeaders(),
     );
 
     if (response.statusCode == 200) {

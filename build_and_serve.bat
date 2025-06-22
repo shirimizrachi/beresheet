@@ -4,7 +4,10 @@ echo.
 
 echo Step 1: Building Flutter Web App...
 echo.
-flutter build web --target lib/main_web.dart --base-href /web/
+flutter build web --target lib/main_web.dart --output build/web-tenant
+flutter build web --target lib/main_admin.dart --output build/web-admin
+
+
 if %errorlevel% neq 0 (
     echo Error: Flutter build failed
     pause

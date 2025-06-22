@@ -193,21 +193,8 @@ class LoginRequest(BaseModel):
     password: str
     home_id: int
 
-class LoginResponse(BaseModel):
-    success: bool
-    session_id: Optional[str] = None
-    user_id: Optional[str] = None
-    home_id: Optional[int] = None
-    user_role: Optional[str] = None
-    message: str
-
-class SessionInfo(BaseModel):
-    session_id: str
-    user_id: str
-    home_id: int
-    user_role: str
-    is_active: bool
-    expires_at: str
+# SESSION-BASED MODELS REMOVED
+# Replaced with JWT models in web_jwt_auth.py
 
 # Service Provider Types Models
 class ServiceProviderType(BaseModel):

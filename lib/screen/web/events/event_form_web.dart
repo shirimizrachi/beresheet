@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
@@ -130,10 +130,7 @@ class _EventFormWebState extends State<EventFormWeb> {
 
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/rooms/public'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -162,10 +159,7 @@ class _EventFormWebState extends State<EventFormWeb> {
 
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/event-instructors'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -197,8 +191,9 @@ class _EventFormWebState extends State<EventFormWeb> {
     super.dispose();
   }
 
-  void _checkPermissions() {
-    final userRole = WebAuthService.userRole ?? '';
+  void _checkPermissions() async {
+    final user = await WebJwtSessionService.getCurrentUser();
+    final userRole = user?.role ?? '';
     if (userRole != 'manager' && userRole != 'staff' && userRole != 'instructor') {
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.webEventCreationRequiresRole;
@@ -330,10 +325,8 @@ class _EventFormWebState extends State<EventFormWeb> {
           : http.MultipartRequest('PUT', uri);
 
       // Add headers
-      request.headers.addAll({
-        'homeID': WebAuthService.homeId.toString(),
-        'userId': WebAuthService.userId ?? '',
-      });
+      final headers = await WebJwtSessionService.getAuthHeaders();
+      request.headers.addAll(headers);
 
       // Generate recurring pattern JSON
       String? recurringPatternJson;
@@ -565,11 +558,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     try {
       final response = await http.delete(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event!.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'userId': WebAuthService.userId ?? '',
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -649,11 +638,8 @@ class _EventFormWebState extends State<EventFormWeb> {
 
   @override
   Widget build(BuildContext context) {
-    // Check permissions first
-    final userRole = WebAuthService.userRole ?? '';
-    if (userRole != AppConfig.userRoleManager &&
-        userRole != AppConfig.userRoleStaff &&
-        userRole != AppConfig.userRoleInstructor) {
+    // Permission check is handled in initState/_checkPermissions
+    if (_errorMessage != null && _errorMessage!.contains('requires')) {
       return _buildAccessDeniedPage();
     }
 

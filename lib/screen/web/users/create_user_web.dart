@@ -1,5 +1,5 @@
 import 'package:beresheet_app/services/api_user_service.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/home_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -62,7 +62,8 @@ class _CreateUserWebState extends State<CreateUserWeb> {
 
     try {
       // Check if user has manager role
-      if (!WebAuthService.isManager) {
+      final user = await WebJwtSessionService.getCurrentUser();
+      if (user?.role != 'manager') {
         final strings = ModernAppStrings.of(context);
         _showErrorDialog(strings.accessDenied, strings.onlyManagersCanCreateUsers);
         return;
@@ -72,8 +73,7 @@ class _CreateUserWebState extends State<CreateUserWeb> {
       final tempfirebaseID = 'temp_${DateTime.now().millisecondsSinceEpoch}';
       
       // Make API call directly with proper web auth headers
-      final headers = WebAuthService.getAuthHeaders();
-      headers['currentUserId'] = WebAuthService.userId ?? 'current_manager_id';
+      final headers = await WebJwtSessionService.getAuthHeaders();
       headers['firebaseId'] = tempfirebaseID;
       
       final minimalData = {

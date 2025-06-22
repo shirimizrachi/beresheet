@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:beresheet_app/model/service_provider_type.dart';
 import 'package:beresheet_app/config/app_config.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 
 class ServiceProviderTypeService {
   static String get _baseUrl => '${AppConfig.apiUrlWithPrefix}/api/service-provider-types';
@@ -146,7 +146,7 @@ class ServiceProviderTypeService {
   /// Get all service provider types using WebAuthService for web authentication
   static Future<List<ServiceProviderType>> getServiceProviderTypesWeb() async {
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       final response = await http.get(
         Uri.parse(_baseUrl),
@@ -170,8 +170,7 @@ class ServiceProviderTypeService {
     String? description,
   }) async {
     try {
-      final headers = WebAuthService.getAuthHeaders();
-      headers['currentUserId'] = WebAuthService.userId ?? '';
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       final response = await http.post(
         Uri.parse(_baseUrl),
@@ -199,8 +198,7 @@ class ServiceProviderTypeService {
     String? description,
   }) async {
     try {
-      final headers = WebAuthService.getAuthHeaders();
-      headers['currentUserId'] = WebAuthService.userId ?? '';
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       final response = await http.put(
         Uri.parse('$_baseUrl/$typeId'),
@@ -226,8 +224,7 @@ class ServiceProviderTypeService {
     required int typeId,
   }) async {
     try {
-      final headers = WebAuthService.getAuthHeaders();
-      headers['currentUserId'] = WebAuthService.userId ?? '';
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       final response = await http.delete(
         Uri.parse('$_baseUrl/$typeId'),

@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'dart:html' as html;
 import '../../config/app_config.dart';
 import '../../utils/display_name_utils.dart';
-import '../../services/web_auth_service.dart';
+import '../../services/web/web_jwt_auth_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'web_login_web.dart';
+import 'web_jwt_login_screen.dart';
 import 'users/create_user_web.dart';
 import 'events/events_registration_management_web.dart';
 import 'events/events_management_web.dart';
@@ -29,71 +29,37 @@ class WebManagementPanel extends StatefulWidget {
 }
 
 class _WebManagementPanelState extends State<WebManagementPanel> {
-  bool _isLoading = true;
-  bool _isAuthenticated = false;
-  String? _errorMessage;
   String _selectedTab = 'home';
+  String? _userRole;
+  String? _userFullName;
 
   @override
   void initState() {
     super.initState();
     // Set initial tab based on parameter or default to 'home'
     _selectedTab = widget.initialTab ?? 'home';
-    _validateSession();
+    _loadUserInfo();
   }
 
-  Future<void> _validateSession() async {
-    // Initialize session from persistent storage first
-    await WebAuthService.initializeSession();
-    
-    if (!WebAuthService.isLoggedIn) {
-      _redirectToLogin();
-      return;
-    }
-
-    try {
-      final isValid = await WebAuthService.validateSession();
-
-      if (isValid) {
-        // Check if user has manager role
-        if (WebAuthService.isManager) {
-          setState(() {
-            _isAuthenticated = true;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = AppLocalizations.of(context)!.accessDeniedManagerRole;
-            _isLoading = false;
-          });
-        }
-      } else {
-        _redirectToLogin();
-      }
-    } catch (e) {
+  Future<void> _loadUserInfo() async {
+    // Since authentication is handled by the router wrapper (WebJwtManagerPage),
+    // we just need to load user info for display purposes
+    final user = await WebJwtAuthService.getCurrentUser();
+    if (user != null && mounted) {
       setState(() {
-        _errorMessage = 'Session validation failed: ${e.toString()}';
-        _isLoading = false;
+        _userRole = user.role;
+        _userFullName = user.fullName;
       });
     }
   }
 
-  void _redirectToLogin() async {
-    await WebAuthService.clearSession();
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const WebLoginWeb()),
-      );
-    }
-  }
-
   Future<void> _logout() async {
-    await WebAuthService.logout();
-    _redirectToLogin();
+    await WebJwtAuthService.logout();
+    // After logout, the auth wrapper will handle redirection to login
   }
 
   Widget _buildNavigationRail() {
-    final userRole = WebAuthService.userRole ?? '';
+    final userRole = _userRole ?? '';
     List<NavigationRailDestination> destinations = [];
     List<String> availableTabs = [];
     
@@ -210,7 +176,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
   }
 
   Widget _buildMainContent() {
-    final userRole = WebAuthService.userRole ?? '';
+    final userRole = _userRole ?? '';
     
     switch (_selectedTab) {
       case 'home':
@@ -302,8 +268,8 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
   }
 
   Widget _buildHomePage() {
-    final userRole = WebAuthService.userRole ?? '';
-    final userFullName = WebAuthService.userFullName ?? 'User';
+    final userRole = _userRole ?? '';
+    final userFullName = _userFullName ?? 'User';
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -620,45 +586,8 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (!_isAuthenticated) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _errorMessage ?? AppLocalizations.of(context)!.authenticationFailed,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.red,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _redirectToLogin,
-                child: Text(AppLocalizations.of(context)!.returnToLogin),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
+    // Authentication is handled by the router wrapper (WebJwtManagerPage),
+    // so we can directly build the management panel content
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -700,7 +629,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      WebAuthService.userFullName ?? 'Unknown User',
+                      _userFullName ?? 'Unknown User',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -708,7 +637,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
                       ),
                     ),
                     Text(
-                      _formatRole(WebAuthService.userRole ?? 'user'),
+                      _formatRole(_userRole ?? 'user'),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 12,

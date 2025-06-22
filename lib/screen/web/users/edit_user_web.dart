@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -64,8 +64,9 @@ class _EditUserWebState extends State<EditUserWeb> {
     _checkPermissions();
   }
 
-  void _checkPermissions() {
-    final userRole = WebAuthService.userRole ?? '';
+  void _checkPermissions() async {
+    final user = await WebJwtSessionService.getCurrentUser();
+    final userRole = user?.role ?? '';
     if (userRole != 'manager') {
       setState(() {
         _errorMessage = 'Access denied: Manager role required to edit users';
@@ -142,7 +143,7 @@ class _EditUserWebState extends State<EditUserWeb> {
     });
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       // Use multipart request if there's an image to upload
       http.Response response;

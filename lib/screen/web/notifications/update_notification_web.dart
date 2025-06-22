@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
-import '../../../services/web_auth_service.dart';
+import '../../../services/web/web_jwt_auth_service.dart';
 import '../../../services/modern_localization_service.dart';
 
 class UpdateNotificationWeb extends StatefulWidget {
@@ -206,14 +206,16 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
     });
 
     try {
-      if (!WebAuthService.isLoggedIn) {
+      // Check JWT authentication
+      final isAuth = await WebJwtAuthService.isAuthenticated();
+      if (!isAuth) {
         throw Exception('User not authenticated');
       }
 
       final response = await http.put(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/home-notifications/${widget.notification['id']}'),
         headers: {
-          ...WebAuthService.getAuthHeaders(),
+          ...await WebJwtAuthService.getAuthHeaders(),
         },
         body: json.encode({
           'send_status': _currentStatus,

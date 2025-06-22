@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:beresheet_app/model/service_provider_type.dart';
 import 'package:beresheet_app/services/service_provider_type_service.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ServiceProviderTypesManagementWeb extends StatefulWidget {
@@ -36,8 +36,9 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
     super.dispose();
   }
 
-  void _checkPermissions() {
-    final userRole = WebAuthService.userRole ?? '';
+  void _checkPermissions() async {
+    final user = await WebJwtSessionService.getCurrentUser();
+    final userRole = user?.role ?? '';
     if (userRole != 'manager') {
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.accessDeniedManagerRoleRequired;
@@ -208,9 +209,8 @@ class _ServiceProviderTypesManagementWebState extends State<ServiceProviderTypes
 
   @override
   Widget build(BuildContext context) {
-    // Check permissions first
-    final userRole = WebAuthService.userRole ?? '';
-    if (userRole != 'manager') {
+    // Permission check is handled in initState, so we rely on error state
+    if (_errorMessage != null && _errorMessage!.contains('access denied')) {
       return _buildAccessDeniedPage();
     }
 

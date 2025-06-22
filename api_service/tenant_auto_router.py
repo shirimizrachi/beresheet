@@ -123,18 +123,18 @@ async def validate_tenant_and_header_or_redirect(
         except ValueError:
             pass
     
-    # Method 2: Check session cookie (for web browser requests)
-    session_id = request.cookies.get("web_session_id")
-    if session_id:
-        # Import user_db here to avoid circular imports
-        from users import user_db
+    # Method 2: Check JWT cookie (for web browser requests)
+    jwt_token = request.cookies.get("web_jwt_token")
+    if jwt_token:
         try:
-            session_info = user_db.validate_web_session(session_id, tenant_config.id)
-            if session_info:
-                logger.info(f"Validated tenant '{tenant_name}' (ID: {tenant_config.id}) for request via session cookie")
+            # Import JWT verification here to avoid circular imports
+            from web_jwt_auth import verify_web_jwt_token
+            payload = verify_web_jwt_token(jwt_token)
+            if payload and payload.get("home_id") == tenant_config.id:
+                logger.info(f"Validated tenant '{tenant_name}' (ID: {tenant_config.id}) for request via JWT cookie")
                 return tenant_config
         except Exception as e:
-            logger.warning(f"Error validating session {session_id}: {e}")
+            logger.warning(f"Error validating JWT token: {e}")
     
     # No valid authentication found, redirect to login
     logger.info(f"No valid authentication for tenant '{tenant_name}', redirecting to login")
@@ -362,8 +362,8 @@ def create_tenant_api_router(original_api_router: APIRouter) -> APIRouter:
     """
     tenant_wrapper = TenantAPIRouter(original_api_router)
     
-    # Add web routes for serving Flutter web app
-    web_build_path = "../build/web"
+    # Add web routes for serving Flutter web app (tenant-specific build)
+    web_build_path = "../build/web-tenant"
     if os.path.exists(web_build_path):
         # Add login route (no authentication required)
         @tenant_wrapper.tenant_router.get("/{tenant_name}/login")
@@ -383,7 +383,8 @@ def create_tenant_api_router(original_api_router: APIRouter) -> APIRouter:
                 with open(index_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 
-                # Replace base href with tenant-specific path
+                # Replace base href with tenant-specific path for login
+                content = content.replace('<base href="/">', f'<base href="/{tenant_name}/login/">')
                 content = content.replace('<base href="/web/">', f'<base href="/{tenant_name}/login/">')
                 # Also handle case where there's no base tag
                 if '<base href=' not in content and '<head>' in content:
@@ -425,6 +426,7 @@ def create_tenant_api_router(original_api_router: APIRouter) -> APIRouter:
                     content = f.read()
                 
                 # Replace base href with tenant-specific path for the web management panel
+                content = content.replace('<base href="/">', f'<base href="/{tenant_name}/web/">')
                 content = content.replace('<base href="/web/">', f'<base href="/{tenant_name}/web/">')
                 # Also handle case where there's no base tag
                 if '<base href=' not in content and '<head>' in content:

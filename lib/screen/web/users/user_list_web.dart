@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'edit_user_web.dart';
 import 'package:beresheet_app/config/app_config.dart';
@@ -26,8 +26,9 @@ class _UserListWebState extends State<UserListWeb> {
     _checkPermissions();
   }
 
-  void _checkPermissions() {
-    final userRole = WebAuthService.userRole ?? '';
+  void _checkPermissions() async {
+    final user = await WebJwtSessionService.getCurrentUser();
+    final userRole = user?.role ?? '';
     if (userRole != 'manager') {
       setState(() {
         _errorMessage = AppLocalizations.of(context)?.accessDeniedManagerRoleUserList ??
@@ -46,7 +47,7 @@ class _UserListWebState extends State<UserListWeb> {
     });
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtSessionService.getAuthHeaders();
       
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users'),

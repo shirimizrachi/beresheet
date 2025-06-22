@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -27,8 +27,9 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     _checkPermissions();
   }
 
-  void _checkPermissions() {
-    final userRole = WebAuthService.userRole ?? '';
+  void _checkPermissions() async {
+    final user = await WebJwtAuthService.getCurrentUser();
+    final userRole = user?.role ?? '';
     if (userRole != 'manager' && userRole != 'staff') {
       setState(() {
         _errorMessage = AppLocalizations.of(context)?.eventRegistrationsManagementRequiresRole ??
@@ -47,7 +48,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     });
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtAuthService.getAuthHeaders();
       
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
@@ -83,7 +84,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     });
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtAuthService.getAuthHeaders();
       
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/event/$eventId'),
@@ -134,7 +135,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
     if (confirmed != true) return;
 
     try {
-      final headers = WebAuthService.getAuthHeaders();
+      final headers = await WebJwtAuthService.getAuthHeaders();
       
       final response = await http.delete(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/registrations/admin/$eventId/$userId'),
@@ -211,12 +212,6 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
 
   @override
   Widget build(BuildContext context) {
-    // Check permissions first
-    final userRole = WebAuthService.userRole ?? '';
-    if (userRole != 'manager' && userRole != 'staff') {
-      return _buildAccessDeniedPage();
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(

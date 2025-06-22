@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
 import '../../../services/image_cache_service.dart';
-import '../../../services/web_auth_service.dart';
+import '../../../services/web/web_jwt_session_service.dart';
 import '../../../model/event.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../utils/display_name_utils.dart';
@@ -39,11 +39,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
       // Show ALL events for everyone - no user filtering
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events'),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': WebAuthService.homeId.toString(),
-          'userId': WebAuthService.userId ?? '',
-        },
+        headers: await WebJwtSessionService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -96,9 +92,8 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/$eventId'),
       );
       
-      // Add headers using WebAuthService method
-      final authHeaders = WebAuthService.getAuthHeaders();
-      authHeaders['userId'] = WebAuthService.userId ?? '';
+      // Add headers using WebJwtSessionService method
+      final authHeaders = await WebJwtSessionService.getAuthHeaders();
       request.headers.addAll(authHeaders);
       
       // Add form field for status

@@ -1,7 +1,8 @@
 import 'package:beresheet_app/screen/web/web_homepage.dart';
 import 'package:beresheet_app/screen/web/web_management_panel.dart';
-import 'package:beresheet_app/screen/web/web_login_web.dart';
-import 'package:beresheet_app/services/web_auth_service.dart';
+import 'package:beresheet_app/screen/web/web_jwt_login_screen.dart';
+import 'package:beresheet_app/screen/web/web_jwt_auth_wrapper.dart';
+import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter/material.dart';
@@ -12,8 +13,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize web auth service to restore sessions
-  await WebAuthService.initializeSession();
+  // Initialize web JWT auth service to restore sessions
+  await WebJwtAuthService.initialize();
   
   runApp(const ProviderScope(child: WebApp()));
 }
@@ -57,13 +58,13 @@ class WebApp extends StatelessWidget {
         );
       },
       
-      routerDelegate: _AppRouterDelegate(),
-      routeInformationParser: _AppRouteInformationParser(),
+      routerDelegate: _TenantRouterDelegate(),
+      routeInformationParser: _TenantRouteInformationParser(),
     );
   }
 }
 
-class _AppRouteInformationParser extends RouteInformationParser<String> {
+class _TenantRouteInformationParser extends RouteInformationParser<String> {
   @override
   Future<String> parseRouteInformation(RouteInformation routeInformation) async {
     final uri = Uri.parse(routeInformation.location ?? '/');
@@ -93,7 +94,7 @@ class _AppRouteInformationParser extends RouteInformationParser<String> {
   }
 }
 
-class _AppRouterDelegate extends RouterDelegate<String> with ChangeNotifier, PopNavigatorRouterDelegateMixin<String> {
+class _TenantRouterDelegate extends RouterDelegate<String> with ChangeNotifier, PopNavigatorRouterDelegateMixin<String> {
   String _currentPath = 'home';
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -129,28 +130,38 @@ class _AppRouterDelegate extends RouterDelegate<String> with ChangeNotifier, Pop
 
   Widget _buildPage(String path) {
     // Check if user is logged in for all pages except login
-    if (path != 'login' && !WebAuthService.isLoggedIn) {
-      return const WebLoginWeb();
-    }
+    // Note: We'll use a FutureBuilder for async JWT check in the actual screens
+    return _buildPageContent(path);
+  }
+
+  Widget _buildPageContent(String path) {
     
     switch (path) {
       case 'login':
-        return const WebLoginWeb();
+        return const WebJwtLoginScreen();
       
-      // Management routes - require authentication
+      // Management routes - require staff role (manager, staff, or instructor)
       case 'manage':
       case 'manage/':
-        return const WebManagementPanel(initialTab: 'home');
+        return const WebJwtStaffPage(
+          child: WebManagementPanel(initialTab: 'home'),
+        );
       case 'manage/events':
-        return const WebManagementPanel(initialTab: 'events');
+        return const WebJwtStaffPage(
+          child: WebManagementPanel(initialTab: 'events'),
+        );
       case 'manage/users':
-        return const WebManagementPanel(initialTab: 'user_list');
+        return const WebJwtManagerPage(
+          child: WebManagementPanel(initialTab: 'user_list'),
+        );
       
       // Public homepage with events carousel - require authentication but accessible to all roles
       case 'home':
       case '':
       default:
-        return const WebHomePage(); // Public homepage with events carousel
+        return const WebJwtAuthenticatedPage(
+          child: WebHomePage(),
+        );
     }
   }
 
