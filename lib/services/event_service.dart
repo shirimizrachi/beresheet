@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:beresheet_app/config/app_config.dart';
 
 class EventService {
-  // Use different URLs for web vs mobile platforms with API prefix
+  // Use tenant-aware API URL from AppConfig
   static String get baseUrl => '${AppConfig.apiUrlWithPrefix}/api';
   
   // Cache for events with registration status

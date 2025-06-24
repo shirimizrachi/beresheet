@@ -32,7 +32,7 @@ def create_rooms_table(engine, schema_name: str, drop_if_exists: bool = True):
             # Create rooms table
             create_table_sql = text(f"""
                 CREATE TABLE [{schema_name}].[rooms] (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    id NVARCHAR(36) PRIMARY KEY,
                     room_name NVARCHAR(100) NOT NULL UNIQUE,
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE()

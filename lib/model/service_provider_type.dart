@@ -1,5 +1,5 @@
 class ServiceProviderType {
-  final int id;
+  final String id;
   final String name;
   final String? description;
 
@@ -11,7 +11,7 @@ class ServiceProviderType {
 
   factory ServiceProviderType.fromJson(Map<String, dynamic> json) {
     return ServiceProviderType(
-      id: json['id'] as int,
+      id: json['id'].toString(),
       name: json['name'] as String,
       description: json['description'] as String?,
     );

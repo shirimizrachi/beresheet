@@ -141,7 +141,7 @@ class AuthRepo {
         }
       }
 
-      // First time or user not found - try to get profile by phone number
+      // First time or user not found - try to discover user's home and get profile
       final phoneNumber = userCredential.user!.phoneNumber;
       if (phoneNumber != null) {
         // Remove country code (+972) to get local number
@@ -151,18 +151,42 @@ class AuthRepo {
         }
 
         try {
-          // Use configured home ID from app config
-          final existingProfile = await ApiUserService.getUserProfileByPhone(localPhoneNumber, AppConfig.homeId);
+          // First, try to get user's home information using the global endpoint
+          final homeInfo = await ApiUserService.getUserHomeInfo(localPhoneNumber);
           
-          if (existingProfile != null) {
-            // Profile found, user session is already set by ApiUserService.getUserProfileByPhone
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage())
-            );
+          if (homeInfo != null) {
+            // Store home info in session for subsequent requests
+            await UserSessionService.sethomeID(homeInfo['home_id']);
+            await UserSessionService.setTenantName(homeInfo['home_name']);
+            
+            // Now try to get the user profile using the correct home ID
+            final existingProfile = await ApiUserService.getUserProfileByPhone(localPhoneNumber, homeInfo['home_id']);
+            
+            if (existingProfile != null) {
+              // Profile found, user session is already set by ApiUserService.getUserProfileByPhone
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage())
+              );
+            } else {
+              // User's home was found but profile doesn't exist in that home's database
+              // This shouldn't happen if home_index is properly maintained
+              await _firebaseAuth.signOut();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Profile inconsistency detected. Please contact the administrator.'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 5),
+                ),
+              );
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
+              );
+            }
           } else {
-            // No profile found - user doesn't exist in database
-            // Sign out and show error message
+            // No home found for this phone number - user doesn't exist in any home
             await _firebaseAuth.signOut();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -171,7 +195,6 @@ class AuthRepo {
                 duration: Duration(seconds: 5),
               ),
             );
-            // Navigate back to login screen
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const LoginPage()),

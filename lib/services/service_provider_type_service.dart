@@ -33,7 +33,7 @@ class ServiceProviderTypeService {
 
   /// Get a specific service provider type by ID
   static Future<ServiceProviderType?> getServiceProviderType({
-    required int typeId,
+    required String typeId,
     required int homeId,
   }) async {
     try {
@@ -92,7 +92,7 @@ class ServiceProviderTypeService {
 
   /// Update a service provider type (only description can be updated, Manager role required)
   static Future<ServiceProviderType?> updateServiceProviderType({
-    required int typeId,
+    required String typeId,
     String? description,
     required int homeId,
     required String currentUserId,
@@ -123,7 +123,7 @@ class ServiceProviderTypeService {
 
   /// Delete a service provider type (Manager role required)
   static Future<bool> deleteServiceProviderType({
-    required int typeId,
+    required String typeId,
     required int homeId,
     required String currentUserId,
   }) async {
@@ -194,7 +194,7 @@ class ServiceProviderTypeService {
 
   /// Update a service provider type using WebAuthService for web authentication
   static Future<ServiceProviderType?> updateServiceProviderTypeWeb({
-    required int typeId,
+    required String typeId,
     String? description,
   }) async {
     try {
@@ -221,7 +221,7 @@ class ServiceProviderTypeService {
 
   /// Delete a service provider type using WebAuthService for web authentication
   static Future<bool> deleteServiceProviderTypeWeb({
-    required int typeId,
+    required String typeId,
   }) async {
     try {
       final headers = await WebJwtSessionService.getAuthHeaders();

@@ -32,7 +32,7 @@ def create_service_provider_types_table(engine, schema_name: str, drop_if_exists
             # Create service_provider_types table
             create_table_sql = text(f"""
                 CREATE TABLE [{schema_name}].[service_provider_types] (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    id NVARCHAR(36) PRIMARY KEY,
                     name NVARCHAR(100) UNIQUE NOT NULL,
                     description NVARCHAR(500),
                     created_at DATETIME2 DEFAULT GETDATE(),

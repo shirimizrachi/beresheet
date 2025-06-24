@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-// Import dart:html only for web platform
-import 'dart:html' as html show document;
+import 'web_utils.dart' if (dart.library.io) 'web_utils_stub.dart';
+import '../services/user_session_service.dart';
 
 /// Application configuration constants
 class AppConfig {
@@ -81,70 +81,15 @@ class AppConfig {
   
   /// API prefix for tenant routing
   /// This prefix will be prepended to all API calls
-  /// Default value is 'demo' - can be configured per deployment
+  /// Default value is 'beresheet' - can be configured per deployment
   static const String apiPrefix = 'beresheet';
+  
+  /// Cached tenant prefix from session (for performance)
+  static String? _cachedTenantPrefix;
   
   /// Get the API prefix for mobile apps (static)
   static String get prefix => apiPrefix;
   
-  /// Get the API prefix from tenant_info cookie for web requests
-  /// Cookie format: "tenant_name:tenant_id" (e.g., "demo:2")
-  /// Returns the tenant_name part before the colon
-  static String getTenantPrefixFromCookie() {
-    if (kIsWeb) {
-      try {
-        final cookies = html.document.cookie!;
-        final cookiePairs = cookies.split(';');
-        
-        for (final cookiePair in cookiePairs) {
-          final parts = cookiePair.trim().split('=');
-          if (parts.length == 2 && parts[0] == 'tenant_info') {
-            final tenantInfo = parts[1];
-            // Extract tenant name before the colon
-            final colonIndex = tenantInfo.indexOf(':');
-            if (colonIndex > 0) {
-              return tenantInfo.substring(0, colonIndex);
-            }
-            // If no colon found, return the whole value
-            return tenantInfo;
-          }
-        }
-      } catch (e) {
-        print('Error reading tenant_info cookie: $e');
-      }
-    }
-    // Fallback to static prefix for mobile or if cookie not found
-    return apiPrefix;
-  }
-  
-  /// Get the tenant home ID from tenant_info cookie for web requests
-  /// Cookie format: "tenant_name:tenant_id" (e.g., "demo:2")
-  /// Returns the tenant_id part after the colon
-  static int getTenantHomeIdFromCookie() {
-    if (kIsWeb) {
-      try {
-        final cookies = html.document.cookie!;
-        final cookiePairs = cookies.split(';');
-        
-        for (final cookiePair in cookiePairs) {
-          final parts = cookiePair.trim().split('=');
-          if (parts.length == 2 && parts[0] == 'tenant_info') {
-            final tenantInfo = parts[1];
-            // Extract tenant ID after the colon
-            final colonIndex = tenantInfo.indexOf(':');
-            if (colonIndex > 0 && colonIndex < tenantInfo.length - 1) {
-              final homeIdStr = tenantInfo.substring(colonIndex + 1);
-              return int.tryParse(homeIdStr) ?? defaultHomeId;
-            }
-          }
-        }
-      } catch (e) {
-        print('Error reading tenant_info cookie for home ID: $e');
-      }
-    }
-    // Fallback to static home ID for mobile or if cookie not found
-    return defaultHomeId;
-  }
   
   /// Get the API base URL based on platform (without prefix)
   static String get apiBaseUrl {
@@ -155,21 +100,15 @@ class AppConfig {
     }
   }
 
-  /// Get the API base URL (alias for compatibility)
-  static String get basberesheeteUrl => apiBaseUrl;
   
   /// Get the API prefix from user session for authenticated requests
   static Future<String> getApiPrefixFromSession() async {
     try {
-      // Import FlutterSecureStorage when needed
-      // final secureStorage = FlutterSecureStorage();
-      // final sessionPrefix = await secureStorage.read(key: 'user_api_prefix');
-      // return sessionPrefix ?? apiPrefix; // Fallback to static prefix
-      
-      // For now, return the static prefix until secure storage is implemented
-      return apiPrefix;
+      // Get tenant name from session storage
+      final tenantName = await UserSessionService.getTenantName();
+      return tenantName ?? apiPrefix; // Fallback to static prefix if no session
     } catch (e) {
-      return apiPrefix; // Fallback to static prefix
+      return apiPrefix; // Fallback to static prefix on error
     }
   }
 
@@ -180,19 +119,38 @@ class AppConfig {
   }
   
   /// Get the full API URL with prefix for API calls
-  /// For web: uses tenant_info cookie, for mobile: uses static prefix
-  /// This method constructs URLs like: http://localhost:8000/demo/api/...
+  /// For web: uses tenant_info cookie, for mobile: uses cached tenant prefix
+  /// This method constructs URLs like: http://localhost:8000/tenant_name/api/...
   static String get apiUrlWithPrefix {
     if (kIsWeb) {
-      return '$apiBaseUrl/${getTenantPrefixFromCookie()}';
+      return '$apiBaseUrl/${WebUtils.getTenantPrefixFromCookie()}';
     } else {
-      return '$apiBaseUrl/$apiPrefix';
+      // Use cached tenant prefix for mobile, fallback to static prefix
+      final tenantPrefix = _cachedTenantPrefix ?? apiPrefix;
+      return '$apiBaseUrl/$tenantPrefix';
     }
+  }
+  
+  /// Update the cached tenant prefix from session
+  /// This should be called when user logs in or tenant changes
+  static Future<void> updateTenantPrefixCache() async {
+    try {
+      _cachedTenantPrefix = await getApiPrefixFromSession();
+    } catch (e) {
+      print('Error updating tenant prefix cache: $e');
+      _cachedTenantPrefix = apiPrefix; // Fallback to static prefix
+    }
+  }
+  
+  /// Clear the cached tenant prefix
+  /// This should be called when user logs out
+  static void clearTenantPrefixCache() {
+    _cachedTenantPrefix = null;
   }
   
   /// Get the web homepage URL (uses cookie-based prefix for web)
   static String get webHomepageUrl {
-    return '$apiBaseUrl/${getTenantPrefixFromCookie()}/web';
+    return '$apiBaseUrl/${WebUtils.getTenantPrefixFromCookie()}/web';
   }
   
   /// Environment-specific configuration

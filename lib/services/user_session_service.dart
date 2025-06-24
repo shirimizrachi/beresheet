@@ -10,17 +10,22 @@ class UserSessionService {
   static const String _roleKey = 'user_role';
   static const String _userIdKey = 'user_id';
   static const String _photoKey = 'user_photo';
+  static const String _tenantNameKey = 'tenant_name';
   
   static int? _cachedhomeID;
   static String? _cachedRole;
   static String? _cachedUserId;
   static String? _cachedPhoto;
+  static String? _cachedTenantName;
 
   /// Initialize user session by restoring from SharedPreferences first, then optionally fetching fresh data
   static Future<void> initializeSession({bool fetchFreshData = false}) async {
     try {
       // First, restore cached session data from SharedPreferences
       await _restoreSessionFromStorage();
+      
+      // Update AppConfig tenant prefix cache based on restored session
+      await AppConfig.updateTenantPrefixCache();
       
       // Optionally fetch fresh data from API if requested
       if (fetchFreshData) {
@@ -46,8 +51,9 @@ class UserSessionService {
       _cachedRole = prefs.getString(_roleKey);
       _cachedUserId = prefs.getString(_userIdKey);
       _cachedPhoto = prefs.getString(_photoKey);
+      _cachedTenantName = prefs.getString(_tenantNameKey);
       
-      print('Session restored from storage: userId=$_cachedUserId, homeID=$_cachedhomeID, role=$_cachedRole');
+      print('Session restored from storage: userId=$_cachedUserId, homeID=$_cachedhomeID, role=$_cachedRole, tenant=$_cachedTenantName');
     } catch (e) {
       print('Error restoring session from storage: $e');
     }
@@ -149,6 +155,30 @@ class UserSessionService {
     return _cachedPhoto;
   }
 
+  /// Store tenant name using SharedPreferences
+  static Future<void> setTenantName(String? tenantName) async {
+    _cachedTenantName = tenantName;
+    final prefs = await SharedPreferences.getInstance();
+    if (tenantName != null) {
+      await prefs.setString(_tenantNameKey, tenantName);
+    } else {
+      await prefs.remove(_tenantNameKey);
+    }
+    
+    // Update AppConfig tenant prefix cache
+    await AppConfig.updateTenantPrefixCache();
+  }
+
+  /// Get tenant name using SharedPreferences
+  static Future<String?> getTenantName() async {
+    if (_cachedTenantName != null) {
+      return _cachedTenantName;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    _cachedTenantName = prefs.getString(_tenantNameKey);
+    return _cachedTenantName;
+  }
 
   /// Check if user has manager role
   static Future<bool> isManager() async {
@@ -243,12 +273,17 @@ class UserSessionService {
     _cachedRole = null;
     _cachedUserId = null;
     _cachedPhoto = null;
+    _cachedTenantName = null;
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_homeIDKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_userIdKey);
     await prefs.remove(_photoKey);
+    await prefs.remove(_tenantNameKey);
+    
+    // Clear AppConfig tenant prefix cache
+    AppConfig.clearTenantPrefixCache();
   }
 
   /// Enhanced error handling for API calls

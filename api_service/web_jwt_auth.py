@@ -27,6 +27,7 @@ class WebJwtUser(BaseModel):
     fullName: str
     role: str
     homeId: int
+    homeName: Optional[str] = None
     photo: Optional[str] = None
     apartmentNumber: Optional[str] = None
     createdAt: datetime
@@ -140,6 +141,7 @@ async def web_jwt_login(credentials: WebJwtCredentials):
             "full_name": user.full_name,
             "role": user.role,
             "home_id": user.home_id,
+            "home_name": homeName,
         }
         
         # Create access token (1 hour)
@@ -160,6 +162,7 @@ async def web_jwt_login(credentials: WebJwtCredentials):
             fullName=user.full_name,
             role=user.role,
             homeId=user.home_id,
+            homeName=homeName,
             photo=user.photo,
             apartmentNumber=user.apartment_number,
             createdAt=user.created_at or datetime.now(),
@@ -189,6 +192,7 @@ async def web_jwt_login(credentials: WebJwtCredentials):
                     "fullName": session.user.fullName,
                     "role": session.user.role,
                     "homeId": session.user.homeId,
+                    "homeName": session.user.homeName,
                     "photo": session.user.photo,
                     "apartmentNumber": session.user.apartmentNumber,
                     "createdAt": session.user.createdAt.isoformat(),
@@ -256,6 +260,7 @@ async def web_jwt_validate(current_user: dict = Depends(get_web_jwt_user_from_to
             fullName=user.full_name,
             role=user.role,
             homeId=user.home_id,
+            homeName=current_user.get("home_name"),
             photo=user.photo,
             apartmentNumber=user.apartment_number,
             createdAt=user.created_at or datetime.now(),
@@ -305,6 +310,7 @@ async def web_jwt_refresh(refresh_request: WebJwtRefreshRequest, current_user: d
             "full_name": user.full_name,
             "role": user.role,
             "home_id": user.home_id,
+            "home_name": current_user.get("home_name"),
         }
         
         # Create new access token (1 hour)
@@ -376,6 +382,7 @@ async def web_jwt_get_current_user(current_user: dict = Depends(get_web_jwt_user
             fullName=user.full_name,
             role=user.role,
             homeId=user.home_id,
+            homeName=current_user.get("home_name"),
             photo=user.photo,
             apartmentNumber=user.apartment_number,
             createdAt=user.created_at or datetime.now(),

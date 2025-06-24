@@ -26,6 +26,12 @@ from database_utils import get_tenant_engine, get_tenant_connection
 from sqlalchemy import text, create_engine
 from azure_storage_service import azure_storage_service
 from pydantic import BaseModel
+from deployment.load_events import load_events_sync
+from deployment.load_users import load_users_sync
+from deployment.load_event_instructor import load_event_instructor_sync
+from deployment.load_rooms import load_rooms_sync
+from deployment.load_service_provider_types import load_service_provider_types_sync
+from deployment.load_home_notification import load_home_notification_sync
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -386,22 +392,33 @@ async def create_tenant(tenant: TenantCreate):
         
         # Step 3: Initialize tables with demo data
         try:
-            init_result = await init_tables_for_tenant(new_tenant.name)
-            logger.info(f"Step 3 completed: Initialized tables for tenant '{tenant.name}'")
+            init_result = await init_data_for_tenant(new_tenant.name)
+            logger.info(f"Step 3 completed: Initialized data for tenant '{tenant.name}'")
         except Exception as e:
             logger.error(f"Step 3 failed for tenant '{tenant.name}': {e}")
             # Note: We don't fail the whole process if data initialization fails
             logger.warning(f"Tenant '{tenant.name}' created successfully but data initialization failed: {str(e)}")
+        
+        # Step 4: Create blob container for tenant
+        try:
+            blob_result = await create_blob_container_for_tenant(new_tenant.name)
+            logger.info(f"Step 4 completed: Created blob container for tenant '{tenant.name}'")
+        except Exception as e:
+            logger.error(f"Step 4 failed for tenant '{tenant.name}': {e}")
+            # Note: We don't fail the whole process if blob container creation fails
+            logger.warning(f"Tenant '{tenant.name}' created successfully but blob container creation failed: {str(e)}")
         
         # Add setup information to the response
         setup_info = {
             "schema_created": schema_result.get("status") == "success" if 'schema_result' in locals() else False,
             "tables_created": tables_result.get("status") in ["success", "partial_success"] if 'tables_result' in locals() else False,
             "data_initialized": init_result.get("status") in ["success", "partial_success"] if 'init_result' in locals() else False,
+            "blob_container_created": blob_result.get("status") == "success" if 'blob_result' in locals() else False,
             "setup_details": {
                 "schema_info": schema_result if 'schema_result' in locals() else None,
                 "tables_info": tables_result if 'tables_result' in locals() else None,
-                "init_info": init_result if 'init_result' in locals() else None
+                "init_info": init_result if 'init_result' in locals() else None,
+                "blob_info": blob_result if 'blob_result' in locals() else None
             }
         }
         
@@ -652,142 +669,6 @@ async def create_tables_for_tenant(tenant_name: str, drop_if_exists: bool = True
         logger.error(f"Error creating tables for tenant '{tenant_name}': {e}")
         raise HTTPException(status_code=500, detail=f"Error creating tables: {str(e)}")
 
-@admin_api_router.post("/tenants/{tenant_name}/init_tables")
-async def init_tables_for_tenant(tenant_name: str):
-    """
-    Initialize tables with demo data for a specific tenant using the API engine system
-    
-    Args:
-        tenant_name: Name of the tenant to initialize data for
-        
-    Returns:
-        Success message with details of initialized tables
-    """
-    try:
-        # Get tenant configuration
-        tenant = tenant_config_db.load_tenant_config_from_db(tenant_name)
-        if not tenant:
-            raise HTTPException(status_code=404, detail=f"Tenant '{tenant_name}' not found")
-        
-        # Get tenant connection string and engine
-        connection_string = get_tenant_connection_string(tenant)
-        engine = get_tenant_engine(connection_string, tenant_name)
-        
-        if not engine:
-            raise HTTPException(status_code=500, detail=f"Could not create database engine for tenant '{tenant_name}'")
-        
-        # List of data initialization operations to execute
-        data_operations = [
-            ("insert_users_data", "insert_users_data", True),  # (script_name, function_name, use_external_script)
-            ("create_users_profile_photo", "upload_users_profile_photos", False)  # Use local function
-        ]
-        
-        initialized_data = []
-        failed_data = []
-        
-        # Base path for data scripts
-        data_path = Path(__file__).parent / "deployment" / "schema" / "demo" / "tables_data"
-        
-        for script_name, function_name, use_external_script in data_operations:
-            try:
-                if use_external_script:
-                    # Load external script dynamically
-                    script_path = data_path / f"{script_name}.py"
-                    
-                    if not script_path.exists():
-                        logger.warning(f"Data script not found: {script_path}")
-                        failed_data.append(f"{script_name} (file not found)")
-                        continue
-                    
-                    # Load the module dynamically
-                    spec = importlib.util.spec_from_file_location(script_name, script_path)
-                    module = importlib.util.module_from_spec(spec)
-                    
-                    # Add the module to sys.modules temporarily
-                    sys.modules[script_name] = module
-                    spec.loader.exec_module(module)
-                    
-                    if hasattr(module, function_name):
-                        print(f"Executing {function_name} from {script_name} for tenant '{tenant_name}'")
-                        # Special handling for insert_users_data to pass home_id and home_index info
-                        if function_name == "insert_users_data":
-                            # Get home_index engine
-                            print("Creating home_index engine for tenant data initialization")
-                            try:
-                                from residents_db_config import get_home_index_connection_string
-                                from sqlalchemy import create_engine as create_home_index_engine
-                                home_index_engine = create_home_index_engine(get_home_index_connection_string())
-                                success = module.__dict__[function_name](
-                                    engine,
-                                    tenant.database_schema,
-                                    home_id=tenant.id,
-                                    home_index_engine=home_index_engine,
-                                    home_name=tenant.name
-                                )
-                            except Exception as e:
-                                logger.warning(f"Could not create home_index engine: {e}")
-                                success = module.__dict__[function_name](
-                                    engine,
-                                    tenant.database_schema,
-                                    home_id=tenant.id
-                                )
-                        else:
-                            success = module.__dict__[function_name](engine, tenant.database_schema)
-                        
-                        if success:
-                            initialized_data.append(script_name.replace("create_", "").replace("_data", ""))
-                            logger.info(f"Successfully initialized data using {script_name}")
-                        else:
-                            failed_data.append(script_name)
-                            logger.error(f"Failed to initialize data using {script_name}")
-                    else:
-                        logger.error(f"Function {function_name} not found in {script_name}")
-                        failed_data.append(f"{script_name} (function not found)")
-                    
-                    # Clean up module from sys.modules
-                    del sys.modules[script_name]
-                else:
-                    # Use local function
-                    if script_name == "create_users_profile_photo":
-                        success = upload_users_profile_photos(engine, tenant.database_schema, tenant.id)
-                        
-                        if success:
-                            initialized_data.append("users_profile_photo")
-                            logger.info(f"Successfully initialized profile photos")
-                        else:
-                            failed_data.append(script_name)
-                            logger.error(f"Failed to initialize profile photos")
-                
-            except Exception as e:
-                logger.error(f"Error executing data operation {script_name}: {e}")
-                failed_data.append(f"{script_name} ({str(e)})")
-        
-        # Prepare response
-        response = {
-            "tenant_name": tenant_name,
-            "schema": tenant.database_schema,
-            "initialized_data": initialized_data,
-            "failed_data": failed_data,
-            "total_attempted": len(data_scripts),
-            "total_initialized": len(initialized_data),
-            "total_failed": len(failed_data)
-        }
-        
-        if failed_data:
-            response["status"] = "partial_success"
-            response["message"] = f"Initialized {len(initialized_data)} data sets successfully, {len(failed_data)} failed"
-        else:
-            response["status"] = "success"
-            response["message"] = f"All {len(initialized_data)} data sets initialized successfully"
-        
-        logger.info(f"Data initialization completed for tenant '{tenant_name}': {response['message']}")
-        return response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error initializing data for tenant '{tenant_name}': {e}")
-        raise HTTPException(status_code=500, detail=f"Error initializing data: {str(e)}")
 
 @admin_api_router.get("/tenants/{tenant_name}/tables")
 async def get_tenant_tables(tenant_name: str):
@@ -1007,104 +888,46 @@ async def load_data_for_table(tenant_name: str, table_name: str):
 
 async def load_table_data(tenant_name: str, table_name: str, engine, schema_name: str, tenant_id: int):
     """
-    Load demo data for a specific table
+    Load demo data for a specific table using the new loading functions
     
     Args:
         tenant_name: Name of the tenant
         table_name: Name of the table to load data for
-        engine: Database engine
-        schema_name: Database schema name
+        engine: Database engine (kept for compatibility but not used)
+        schema_name: Database schema name (kept for compatibility but not used)
         tenant_id: Tenant ID
         
     Returns:
         Boolean indicating success
     """
     try:
-        # Map table names to their data loading operations
-        table_data_mapping = {
-            "users": ("insert_users_data", "insert_users_data", True),
-            "service_provider_types": ("insert_service_provider_types_data", "insert_service_provider_types_data", True),
-            "event_instructor": ("insert_event_instructor_data", "insert_event_instructor_data", True),
-            "events": ("insert_events_data", "insert_events_data", True),
-            "rooms": ("insert_rooms_data", "insert_rooms_data", True),
-            "home_notification": ("insert_home_notification_data", "insert_home_notification_data", True),
-            "user_notification": ("insert_user_notification_data", "insert_user_notification_data", True)
+        # Map table names to their new loading functions
+        table_loader_mapping = {
+            "users": load_users_sync,
+            "service_provider_types": load_service_provider_types_sync,
+            "event_instructor": load_event_instructor_sync,
+            "events": load_events_sync,
+            "rooms": load_rooms_sync,
+            "home_notification": load_home_notification_sync,
+            # Note: user_notification is automatically created by home_notification, so we redirect to that
+            "user_notification": load_home_notification_sync
         }
         
-        data_operation = table_data_mapping.get(table_name.lower())
-        if not data_operation:
-            logger.warning(f"No demo data available for table '{table_name}'")
+        loader_function = table_loader_mapping.get(table_name.lower())
+        if not loader_function:
+            logger.warning(f"No loader available for table '{table_name}'. Available tables: {', '.join(table_loader_mapping.keys())}")
             return False
         
-        script_name, function_name, use_external_script = data_operation
+        # Call the appropriate loading function
+        logger.info(f"Loading data for table '{table_name}' using new loading function")
+        success = loader_function(tenant_name, tenant_id)
         
-        if use_external_script:
-            # Base path for data scripts
-            data_path = Path(__file__).parent / "deployment" / "schema" / "demo" / "tables_data"
-            script_path = data_path / f"{script_name}.py"
-            
-            if not script_path.exists():
-                logger.warning(f"Data script not found: {script_path}")
-                return False
-            
-            # Load the module dynamically
-            spec = importlib.util.spec_from_file_location(script_name, script_path)
-            module = importlib.util.module_from_spec(spec)
-            
-            # Add the module to sys.modules temporarily
-            sys.modules[script_name] = module
-            spec.loader.exec_module(module)
-            print(f"Executing {function_name} from {script_name} for tenant '{tenant_name}'")
-            if hasattr(module, function_name):
-                # Special handling for insert_users_data to pass home_id and home_index info
-                if function_name == "insert_users_data":
-                    print("Creating home_index engine for tenant data loading")
-                    # Get home_index engine and tenant info
-                    try:
-                        from residents_db_config import get_home_index_connection_string
-                        from sqlalchemy import create_engine as create_home_index_engine
-                        home_index_engine = create_home_index_engine(get_home_index_connection_string())
-                        success = module.__dict__[function_name](
-                            engine,
-                            schema_name,
-                            home_id=tenant_id,
-                            home_index_engine=home_index_engine,
-                            home_name=tenant_name
-                        )
-                    except Exception as e:
-                        logger.warning(f"Could not create home_index engine: {e}")
-                        success = module.__dict__[function_name](
-                            engine,
-                            schema_name,
-                            home_id=tenant_id
-                        )
-                else:
-                    success = module.__dict__[function_name](engine, schema_name)
-                
-                # Clean up module from sys.modules
-                del sys.modules[script_name]
-                
-                if success:
-                    logger.info(f"Successfully loaded demo data for table '{table_name}'")
-                    
-                    # Special handling for users table - load profile photos
-                    if table_name.lower() == "users":
-                        try:
-                            photo_success = upload_users_profile_photos(engine, schema_name, tenant_id)
-                            if photo_success:
-                                logger.info(f"Successfully loaded profile photos for users table")
-                        except Exception as e:
-                            logger.warning(f"Failed to load profile photos: {e}")
-                    
-                    return True
-                else:
-                    logger.error(f"Failed to load demo data for table '{table_name}'")
-                    return False
-            else:
-                logger.error(f"Function {function_name} not found in {script_name}")
-                return False
-        
-        return False
+        if success:
+            logger.info(f"Successfully loaded demo data for table '{table_name}' using new loading system")
+            return True
+        else:
+            logger.error(f"Failed to load demo data for table '{table_name}' using new loading system")
+            return False
         
     except Exception as e:
         logger.error(f"Error loading demo data for table '{table_name}': {e}")
@@ -1114,6 +937,7 @@ async def load_table_data(tenant_name: str, table_name: str, engine, schema_name
 async def create_schema_and_user(schema_name: str):
     """
     Create a new database schema and a user with full permissions
+    Automatically detects database engine and uses appropriate implementation
     
     Args:
         schema_name: Name of the schema to create
@@ -1122,109 +946,192 @@ async def create_schema_and_user(schema_name: str):
         Success message with schema and user creation details
     """
     try:
-        # Validate schema name (must be alphanumeric)
-        if not schema_name.replace("_", "").replace("-", "").isalnum():
-            raise HTTPException(status_code=400, detail="Schema name must be alphanumeric (with optional hyphens and underscores)")
-        
         # Get admin database connection with elevated privileges for schema creation
-        from residents_db_config import get_admin_connection_string
-        from sqlalchemy import create_engine
-        admin_connection_string = get_admin_connection_string()
-        admin_engine = create_engine(admin_connection_string)
+        from residents_db_config import get_admin_connection_string, get_server_info, DATABASE_ENGINE
         
-        with admin_engine.connect() as conn:
-            # Check if schema already exists
-            check_schema_sql = text("""
-                SELECT COUNT(*) as count
-                FROM INFORMATION_SCHEMA.SCHEMATA
-                WHERE SCHEMA_NAME = :schema_name
-            """)
-            result = conn.execute(check_schema_sql, {"schema_name": schema_name}).fetchone()
-            
-            if result.count > 0:
-                raise HTTPException(status_code=400, detail=f"Schema '{schema_name}' already exists")
-            
-            # Create the schema
-            create_schema_sql = text(f"CREATE SCHEMA [{schema_name}]")
-            conn.execute(create_schema_sql)
-            
-            # Check if login already exists
-            check_login_sql = text("""
-                SELECT COUNT(*) as count
-                FROM sys.sql_logins
-                WHERE name = :login_name
-            """)
-            login_result = conn.execute(check_login_sql, {"login_name": schema_name}).fetchone()
-            
-            if login_result.count == 0:
-                # Create SQL Server login
-                create_login_sql = text(f"""
-                    CREATE LOGIN [{schema_name}]
-                    WITH PASSWORD = '{schema_name}2025!',
-                    DEFAULT_DATABASE = [residents],
-                    CHECK_EXPIRATION = OFF,
-                    CHECK_POLICY = OFF
-                """)
-                conn.execute(create_login_sql)
-                logger.info(f"Created login '{schema_name}'")
-            else:
-                logger.info(f"Login '{schema_name}' already exists, skipping creation")
-            
-            # Create database user for the login
-            create_user_sql = text(f"""
-                CREATE USER [{schema_name}] FOR LOGIN [{schema_name}]
-            """)
-            conn.execute(create_user_sql)
-            
-            # Grant full permissions on the schema to the user
-            grant_permissions_sql = text(f"""
-                -- Grant schema ownership
-                ALTER AUTHORIZATION ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                
-                -- Grant additional permissions
-                GRANT CREATE TABLE TO [{schema_name}];
-                GRANT CREATE VIEW TO [{schema_name}];
-                GRANT CREATE PROCEDURE TO [{schema_name}];
-                GRANT CREATE FUNCTION TO [{schema_name}];
-                
-                -- Grant permissions on the schema
-                GRANT CONTROL ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT ALTER ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT EXECUTE ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT INSERT ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT SELECT ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT UPDATE ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT DELETE ON SCHEMA::[{schema_name}] TO [{schema_name}];
-                GRANT REFERENCES ON SCHEMA::[{schema_name}] TO [{schema_name}];
-            """)
-            conn.execute(grant_permissions_sql)
-            
-            conn.commit()
-            
-            response = {
-                "status": "success",
-                "message": f"Schema '{schema_name}' and user created successfully",
-                "schema_name": schema_name,
-                "user_name": schema_name,
-                "password": f"{schema_name}2025!",
-                "permissions": "Full permissions on schema",
-                "login_created": login_result.count == 0,  # True if we created a new login
-                "connection_info": {
-                    "database": "residents",
-                    "schema": schema_name,
-                    "username": schema_name,
-                    "password": f"{schema_name}2025!"
-                }
-            }
-            
-            logger.info(f"Successfully created schema '{schema_name}' with user and full permissions")
-            return response
+        admin_connection_string = get_admin_connection_string()
+        server_info = get_server_info()
+        database_engine = DATABASE_ENGINE
+        
+        # Import and use the appropriate database-specific function
+        if database_engine == "mysql":
+            from deployment.admin.mysql.schema_operations import create_schema_and_user_mysql
+            result = create_schema_and_user_mysql(schema_name, admin_connection_string)
+        else:
+            from deployment.admin.sqlserver.schema_operations import create_schema_and_user_sqlserver
+            result = create_schema_and_user_sqlserver(schema_name, admin_connection_string)
+        
+        # Check result status
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result["message"])
+        
+        logger.info(f"Successfully created schema '{schema_name}' using {database_engine} implementation")
+        return result
             
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error creating schema '{schema_name}': {e}")
         raise HTTPException(status_code=500, detail=f"Error creating schema: {str(e)}")
+
+async def create_blob_container_for_tenant(tenant_name: str):
+    """
+    Create Azure Blob Storage container for a tenant
+    
+    Args:
+        tenant_name: Name of the tenant to create blob container for
+        
+    Returns:
+        Dictionary with status and details of blob container creation
+    """
+    try:
+        # Import the blob container creation function
+        from deployment.schema.resources.create_blob_container import create_blob_container
+        
+        # Create the blob container
+        success = create_blob_container(tenant_name)
+        
+        if success:
+            response = {
+                "status": "success",
+                "message": f"Blob container created successfully for tenant '{tenant_name}'",
+                "container_name": f"{tenant_name}-images",
+                "tenant_name": tenant_name
+            }
+            logger.info(f"Successfully created blob container for tenant '{tenant_name}'")
+            return response
+        else:
+            response = {
+                "status": "failed",
+                "message": f"Failed to create blob container for tenant '{tenant_name}'",
+                "container_name": f"{tenant_name}-images",
+                "tenant_name": tenant_name
+            }
+            logger.error(f"Failed to create blob container for tenant '{tenant_name}'")
+            return response
+            
+    except Exception as e:
+        error_message = f"Error creating blob container for tenant '{tenant_name}': {str(e)}"
+        logger.error(error_message)
+        return {
+            "status": "error",
+            "message": error_message,
+            "container_name": f"{tenant_name}-images",
+            "tenant_name": tenant_name,
+            "error": str(e)
+        }
+
+@admin_api_router.post("/tenants/{tenant_name}/init_data_for_tenant")
+async def init_data_for_tenant(tenant_name: str):
+    """
+    Initialize demo data for a tenant including service provider types, users, home notifications, rooms, event instructors, events with images
+    
+    Args:
+        tenant_name: Name of the tenant to initialize data for
+        
+    Returns:
+        Success message with details of data initialization
+    """
+    try:
+        # Get tenant configuration
+        tenant = tenant_config_db.load_tenant_config_from_db(tenant_name)
+        if not tenant:
+            raise HTTPException(status_code=404, detail=f"Tenant '{tenant_name}' not found")
+        
+        # Load service provider types first (since users may reference them)
+        service_types_success = load_service_provider_types_sync(tenant_name, tenant.id)
+        
+        # Load users data (since events and notifications may reference users)
+        users_success = load_users_sync(tenant_name, tenant.id)
+        
+        # Load home notifications (since they are created by users)
+        notifications_success = load_home_notification_sync(tenant_name, tenant.id)
+        
+        # Load rooms data (since events may reference rooms)
+        rooms_success = load_rooms_sync(tenant_name, tenant.id)
+        
+        # Load event instructors data (since events may reference instructors)
+        instructors_success = load_event_instructor_sync(tenant_name, tenant.id)
+        
+        # Load events data using the new function
+        events_success = load_events_sync(tenant_name, tenant.id)
+        
+        # Determine overall success
+        overall_success = service_types_success and users_success and notifications_success and rooms_success and instructors_success and events_success
+        
+        # Prepare data types list
+        successful_data_types = []
+        failed_data_types = []
+        
+        if service_types_success:
+            successful_data_types.append("service_provider_types")
+        else:
+            failed_data_types.append("service_provider_types")
+        
+        if users_success:
+            successful_data_types.extend(["users", "users_images"])
+        else:
+            failed_data_types.extend(["users", "users_images"])
+            
+        if notifications_success:
+            successful_data_types.append("home_notifications")
+        else:
+            failed_data_types.append("home_notifications")
+            
+        if rooms_success:
+            successful_data_types.append("rooms")
+        else:
+            failed_data_types.append("rooms")
+            
+        if instructors_success:
+            successful_data_types.extend(["event_instructors", "instructor_images"])
+        else:
+            failed_data_types.extend(["event_instructors", "instructor_images"])
+            
+        if events_success:
+            successful_data_types.extend(["events", "events_images"])
+        else:
+            failed_data_types.extend(["events", "events_images"])
+        
+        if overall_success:
+            response = {
+                "status": "success",
+                "message": f"Demo data initialized successfully for tenant '{tenant_name}'",
+                "tenant_name": tenant_name,
+                "tenant_id": tenant.id,
+                "successful_data_types": successful_data_types,
+                "failed_data_types": failed_data_types
+            }
+            logger.info(f"Demo data initialization completed for tenant '{tenant_name}'")
+            return response
+        elif service_types_success or users_success or notifications_success or rooms_success or instructors_success or events_success:
+            response = {
+                "status": "partial_success",
+                "message": f"Demo data partially initialized for tenant '{tenant_name}'",
+                "tenant_name": tenant_name,
+                "tenant_id": tenant.id,
+                "successful_data_types": successful_data_types,
+                "failed_data_types": failed_data_types
+            }
+            logger.warning(f"Demo data initialization partially completed for tenant '{tenant_name}'")
+            return response
+        else:
+            response = {
+                "status": "failed",
+                "message": f"Failed to initialize demo data for tenant '{tenant_name}'",
+                "tenant_name": tenant_name,
+                "tenant_id": tenant.id,
+                "successful_data_types": successful_data_types,
+                "failed_data_types": failed_data_types
+            }
+            logger.error(f"Demo data initialization failed for tenant '{tenant_name}'")
+            return response
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initializing demo data for tenant '{tenant_name}': {e}")
+        raise HTTPException(status_code=500, detail=f"Error initializing demo data: {str(e)}")
 
 def upload_users_profile_photos(engine, schema_name: str, home_id: int = 1):
     """
@@ -1287,13 +1194,28 @@ def upload_users_profile_photos(engine, schema_name: str, home_id: int = 1):
                     else:
                         content_type = 'image/jpeg'  # Default
                     
-                    # Upload to Azure Storage
+                    # Get tenant name from schema_name for Azure Storage
+                    # We need to get the tenant name from the schema to use for container naming
+                    from tenant_config import get_all_tenants
+                    tenant_name = None
+                    tenants = get_all_tenants()
+                    for tenant in tenants:
+                        if tenant.database_schema == schema_name and tenant.id == home_id:
+                            tenant_name = tenant.name
+                            break
+                    
+                    if not tenant_name:
+                        logger.warning(f"Could not find tenant name for schema '{schema_name}' and home_id '{home_id}', using schema name as fallback")
+                        tenant_name = schema_name
+                    
+                    # Upload to Azure Storage with tenant name
                     success, result_message = azure_storage_service.upload_user_photo(
                         home_id=home_id,
                         user_id=user_id,
                         image_data=image_data,
                         original_filename=photo_file.name,
-                        content_type=content_type
+                        content_type=content_type,
+                        tenant_name=tenant_name
                     )
                     
                     if success:

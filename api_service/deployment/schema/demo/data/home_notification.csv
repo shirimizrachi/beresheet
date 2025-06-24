@@ -1,0 +1,2 @@
+id,create_by_user_id,create_by_user_name,create_by_user_role_name,create_by_user_service_provider_type_name,message,send_status,send_approved_by_user_id,send_floor,send_type
+hn111111-1111-1111-1111-111111111111,default-manager-user,יוסי כהן - מנהל,manager,NULL,ברוכים הבאים לקהילת בראשית! אנו שמחים לקבל אתכם לבית החדש שלכם. אנא אל תהססו לפנות אלינו בכל שאלה או בקשה. אנו כאן כדי לעזור ולהבטיח שתרגישו בבית. בברכה צוות הניהול,approved,default-manager-user,NULL,regular

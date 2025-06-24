@@ -32,7 +32,7 @@ def create_home_notification_table(engine, schema_name: str, drop_if_exists: boo
             # Create home_notification table
             create_table_sql = text(f"""
                 CREATE TABLE [{schema_name}].[home_notification] (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    id NVARCHAR(36) PRIMARY KEY,
                     create_by_user_id NVARCHAR(50) NOT NULL,
                     create_by_user_name NVARCHAR(255) NOT NULL,
                     create_by_user_role_name NVARCHAR(100) NOT NULL,

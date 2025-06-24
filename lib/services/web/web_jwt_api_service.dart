@@ -16,18 +16,19 @@ class WebJwtApiService {
       String? homeName = await WebJwtSessionService.getHomeName();
       
       if (homeName == null) {
-        // If no stored home name, try to discover it
+        // If no stored home name, get it from the current user's session
         final user = await WebJwtSessionService.getCurrentUser();
         if (user == null) {
           throw Exception('No authenticated user found');
         }
         
-        final homeInfo = await WebJwtAuthService.discoverUserHome(user.phoneNumber);
-        if (homeInfo == null) {
-          throw Exception('Could not discover home for user ${user.phoneNumber}');
+        // Use the homeName directly from the user object
+        homeName = user.homeName;
+        
+        if (homeName == null) {
+          throw Exception('User does not have homeName in session. Please re-login.');
         }
         
-        homeName = homeInfo['home_name'] as String;
         // Store for future use
         await WebJwtSessionService.storeHomeName(homeName);
       }

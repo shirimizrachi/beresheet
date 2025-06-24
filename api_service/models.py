@@ -78,7 +78,7 @@ class EventWithRegistrationStatus(BaseModel):
 
 # Room Models
 class Room(BaseModel):
-    id: int
+    id: str
     room_name: str
 
     class Config:
@@ -144,7 +144,7 @@ class UserProfileBase(BaseModel):
     id: str  # Unique user identifier (primary key)
     photo: Optional[str] = None
     service_provider_type: Optional[str] = None
-    service_provider_type_id: Optional[int] = None
+    service_provider_type_id: Optional[str] = None
     firebase_fcm_token: Optional[str] = None
 
 class UserProfileCreate(BaseModel):
@@ -164,7 +164,7 @@ class UserProfileUpdate(BaseModel):
     home_id: Optional[int] = None
     photo: Optional[str] = None
     service_provider_type: Optional[str] = None
-    service_provider_type_id: Optional[int] = None
+    service_provider_type_id: Optional[str] = None
     service_provider_type_name: Optional[str] = None
     service_provider_type_description: Optional[str] = None
     firebase_fcm_token: Optional[str] = None
@@ -198,7 +198,7 @@ class LoginRequest(BaseModel):
 
 # Service Provider Types Models
 class ServiceProviderType(BaseModel):
-    id: int
+    id: str
     name: str
     description: Optional[str] = None
 
@@ -291,7 +291,7 @@ class RequestStatusUpdate(BaseModel):
 
 # Event Instructor Models
 class EventInstructor(BaseModel):
-    id: int
+    id: str
     name: str
     description: Optional[str] = None
     photo: Optional[str] = None

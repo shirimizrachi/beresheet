@@ -11,7 +11,7 @@ import '../config/app_config.dart';
 import 'firebase_messaging_service.dart';
 
 class ApiUserService {
-  // Use different URLs for web vs mobile platforms with API prefix
+  // Use tenant-aware API URL from AppConfig
   static String get baseUrl => AppConfig.apiUrlWithPrefix;
 
   /// Get user profile by user ID
@@ -70,7 +70,7 @@ class ApiUserService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/users/by-phone'),
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/users/by-phone'),
         headers: headers,
         body: json.encode({'phone_number': phoneNumber}),
       );
@@ -95,6 +95,50 @@ class ApiUserService {
       }
     } catch (e) {
       print('Error fetching user profile by phone: $e');
+      // Re-throw to allow caller to handle different error types
+      rethrow;
+    }
+  }
+
+  /// Get user's home information by phone number (global endpoint, no homeID header required)
+  static Future<Map<String, dynamic>?> getUserHomeInfo(String phoneNumber) async {
+    try {
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      
+      // Add Firebase token if available
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final token = await user.getIdToken();
+          if (token != null) {
+            headers['firebaseToken'] = token;
+          }
+        }
+      } catch (e) {
+        print('Error getting Firebase token: $e');
+      }
+
+      // Use the global home_index endpoint that bypasses tenant routing (no tenant prefix)
+      // This calls the home_index directly without any tenant path
+      final globalBaseUrl = AppConfig.apiBaseUrl; // Use base URL without tenant prefix
+      final response = await http.get(
+        Uri.parse('$globalBaseUrl/api/home_index/get_home_by_phone?phone_number=$phoneNumber'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        return data;
+      } else if (response.statusCode == 404) {
+        return null; // User not found in any home
+      } else {
+        print('Error fetching user home info: ${response.statusCode} - ${response.body}');
+        throw Exception('API error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching user home info: $e');
       // Re-throw to allow caller to handle different error types
       rethrow;
     }

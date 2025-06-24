@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:beresheet_app/config/web_utils.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'dart:html' as html;
 
@@ -46,8 +47,8 @@ class _WebJwtLoginScreenState extends State<WebJwtLoginScreen> {
       final password = _passwordController.text;
       
       // Get tenant information from current context
-      final tenantName = AppConfig.getTenantPrefixFromCookie();
-      final homeId = AppConfig.getTenantHomeIdFromCookie();
+      final tenantName = WebUtils.getTenantPrefixFromCookie();
+      final homeId = WebUtils.getTenantHomeIdFromCookie();
       
       print('Attempting JWT login for tenant: $tenantName (homeId: $homeId), phone: $phoneNumber');
       
@@ -73,7 +74,7 @@ class _WebJwtLoginScreenState extends State<WebJwtLoginScreen> {
         } else {
           // Navigate to tenant-specific web page
           if (mounted) {
-            final tenantWebUrl = AppConfig.webHomepageUrl; // This constructs /{tenant}/web
+            final tenantWebUrl = AppConfig.webHomepageUrl;
             html.window.location.href = tenantWebUrl;
           }
         }

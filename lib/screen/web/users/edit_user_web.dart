@@ -36,7 +36,7 @@ class _EditUserWebState extends State<EditUserWeb> {
   String _selectedReligious = 'secular';
   String _selectedLanguage = 'hebrew';
   DateTime? _selectedBirthday;
-  int? _selectedServiceProviderTypeId;
+  String? _selectedServiceProviderTypeId;
   
   bool _isLoading = false;
   String? _errorMessage;
@@ -189,7 +189,7 @@ class _EditUserWebState extends State<EditUserWeb> {
           request.fields['native_language'] = _selectedLanguage;
         }
         if (_selectedServiceProviderTypeId != null) {
-          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId.toString();
+          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId!;
         }
         
         // Add image file with proper content type
@@ -244,7 +244,7 @@ class _EditUserWebState extends State<EditUserWeb> {
           request.fields['native_language'] = _selectedLanguage;
         }
         if (_selectedServiceProviderTypeId != null) {
-          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId.toString();
+          request.fields['service_provider_type_id'] = _selectedServiceProviderTypeId!;
         }
         
         // Send request and get response
@@ -588,7 +588,7 @@ class _EditUserWebState extends State<EditUserWeb> {
                                   child: CircularProgressIndicator(),
                                 ),
                               )
-                            : DropdownButtonFormField<int>(
+                            : DropdownButtonFormField<String>(
                                 value: _selectedServiceProviderTypeId,
                                 decoration: const InputDecoration(
                                   labelText: 'Service Provider Type',
@@ -596,12 +596,12 @@ class _EditUserWebState extends State<EditUserWeb> {
                                 ),
                                 hint: const Text('Select service provider type'),
                                 items: _serviceProviderTypes.map((ServiceProviderType type) {
-                                  return DropdownMenuItem<int>(
+                                  return DropdownMenuItem<String>(
                                     value: type.id,
                                     child: Text(type.name),
                                   );
                                 }).toList(),
-                                onChanged: (int? newValue) {
+                                onChanged: (String? newValue) {
                                   setState(() {
                                     _selectedServiceProviderTypeId = newValue;
                                   });

@@ -77,19 +77,25 @@ class RoomDatabase:
             if rooms_table is None:
                 return None
 
+            # Generate GUID for room ID
+            import uuid
+            room_id = str(uuid.uuid4())
+
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
-                return []
+                return None
             with schema_engine.connect() as conn:
-                insert_result = conn.execute(
-                    rooms_table.insert().values(room_name=room_data.room_name)
+                conn.execute(
+                    rooms_table.insert().values(
+                        id=room_id,
+                        room_name=room_data.room_name
+                    )
                 )
                 conn.commit()
 
-                # Fetch the newly created row (identity value)
-                new_id = insert_result.inserted_primary_key[0]
+                # Fetch the newly created row
                 new_row = conn.execute(
-                    rooms_table.select().where(rooms_table.c.id == new_id)
+                    rooms_table.select().where(rooms_table.c.id == room_id)
                 ).fetchone()
 
                 if new_row:
@@ -99,7 +105,7 @@ class RoomDatabase:
             print(f"Error creating room '{room_data.room_name}' for home {home_id}: {exc}")
             return None
 
-    def delete_room(self, room_id: int, home_id: int) -> bool:
+    def delete_room(self, room_id: str, home_id: int) -> bool:
         """Delete room by ID; returns True if a row was removed."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)

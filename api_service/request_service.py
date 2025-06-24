@@ -67,7 +67,7 @@ class RequestDatabase:
             'service_provider_type': None
         }
     
-    def _get_service_provider_type_details(self, service_provider_type_id: int, home_id: int) -> dict:
+    def _get_service_provider_type_details(self, service_provider_type_id: str, home_id: int) -> dict:
         """Get service provider type name and description by ID"""
         try:
             from service_provider_types import service_provider_type_db

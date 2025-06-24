@@ -114,7 +114,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
     }
   }
 
-  Future<void> _deleteRoom(int roomId, String roomName) async {
+  Future<void> _deleteRoom(String roomId, String roomName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -331,7 +331,7 @@ class _RoomsManagementWebState extends State<RoomsManagementWeb> {
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteRoom(
-                room['id'] ?? 0,
+                room['id']?.toString() ?? '',
                 room['room_name'] ?? AppLocalizations.of(context)!.unknownRoom,
               ),
               tooltip: AppLocalizations.of(context)!.deleteRoom,

@@ -72,7 +72,7 @@ class ServiceProviderTypeDatabase:
             print(f"Error retrieving service provider types for home {home_id}: {exc}")
             return []
 
-    def get_service_provider_type_by_id(self, type_id: int, home_id: int) -> Optional[ServiceProviderType]:
+    def get_service_provider_type_by_id(self, type_id: str, home_id: int) -> Optional[ServiceProviderType]:
         """Get a single service provider type by ID."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -113,22 +113,26 @@ class ServiceProviderTypeDatabase:
             if types_table is None:
                 return None
 
+            # Generate GUID for service provider type ID
+            import uuid
+            type_id = str(uuid.uuid4())
+
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
-                return []
+                return None
             with schema_engine.connect() as conn:
-                insert_result = conn.execute(
+                conn.execute(
                     types_table.insert().values(
+                        id=type_id,
                         name=type_data.name,
                         description=type_data.description
                     )
                 )
                 conn.commit()
 
-                # Fetch the newly created row (identity value)
-                new_id = insert_result.inserted_primary_key[0]
+                # Fetch the newly created row
                 new_row = conn.execute(
-                    types_table.select().where(types_table.c.id == new_id)
+                    types_table.select().where(types_table.c.id == type_id)
                 ).fetchone()
 
                 if new_row:
@@ -142,7 +146,7 @@ class ServiceProviderTypeDatabase:
             print(f"Error creating service provider type '{type_data.name}' for home {home_id}: {exc}")
             return None
 
-    def update_service_provider_type(self, type_id: int, type_data: ServiceProviderTypeUpdate, home_id: int) -> Optional[ServiceProviderType]:
+    def update_service_provider_type(self, type_id: str, type_data: ServiceProviderTypeUpdate, home_id: int) -> Optional[ServiceProviderType]:
         """Update a service provider type (only description can be updated); returns updated ServiceProviderType or None on failure."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -190,7 +194,7 @@ class ServiceProviderTypeDatabase:
             print(f"Error updating service provider type {type_id} for home {home_id}: {exc}")
             return None
 
-    def delete_service_provider_type(self, type_id: int, home_id: int) -> bool:
+    def delete_service_provider_type(self, type_id: str, home_id: int) -> bool:
         """Delete service provider type by ID; returns True if a row was removed."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)

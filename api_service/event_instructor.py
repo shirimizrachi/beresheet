@@ -74,7 +74,7 @@ class EventInstructorDatabase:
             print(f"Error retrieving event instructors for home {home_id}: {exc}")
             return []
 
-    def get_event_instructor_by_id(self, instructor_id: int, home_id: int) -> Optional[EventInstructor]:
+    def get_event_instructor_by_id(self, instructor_id: str, home_id: int) -> Optional[EventInstructor]:
         """Get a specific event instructor by ID."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -116,12 +116,17 @@ class EventInstructorDatabase:
             if event_instructor_table is None:
                 return None
 
+            # Generate GUID for instructor ID
+            import uuid
+            instructor_id = str(uuid.uuid4())
+
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
-                return []
+                return None
             with schema_engine.connect() as conn:
-                insert_result = conn.execute(
+                conn.execute(
                     event_instructor_table.insert().values(
+                        id=instructor_id,
                         name=instructor_data.name,
                         description=instructor_data.description,
                         photo=None  # Will be updated separately if needed
@@ -129,10 +134,9 @@ class EventInstructorDatabase:
                 )
                 conn.commit()
 
-                # Fetch the newly created row (identity value)
-                new_id = insert_result.inserted_primary_key[0]
+                # Fetch the newly created row
                 new_row = conn.execute(
-                    event_instructor_table.select().where(event_instructor_table.c.id == new_id)
+                    event_instructor_table.select().where(event_instructor_table.c.id == instructor_id)
                 ).fetchone()
 
                 if new_row:
@@ -147,7 +151,7 @@ class EventInstructorDatabase:
             print(f"Error creating event instructor '{instructor_data.name}' for home {home_id}: {exc}")
             return None
 
-    def update_event_instructor(self, instructor_id: int, instructor_data: EventInstructorUpdate, home_id: int) -> Optional[EventInstructor]:
+    def update_event_instructor(self, instructor_id: str, instructor_data: EventInstructorUpdate, home_id: int) -> Optional[EventInstructor]:
         """Update an existing event instructor; returns the updated EventInstructor or None on failure."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -193,7 +197,7 @@ class EventInstructorDatabase:
             print(f"Error updating event instructor {instructor_id} for home {home_id}: {exc}")
             return None
 
-    def delete_event_instructor(self, instructor_id: int, home_id: int) -> bool:
+    def delete_event_instructor(self, instructor_id: str, home_id: int) -> bool:
         """Delete event instructor by ID; returns True if a row was removed."""
         try:
             schema_name = get_schema_name_by_home_id(home_id)

@@ -858,7 +858,7 @@ async def create_room(
 
 @api_router.delete("/rooms/{room_id}")
 async def delete_room(
-    room_id: int,
+    room_id: str,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
 ):
@@ -884,7 +884,7 @@ async def get_event_instructors(
 
 @api_router.get("/event-instructors/{instructor_id}", response_model=EventInstructor)
 async def get_event_instructor(
-    instructor_id: int,
+    instructor_id: str,
     home_id: int = Depends(get_home_id),
 ):
     """Get a specific event instructor by ID"""
@@ -955,7 +955,7 @@ async def create_event_instructor(
 
 @api_router.put("/event-instructors/{instructor_id}", response_model=EventInstructor)
 async def update_event_instructor(
-    instructor_id: int,
+    instructor_id: str,
     name: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     photo: Optional[UploadFile] = File(None),
@@ -1021,7 +1021,7 @@ async def update_event_instructor(
 
 @api_router.delete("/event-instructors/{instructor_id}")
 async def delete_event_instructor(
-    instructor_id: int,
+    instructor_id: str,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
 ):
@@ -1047,7 +1047,7 @@ async def get_service_provider_types(
 
 @api_router.get("/service-provider-types/{type_id}", response_model=ServiceProviderType)
 async def get_service_provider_type(
-    type_id: int,
+    type_id: str,
     home_id: int = Depends(get_home_id),
 ):
     """Get a specific service provider type by ID"""
@@ -1077,7 +1077,7 @@ async def create_service_provider_type(
 
 @api_router.put("/service-provider-types/{type_id}", response_model=ServiceProviderType)
 async def update_service_provider_type(
-    type_id: int,
+    type_id: str,
     provider_type: ServiceProviderTypeUpdate,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
@@ -1094,7 +1094,7 @@ async def update_service_provider_type(
 
 @api_router.delete("/service-provider-types/{type_id}")
 async def delete_service_provider_type(
-    type_id: int,
+    type_id: str,
     home_id: int = Depends(get_home_id),
     current_user_id: str = Header(..., alias="currentUserId"),
 ):
@@ -1583,10 +1583,7 @@ async def update_user_profile(
         if native_language is not None:
             update_data['native_language'] = native_language
         if service_provider_type_id is not None:
-            try:
-                update_data['service_provider_type_id'] = int(service_provider_type_id)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid service_provider_type_id format")
+            update_data['service_provider_type_id'] = service_provider_type_id
         
         # Parse birthday if provided
         if birthday is not None:
@@ -1846,6 +1843,21 @@ async def global_get_user_home(phone_number: str = Query(...)):
     """Global endpoint to get user's home information by phone number - used for tenant discovery"""
     try:
         home_info = user_db.get_user_home_info(phone_number)
+        if not home_info:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found. Please contact support to set up your account."
+            )
+        return home_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@global_router.get("/api/home_index/get_home_by_phone")
+async def global_get_home_by_phone(phone_number: str = Query(...)):
+    """Global endpoint to get home information by phone number directly from home_index - used for tenant discovery"""
+    try:
+        from home_index import home_index_db
+        home_info = home_index_db.get_home_by_phone(phone_number)
         if not home_info:
             raise HTTPException(
                 status_code=404,

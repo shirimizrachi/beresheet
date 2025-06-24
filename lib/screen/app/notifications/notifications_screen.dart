@@ -64,7 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  Future<void> _markNotificationAsRead(int notificationId) async {
+  Future<void> _markNotificationAsRead(String notificationId) async {
     try {
       final headers = await UserSessionService.getApiHeaders();
       
@@ -118,7 +118,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                           onTap: () {
                             // Mark as read when tapped
-                            _markNotificationAsRead(notification['id']);
+                            _markNotificationAsRead(notification['id'].toString());
                           },
                         ),
                       );

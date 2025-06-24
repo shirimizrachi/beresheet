@@ -30,7 +30,7 @@ class HomeNotificationUpdate(BaseModel):
     send_status: str
 
 class HomeNotification(BaseModel):
-    id: int
+    id: str
     create_by_user_id: str
     create_by_user_name: str
     create_by_user_role_name: str
@@ -48,11 +48,11 @@ class HomeNotification(BaseModel):
         from_attributes = True
 
 class UserNotification(BaseModel):
-    id: int
+    id: str
     user_id: str
     user_read_date: Optional[datetime]
     user_fcm: Optional[str]
-    notification_id: int
+    notification_id: str
     notification_sender_user_id: str
     notification_sender_user_name: str
     notification_sender_user_role_name: str
@@ -116,7 +116,7 @@ class HomeNotificationDatabase:
             print(f"Error reflecting users table for schema {schema_name}: {e}")
             return None
 
-    def create_home_notification(self, notification_data: HomeNotificationCreate, home_id: int, 
+    def create_home_notification(self, notification_data: HomeNotificationCreate, home_id: int,
                                  current_user: dict) -> Optional[HomeNotification]:
         """Create a new home notification (always as pending-approval)"""
         try:
@@ -128,11 +128,16 @@ class HomeNotificationDatabase:
             if home_notification_table is None:
                 return None
 
+            # Generate GUID for notification ID
+            import uuid
+            notification_id = str(uuid.uuid4())
+
             schema_engine = get_schema_engine(schema_name)
             current_time = datetime.now()
             send_datetime = notification_data.send_datetime or current_time
 
             notification_dict = {
+                'id': notification_id,
                 'create_by_user_id': current_user.get('id'),
                 'create_by_user_name': current_user.get('full_name', ''),
                 'create_by_user_role_name': current_user.get('role', ''),
@@ -147,11 +152,10 @@ class HomeNotificationDatabase:
             }
 
             with schema_engine.connect() as conn:
-                result = conn.execute(home_notification_table.insert().values(**notification_dict))
+                conn.execute(home_notification_table.insert().values(**notification_dict))
                 conn.commit()
                 
                 # Get the inserted notification
-                notification_id = result.inserted_primary_key[0]
                 inserted_result = conn.execute(
                     home_notification_table.select().where(home_notification_table.c.id == notification_id)
                 ).fetchone()
@@ -178,7 +182,7 @@ class HomeNotificationDatabase:
             print(f"Error creating home notification: {e}")
             return None
 
-    def update_notification_status(self, notification_id: int, status_update: HomeNotificationUpdate,
+    def update_notification_status(self, notification_id: str, status_update: HomeNotificationUpdate,
                                    home_id: int, current_user: dict) -> bool:
         """Update notification status and create user notifications when approved"""
         try:
@@ -228,7 +232,11 @@ class HomeNotificationDatabase:
 
                     # Create user notification for each resident
                     for resident in residents:
+                        import uuid
+                        user_notification_id = str(uuid.uuid4())
+                        
                         user_notification_data = {
+                            'id': user_notification_id,
                             'user_id': resident.id,
                             'user_fcm': getattr(resident, 'firebase_fcm_token', None),
                             'notification_id': notification_id,
@@ -305,7 +313,7 @@ class HomeNotificationDatabase:
             print(f"Error getting all notifications: {e}")
             return []
 
-    def get_notification_by_id(self, notification_id: int, home_id: int) -> Optional[HomeNotification]:
+    def get_notification_by_id(self, notification_id: str, home_id: int) -> Optional[HomeNotification]:
         """Get a specific home notification by ID"""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -401,7 +409,7 @@ class HomeNotificationDatabase:
             print(f"Error getting user notifications: {e}")
             return []
 
-    def mark_user_notification_as_read(self, notification_id: int, user_id: str, home_id: int) -> bool:
+    def mark_user_notification_as_read(self, notification_id: str, user_id: str, home_id: int) -> bool:
         """Mark a user notification as read by setting user_read_date"""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
@@ -488,7 +496,7 @@ async def create_home_notification(
 
 @router.put("/home-notifications/{notification_id}")
 async def update_home_notification_status(
-    notification_id: int,
+    notification_id: str,
     notification_update: HomeNotificationUpdate,
     authorization: str = Header(None)
 ):
@@ -535,7 +543,7 @@ async def get_home_notifications(
 
 @router.get("/home-notifications/{notification_id}", response_model=HomeNotification)
 async def get_home_notification(
-    notification_id: int,
+    notification_id: str,
     authorization: str = Header(None)
 ):
     """Get a specific home notification by ID"""
@@ -556,7 +564,7 @@ async def get_home_notification(
 
 @router.patch("/user-notifications/{notification_id}/read")
 async def mark_user_notification_as_read(
-    notification_id: int,
+    notification_id: str,
     authorization: str = Header(None),
     home_id: Optional[str] = Header(None, alias="homeID"),
     user_id: Optional[str] = Header(None, alias="userId")

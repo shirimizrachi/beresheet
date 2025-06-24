@@ -210,7 +210,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
     }
   }
 
-  Future<void> _deleteInstructor(int instructorId, String instructorName) async {
+  Future<void> _deleteInstructor(String instructorId, String instructorName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -520,7 +520,7 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () => _deleteInstructor(
-                    instructor['id'] ?? 0,
+                    instructor['id']?.toString() ?? '',
                     instructor['name'] ?? AppLocalizations.of(context)!.unknownInstructor,
                   ),
                   tooltip: AppLocalizations.of(context)!.deleteInstructorTooltip,

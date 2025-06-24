@@ -3,8 +3,10 @@ echo Building and Serving Beresheet Community App
 echo.
 
 echo Step 1: Building Flutter Web App...
-echo.
+echo
 flutter build web --target lib/main_web.dart --output build/web-tenant
+
+echo Step 2: Building Flutter Admin App...
 flutter build web --target lib/main_admin.dart --output build/web-admin
 
 

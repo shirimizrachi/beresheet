@@ -13,7 +13,7 @@ class UserModel {
   final String id; // Unique user identifier (primary key)
   final String? photo;
   final String? firebaseFcmToken;
-  final int? serviceProviderTypeId;
+  final String? serviceProviderTypeId;
   final String? serviceProviderType;
   final String? createdAt;
   final String? updatedAt;
@@ -56,7 +56,7 @@ class UserModel {
       id: json['id'] as String,
       photo: json['photo'] as String?,
       firebaseFcmToken: json['firebase_fcm_token'] as String?,
-      serviceProviderTypeId: json['service_provider_type_id'] as int?,
+      serviceProviderTypeId: json['service_provider_type_id']?.toString(),
       serviceProviderType: json['service_provider_type'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
@@ -104,7 +104,7 @@ class UserModel {
     String? id,
     String? photo,
     String? firebaseFcmToken,
-    int? serviceProviderTypeId,
+    String? serviceProviderTypeId,
     String? serviceProviderType,
     String? createdAt,
     String? updatedAt,

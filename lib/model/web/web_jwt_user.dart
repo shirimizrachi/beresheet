@@ -10,6 +10,7 @@ class WebJwtUser {
   final String fullName;
   final String role;
   final int homeId;
+  final String? homeName;
   final String? photo;
   final String? apartmentNumber;
   final DateTime createdAt;
@@ -21,6 +22,7 @@ class WebJwtUser {
     required this.fullName,
     required this.role,
     required this.homeId,
+    this.homeName,
     this.photo,
     this.apartmentNumber,
     required this.createdAt,
@@ -34,6 +36,7 @@ class WebJwtUser {
       fullName: json['fullName'] as String,
       role: json['role'] as String,
       homeId: json['homeId'] as int,
+      homeName: json['homeName'] as String?,
       photo: json['photo'] as String?,
       apartmentNumber: json['apartmentNumber'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -43,7 +46,7 @@ class WebJwtUser {
   Map<String, dynamic> toJson() => _$WebJwtUserToJson(this);
 
   @override
-  String toString() => 'WebJwtUser(id: $id, phoneNumber: $phoneNumber, fullName: $fullName, role: $role, homeId: $homeId)';
+  String toString() => 'WebJwtUser(id: $id, phoneNumber: $phoneNumber, fullName: $fullName, role: $role, homeId: $homeId, homeName: $homeName)';
 }
 
 /// Web JWT Session model

@@ -32,7 +32,7 @@ def create_event_instructor_table(engine, schema_name: str, drop_if_exists: bool
             # Create event_instructor table
             create_table_sql = text(f"""
                 CREATE TABLE [{schema_name}].[event_instructor] (
-                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    id NVARCHAR(36) PRIMARY KEY,
                     name NVARCHAR(255) NOT NULL,
                     description NVARCHAR(MAX) NULL,
                     photo NVARCHAR(1000) NULL,
