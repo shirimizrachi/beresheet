@@ -179,8 +179,13 @@ async def serve_admin_dashboard():
 @admin_router.get("/{path:path}")
 async def serve_admin_assets(path: str):
     """Serve Flutter web static assets for admin panel"""
-    # Skip API routes and HTML route
-    if path.startswith('api/') or path == 'html':
+    # Skip API routes - let them be handled by admin_api_router which is registered separately
+    if path.startswith('api/'):
+        # Return 404 so FastAPI continues to check other routers (admin_api_router)
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Skip HTML route as it's handled by a dedicated endpoint
+    if path == 'html':
         raise HTTPException(status_code=404, detail="Not found")
     
     # Security check to prevent directory traversal

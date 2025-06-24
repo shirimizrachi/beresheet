@@ -14,7 +14,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def load_users(tenant_name: str, home_id: int):
+def load_users(tenant_name: str, home_id: int):
     """
     Load users data from CSV file and insert using the create_user_profile function from main.py
     
@@ -76,6 +76,7 @@ async def load_users(tenant_name: str, home_id: int):
                 
                 # Create UserProfileCreate object
                 user_profile_create = UserProfileCreate(
+                    home_id=home_id,
                     full_name=user_data['full_name'],
                     phone_number=user_data['phone_number'],
                     role=user_data['role'],
@@ -106,8 +107,8 @@ async def load_users(tenant_name: str, home_id: int):
                                 with open(image_path, 'rb') as img_file:
                                     image_data = img_file.read()
                                 
-                                # Create UploadFile-like object
-                                class MockUploadFile:
+                                # Create UploadFile-like object that works with the upload function
+                                class AsyncMockUploadFile:
                                     def __init__(self, filename, content, content_type):
                                         self.filename = filename
                                         self.content = content
@@ -125,11 +126,36 @@ async def load_users(tenant_name: str, home_id: int):
                                 else:
                                     content_type = 'image/jpeg'  # Default
                                 
-                                image_file = MockUploadFile(image_filename, image_data, content_type)
+                                # Create async upload file
+                                async_image_file = AsyncMockUploadFile(image_filename, image_data, content_type)
                                 
-                                # Update user with photo using update_user_profile function
+                                # Use the extracted photo upload function to upload to Azure Storage
+                                async def upload_photo():
+                                    return await user_db.upload_user_profile_photo(
+                                        user_id=new_user.id,
+                                        photo=async_image_file,
+                                        home_id=home_id,
+                                        tenant_name=tenant_name
+                                    )
+                                
+                                # Run the async upload function using the event loop
+                                try:
+                                    loop = asyncio.get_event_loop()
+                                    if loop.is_running():
+                                        # If loop is running, we need to use a different approach
+                                        import concurrent.futures
+                                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                                            future = executor.submit(asyncio.run, upload_photo())
+                                            photo_url = future.result()
+                                    else:
+                                        photo_url = loop.run_until_complete(upload_photo())
+                                except RuntimeError:
+                                    # No event loop exists, create a new one
+                                    photo_url = asyncio.run(upload_photo())
+                                
+                                # Update user with the Azure Storage photo URL
                                 from modules.users.models import UserProfileUpdate
-                                user_update = UserProfileUpdate(photo=image_filename)
+                                user_update = UserProfileUpdate(photo=photo_url)
                                 updated_user = user_db.update_user_profile(
                                     user_id=new_user.id,
                                     user_data=user_update,
@@ -137,12 +163,14 @@ async def load_users(tenant_name: str, home_id: int):
                                 )
                                 
                                 if updated_user:
-                                    logger.info(f"Successfully uploaded image for user {new_user.id}")
+                                    logger.info(f"Successfully uploaded and updated user {new_user.id} with photo URL: {photo_url}")
                                 else:
-                                    logger.warning(f"Failed to update user {new_user.id} with image")
+                                    logger.warning(f"Failed to update user {new_user.id} with photo URL")
                                     
                             except Exception as e:
-                                logger.warning(f"Error processing image for user {new_user.id}: {e}")
+                                logger.error(f"Error uploading photo for user {new_user.id}: {e}")
+                                import traceback
+                                logger.error(f"Full traceback: {traceback.format_exc()}")
                     
                     success_count += 1
                     logger.info(f"Successfully created user: {user_data['id']} - {user_data['full_name']} -> {new_user.id}")
@@ -174,8 +202,8 @@ def load_users_sync(tenant_name: str, home_id: int):
         Boolean indicating success
     """
     try:
-        # Run the async function
-        return asyncio.run(load_users(tenant_name, home_id))
+        # Call the function directly since it's now synchronous
+        return load_users(tenant_name, home_id)
     except Exception as e:
         logger.error(f"Error in sync wrapper for load_users: {e}")
         return False

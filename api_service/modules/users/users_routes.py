@@ -24,7 +24,7 @@ async def get_current_user_id(current_user_id: Optional[str] = Header(None, alia
     """Dependency to extract current user ID header"""
     return current_user_id
 
-from storage.storage_service import azure_storage_service
+from storage.storage_service import StorageServiceProxy
 import uuid
 
 # Add missing dependencies that are needed for some user routes
@@ -117,21 +117,14 @@ async def update_user_profile(
         # Handle photo upload if provided
         photo_url = None
         if photo and photo.filename:
-            # Generate unique filename
-            file_extension = photo.filename.split('.')[-1] if '.' in photo.filename else 'jpg'
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
-            blob_path = f"{home_id}/users/photos/{unique_filename}"
+            # Get tenant name for storage
+            from tenant_config import get_schema_name_by_home_id
+            tenant_name = get_schema_name_by_home_id(home_id)
+            if not tenant_name:
+                raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
             
-            # Read file content
-            photo_content = await photo.read()
-            
-            # Upload to Azure Storage
-            success = azure_storage_service.upload_image(blob_path, photo_content)
-            
-            if success:
-                photo_url = blob_path
-            else:
-                raise HTTPException(status_code=500, detail="Failed to upload photo")
+            # Use the extracted photo upload function
+            photo_url = await user_db.upload_user_profile_photo(user_id, photo, home_id, tenant_name)
         
         # Parse birthday if provided
         birthday_date = None
@@ -201,33 +194,23 @@ async def upload_user_photo(
 ):
     """Upload a photo for a user"""
     try:
-        # Validate file type
-        if not photo.content_type or not photo.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        # Get tenant name for storage
+        from tenant_config import get_schema_name_by_home_id
+        tenant_name = get_schema_name_by_home_id(home_id)
+        if not tenant_name:
+            raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
         
-        # Generate unique filename
-        file_extension = photo.filename.split('.')[-1] if photo.filename and '.' in photo.filename else 'jpg'
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        blob_path = f"{home_id}/users/photos/{unique_filename}"
+        # Use the extracted photo upload function
+        photo_url = await user_db.upload_user_profile_photo(user_id, photo, home_id, tenant_name)
         
-        # Read file content
-        photo_content = await photo.read()
-        
-        # Upload to Azure Storage
-        success = azure_storage_service.upload_image(blob_path, photo_content)
-        
-        if not success:
-            raise HTTPException(status_code=500, detail="Failed to upload photo")
-        
-        # Update user record with photo path
-        update_data = UserProfileUpdate(photo=blob_path)
+        # Update user record with photo URL
+        update_data = UserProfileUpdate(photo=photo_url)
         updated_user = user_db.update_user_profile(user_id, update_data, home_id)
         
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")
         
         # Return the URL for the uploaded photo
-        photo_url = azure_storage_service.get_image_url(blob_path)
         return {
             "message": "Photo uploaded successfully",
             "photo_url": photo_url

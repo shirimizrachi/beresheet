@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../config/admin_config.dart';
-import '../../../model/admin/tenant.dart';
-import '../../../model/admin/tenant_table.dart';
-import '../../../services/admin/admin_api_service.dart';
+import '../../../../config/admin_config.dart';
+import '../../../../model/admin/tenant.dart';
+import '../../../../model/admin/tenant_table.dart';
+import '../../../../services/admin/admin_api_service.dart';
 import 'table_management_widget.dart';
 
 /// Widget for displaying tenant information in a card format

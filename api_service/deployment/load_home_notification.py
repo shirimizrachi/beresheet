@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def load_home_notification(tenant_name: str, home_id: int):
+def load_home_notification(tenant_name: str, home_id: int):
     """
     Load home notification data from CSV file and insert using the home_notification_db
     
@@ -132,8 +132,8 @@ def load_home_notification_sync(tenant_name: str, home_id: int):
         Boolean indicating success
     """
     try:
-        # Run the async function
-        return asyncio.run(load_home_notification(tenant_name, home_id))
+        # Call the function directly since it's now synchronous
+        return load_home_notification(tenant_name, home_id)
     except Exception as e:
         logger.error(f"Error in sync wrapper for load_home_notification: {e}")
         return False

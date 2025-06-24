@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def load_rooms(tenant_name: str, home_id: int):
+def load_rooms(tenant_name: str, home_id: int):
     """
     Load rooms data from CSV file and insert using the create_room function from main.py
     
@@ -26,21 +26,12 @@ async def load_rooms(tenant_name: str, home_id: int):
     """
     
     try:
-        # Import the create_room function from main.py
+        # Import the necessary modules
         import sys
-        import importlib.util
+        sys.path.append(str(Path(__file__).parent.parent))
         
-        # Get path to main.py
-        main_path = Path(__file__).parent.parent / "main.py"
-        
-        # Load main.py as a module to access create_room function
-        spec = importlib.util.spec_from_file_location("main", main_path)
-        main_module = importlib.util.module_from_spec(spec)
-        sys.modules["main_temp"] = main_module
-        spec.loader.exec_module(main_module)
-        
-        # Import models for RoomCreate
-        from modules.events import RoomCreate
+        # Import the room database functions
+        from modules.events.events_room import room_db, RoomCreate
         
         # Get the CSV file path
         script_dir = Path(__file__).parent
@@ -71,11 +62,10 @@ async def load_rooms(tenant_name: str, home_id: int):
                     room_name=room_data['room_name']
                 )
                 
-                # Call the create_room function from main.py
-                new_room = await main_module.create_room(
-                    room=room_create,
-                    home_id=home_id,
-                    current_user_id='default-manager-user'  # Use default manager as creator
+                # Call the create_room function from room database
+                new_room = room_db.create_room(
+                    room_data=room_create,
+                    home_id=home_id
                 )
                 
                 if new_room:
@@ -88,10 +78,6 @@ async def load_rooms(tenant_name: str, home_id: int):
             except Exception as e:
                 failed_count += 1
                 logger.error(f"Error creating room {room_data['id']}: {e}")
-        
-        # Clean up module
-        if "main_temp" in sys.modules:
-            del sys.modules["main_temp"]
         
         logger.info(f"Rooms loading completed for tenant {tenant_name}: {success_count} successful, {failed_count} failed")
         return success_count > 0
@@ -113,8 +99,8 @@ def load_rooms_sync(tenant_name: str, home_id: int):
         Boolean indicating success
     """
     try:
-        # Run the async function
-        return asyncio.run(load_rooms(tenant_name, home_id))
+        # Call the function directly since it's now synchronous
+        return load_rooms(tenant_name, home_id)
     except Exception as e:
         logger.error(f"Error in sync wrapper for load_rooms: {e}")
         return False

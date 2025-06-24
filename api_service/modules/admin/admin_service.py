@@ -228,13 +228,13 @@ class AdminService:
             # Load home notifications (since they are created by users)
             notifications_success = load_home_notification_sync(tenant_name, tenant.id)
             
-            # Load rooms data (since events may reference rooms)
+            # Load rooms data first (since events may reference rooms)
             rooms_success = load_rooms_sync(tenant_name, tenant.id)
             
-            # Load event instructors data (since events may reference instructors)
+            # Load event instructors data first (since events may reference instructors)
             instructors_success = load_event_instructor_sync(tenant_name, tenant.id)
             
-            # Load events data using the new function
+            # Load events data using the new function (after rooms and instructors are loaded)
             events_success = load_events_sync(tenant_name, tenant.id)
             
             # Determine overall success

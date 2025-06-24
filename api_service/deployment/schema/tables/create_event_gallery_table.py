@@ -38,10 +38,7 @@ def create_event_gallery_table(engine, schema_name: str, drop_if_exists: bool = 
                     thumbnail_url NVARCHAR(500) NULL,
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE(),
-                    created_by NVARCHAR(50),
-                    
-                    -- Foreign key constraint to events table
-                    FOREIGN KEY (event_id) REFERENCES [{schema_name}].[events](id) ON DELETE CASCADE
+                    created_by NVARCHAR(50)
                 );
             """)
             conn.execute(create_table_sql)

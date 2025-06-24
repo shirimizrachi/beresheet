@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def load_service_provider_types(tenant_name: str, home_id: int):
+def load_service_provider_types(tenant_name: str, home_id: int):
     """
     Load service provider types data from CSV file and insert using the create_service_provider_type function from main.py
     
@@ -100,8 +100,8 @@ def load_service_provider_types_sync(tenant_name: str, home_id: int):
         Boolean indicating success
     """
     try:
-        # Run the async function
-        return asyncio.run(load_service_provider_types(tenant_name, home_id))
+        # Call the function directly since it's now synchronous
+        return load_service_provider_types(tenant_name, home_id)
     except Exception as e:
         logger.error(f"Error in sync wrapper for load_service_provider_types: {e}")
         return False

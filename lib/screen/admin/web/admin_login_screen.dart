@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../config/admin_config.dart';
-import '../../services/admin/admin_auth_service.dart';
-import '../../model/admin/admin_user.dart';
+import '../../../config/admin_config.dart';
+import '../../../services/admin/admin_auth_service.dart';
+import '../../../model/admin/admin_user.dart';
 import 'admin_dashboard_screen.dart';
 
 /// Independent admin login screen for the admin panel system

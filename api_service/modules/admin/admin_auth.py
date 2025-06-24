@@ -45,9 +45,27 @@ def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return payload
 
 async def authenticate_admin(email: str, password: str) -> dict:
-    """Authenticate admin against home table"""
+    """Authenticate admin against master admin or home table"""
     try:
-        from residents_db_config import get_connection_string
+        from residents_db_config import get_connection_string, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD
+        
+        # Check master admin credentials first
+        if email == MASTER_ADMIN_EMAIL and password == MASTER_ADMIN_PASSWORD:
+            logger.info(f"Master admin login successful: {email}")
+            return {
+                "id": 0,  # Master admin ID
+                "name": "Master Admin",
+                "database_name": "residents",
+                "database_type": "master",
+                "database_schema": "home",
+                "admin_user_email": MASTER_ADMIN_EMAIL,
+                "admin_user_password": MASTER_ADMIN_PASSWORD,
+                "created_at": "2025-01-01T00:00:00",
+                "updated_at": "2025-01-01T00:00:00",
+                "is_master_admin": True
+            }
+        
+        # If not master admin, check database for tenant admin
         engine = create_engine(get_connection_string())
         
         with engine.connect() as conn:
@@ -79,6 +97,7 @@ async def authenticate_admin(email: str, password: str) -> dict:
                 "admin_user_password": result.admin_user_password,
                 "created_at": result.created_at.isoformat(),
                 "updated_at": result.updated_at.isoformat(),
+                "is_master_admin": False
             }
             
     except HTTPException:

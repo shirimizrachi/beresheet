@@ -8,11 +8,11 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Header, Query, Form
 from .models import Event, EventCreate, EventUpdate, EventInstructor, EventInstructorCreate, EventInstructorUpdate, EventGallery, EventRegistration
 from .events import event_db
-from storage.storage_service import azure_storage_service
+from storage.storage_service import StorageServiceProxy
 from .event_gallery import event_gallery_db
 from .event_instructor import event_instructor_db
 from .events_registration import events_registration_db
-from users import user_db
+from modules.users import user_db
 import json
 
 # Create FastAPI router
@@ -166,28 +166,18 @@ async def create_event(
         
         # Handle image upload after event creation
         if image:
-            # Validate image file
-            if not image.content_type or not image.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            # Get tenant name for storage
+            from tenant_config import get_schema_name_by_home_id
+            tenant_name = get_schema_name_by_home_id(home_id)
+            if not tenant_name:
+                raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
             
-            # Read image data
-            image_data = await image.read()
-            
-            # Upload to Azure Storage using event_id as filename
-            success, result = azure_storage_service.upload_event_image(
-                home_id=home_id,
-                event_id=new_event.id,
-                image_data=image_data,
-                original_filename=image.filename or "event_image.jpg",
-                content_type=image.content_type
-            )
-            
-            if not success:
-                raise HTTPException(status_code=400, detail=f"Image upload failed: {result}")
+            # Use the extracted event image upload function
+            image_url = await event_db.upload_event_image(new_event.id, image, home_id, tenant_name)
             
             # Update event with image URL
             from .models import EventUpdate
-            event_update = EventUpdate(image_url=result)
+            event_update = EventUpdate(image_url=image_url)
             updated_event = event_db.update_event(new_event.id, event_update, home_id)
             if updated_event:
                 new_event = updated_event
@@ -266,26 +256,15 @@ async def update_event(
         
         # Handle image update
         if image:
-            # Validate image file
-            if not image.content_type or not image.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            # Get tenant name for storage
+            from tenant_config import get_schema_name_by_home_id
+            tenant_name = get_schema_name_by_home_id(home_id)
+            if not tenant_name:
+                raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
             
-            # Read image data
-            image_data = await image.read()
-            
-            # Upload to Azure Storage using event_id as filename
-            success, result = azure_storage_service.upload_event_image(
-                home_id=home_id,
-                event_id=event_id,
-                image_data=image_data,
-                original_filename=image.filename or "event_image.jpg",
-                content_type=image.content_type
-            )
-            
-            if not success:
-                raise HTTPException(status_code=400, detail=f"Image upload failed: {result}")
-            
-            update_data['image_url'] = result
+            # Use the extracted event image upload function
+            image_url = await event_db.upload_event_image(event_id, image, home_id, tenant_name)
+            update_data['image_url'] = image_url
         
         # Create EventUpdate object
         event_update = EventUpdate(**update_data)
@@ -685,27 +664,17 @@ async def create_event_instructor(
         
         # Handle photo upload if provided
         if photo:
-            # Validate photo file
-            if not photo.content_type or not photo.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            # Get tenant name for storage
+            from tenant_config import get_schema_name_by_home_id
+            tenant_name = get_schema_name_by_home_id(home_id)
+            if not tenant_name:
+                raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
             
-            # Read photo data
-            photo_data = await photo.read()
-            
-            # Upload to Azure Storage using instructor_id as filename
-            success, result = azure_storage_service.upload_event_instructor_photo(
-                home_id=home_id,
-                instructor_id=new_instructor.id,
-                image_data=photo_data,
-                original_filename=photo.filename or "instructor_photo.jpg",
-                content_type=photo.content_type
-            )
-            
-            if not success:
-                raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+            # Use the extracted photo upload function
+            photo_url = await event_db.upload_event_instructor_photo(new_instructor.id, photo, home_id, tenant_name)
             
             # Update instructor with photo URL
-            instructor_update = EventInstructorUpdate(photo=result)
+            instructor_update = EventInstructorUpdate(photo=photo_url)
             updated_instructor = event_instructor_db.update_event_instructor(new_instructor.id, instructor_update, home_id)
             if updated_instructor:
                 new_instructor = updated_instructor
@@ -746,26 +715,15 @@ async def update_event_instructor(
         
         # Handle photo update if provided
         if photo:
-            # Validate photo file
-            if not photo.content_type or not photo.content_type.startswith('image/'):
-                raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            # Get tenant name for storage
+            from tenant_config import get_schema_name_by_home_id
+            tenant_name = get_schema_name_by_home_id(home_id)
+            if not tenant_name:
+                raise HTTPException(status_code=400, detail=f"No tenant found for home_id: {home_id}")
             
-            # Read photo data
-            photo_data = await photo.read()
-            
-            # Upload to Azure Storage using instructor_id as filename
-            success, result = azure_storage_service.upload_event_instructor_photo(
-                home_id=home_id,
-                instructor_id=instructor_id,
-                image_data=photo_data,
-                original_filename=photo.filename or "instructor_photo.jpg",
-                content_type=photo.content_type
-            )
-            
-            if not success:
-                raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
-            
-            update_data['photo'] = result
+            # Use the extracted photo upload function
+            photo_url = await event_db.upload_event_instructor_photo(instructor_id, photo, home_id, tenant_name)
+            update_data['photo'] = photo_url
         
         # Create EventInstructorUpdate object
         instructor_update = EventInstructorUpdate(**update_data)

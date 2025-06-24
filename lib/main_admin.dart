@@ -1,5 +1,5 @@
-import 'package:beresheet_app/screen/admin/admin_login_screen.dart';
-import 'package:beresheet_app/screen/admin/admin_dashboard_screen.dart';
+import 'package:beresheet_app/screen/admin/web/admin_login_screen.dart';
+import 'package:beresheet_app/screen/admin/web/admin_dashboard_screen.dart';
 import 'package:beresheet_app/services/admin/admin_auth_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';

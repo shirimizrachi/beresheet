@@ -257,9 +257,9 @@ async def global_get_home_by_phone(phone_number: str = Query(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Include routers in the correct order
-# 1. Admin routes (highest priority)
-app.include_router(admin_router)
+# 1. Admin API routes first (highest priority) - must come before catch-all routes
 app.include_router(admin_api_router)
+app.include_router(admin_router)
 
 # 2. Global discovery endpoints (no tenant prefix)
 app.include_router(global_router)

@@ -4,6 +4,8 @@ Handles all user-related database operations
 """
 
 import uuid
+import asyncio
+import logging
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, Date, DateTime, text
@@ -13,6 +15,8 @@ from .models import UserProfile, UserProfileCreate, UserProfileUpdate
 from tenant_config import get_schema_name_by_home_id, get_all_homes
 from database_utils import get_schema_engine, get_engine_for_home, get_connection_for_home
 from home_index import home_index_db
+
+logger = logging.getLogger(__name__)
 
 class UserDatabase:
     def __init__(self):
@@ -526,6 +530,68 @@ class UserDatabase:
         except Exception as e:
             print(f"Error getting user home info for phone {phone_number}: {e}")
             return None
+
+    async def upload_user_profile_photo(self, user_id: str, photo, home_id: int, tenant_name: str = None) -> str:
+        """
+        Upload photo for a user profile and return the photo URL.
+        This function can be used by both create and update operations.
+        
+        Args:
+            user_id: The ID of the user
+            photo: The uploaded photo file (UploadFile or mock upload file)
+            home_id: The home ID
+            tenant_name: The tenant name for storage container naming
+            
+        Returns:
+            str: The blob path of the uploaded photo
+            
+        Raises:
+            Exception: If photo validation or upload fails
+        """
+        from fastapi import HTTPException
+        from storage.storage_service import StorageServiceProxy
+        import uuid
+        
+        # Validate file type
+        if not hasattr(photo, 'content_type') or not photo.content_type or not photo.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Generate unique filename
+        file_extension = photo.filename.split('.')[-1] if photo.filename and '.' in photo.filename else 'jpg'
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        blob_path = f"{home_id}/users/photos/{unique_filename}"
+        
+        # Read file content (handle both sync and async read methods)
+        if hasattr(photo, 'read') and callable(photo.read):
+            if asyncio.iscoroutinefunction(photo.read):
+                photo_content = await photo.read()
+            else:
+                photo_content = photo.read()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid photo file")
+        
+        # Upload to Azure Storage using the dedicated user photo upload method
+        if not tenant_name:
+            raise HTTPException(status_code=400, detail="Tenant name is required for photo upload")
+        
+        logger.info(f"Uploading photo for user {user_id} with tenant_name: {tenant_name}")
+        
+        storage_service = StorageServiceProxy()
+        success, result = storage_service.upload_user_photo(
+            home_id=home_id,
+            user_id=user_id,
+            image_data=photo_content,
+            original_filename=photo.filename or "user_photo.jpg",
+            content_type=photo.content_type,
+            tenant_name=tenant_name
+        )
+        
+        if not success:
+            logger.error(f"Photo upload failed for user {user_id}: {result}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload photo: {result}")
+        
+        logger.info(f"Photo uploaded successfully for user {user_id}: {result}")
+        return result
 
 # Create global instance
 user_db = UserDatabase()

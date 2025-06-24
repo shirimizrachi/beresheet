@@ -10,8 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import uuid
 
 from .models import HomeNotification, HomeNotificationCreate, HomeNotificationUpdate, UserNotification
-from ...tenant_config import get_schema_name_by_home_id
-from ...database_utils import get_schema_engine
+from tenant_config import get_schema_name_by_home_id
+from database_utils import get_schema_engine
 
 
 class HomeNotificationDatabase:

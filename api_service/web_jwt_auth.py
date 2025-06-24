@@ -5,7 +5,7 @@ import bcrypt
 from typing import Optional
 import os
 from pydantic import BaseModel
-from users import user_db
+from modules.users import user_db
 
 # Web JWT Router - completely separate from admin JWT
 web_jwt_router = APIRouter(prefix="/api/web-auth", tags=["Web JWT Authentication"])

@@ -4,6 +4,7 @@ Handles all event-related database operations
 """
 
 import uuid
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, List
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, Boolean, text
@@ -13,6 +14,8 @@ from .models import Event, EventCreate, EventUpdate
 from tenant_config import get_schema_name_by_home_id, get_tenant_connection_string_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
 import json
+
+logger = logging.getLogger(__name__)
 
 def calculate_next_occurrence(event_datetime: datetime, recurring_pattern: str, recurring_end_date: datetime) -> datetime:
     """
@@ -782,6 +785,120 @@ class EventDatabase:
         except Exception as e:
             print(f"Error loading events for home {home_id}, user {user_id}: {e}")
             return []
+
+    async def upload_event_instructor_photo(self, instructor_id: str, photo, home_id: int, tenant_name: str = None) -> str:
+        """
+        Upload photo for an event instructor and return the photo URL.
+        This function can be used by both create and update operations.
+        
+        Args:
+            instructor_id: The ID of the instructor
+            photo: The uploaded photo file (UploadFile or mock upload file)
+            home_id: The home ID
+            tenant_name: The tenant name for storage container naming
+            
+        Returns:
+            str: The URL of the uploaded photo
+            
+        Raises:
+            Exception: If photo validation or upload fails
+        """
+        from fastapi import HTTPException
+        from storage.storage_service import StorageServiceProxy
+        import asyncio
+        
+        # Validate photo file
+        if not hasattr(photo, 'content_type') or not photo.content_type or not photo.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+        
+        # Read photo data (handle both sync and async read methods)
+        if hasattr(photo, 'read') and callable(photo.read):
+            if asyncio.iscoroutinefunction(photo.read):
+                photo_data = await photo.read()
+            else:
+                photo_data = photo.read()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid photo file")
+        
+        # Upload to Azure Storage using instructor_id as filename
+        if not tenant_name:
+            raise HTTPException(status_code=400, detail="Tenant name is required for photo upload")
+        
+        logger.info(f"Uploading photo for instructor {instructor_id} with tenant_name: {tenant_name}")
+        
+        storage_service = StorageServiceProxy()
+        success, result = storage_service.upload_event_instructor_photo(
+            home_id=home_id,
+            instructor_id=instructor_id,
+            image_data=photo_data,
+            original_filename=photo.filename or "instructor_photo.jpg",
+            content_type=photo.content_type,
+            tenant_name=tenant_name
+        )
+        
+        if not success:
+            logger.error(f"Photo upload failed for instructor {instructor_id}: {result}")
+            raise HTTPException(status_code=400, detail=f"Photo upload failed: {result}")
+        
+        logger.info(f"Photo uploaded successfully for instructor {instructor_id}: {result}")
+        return result
+
+    async def upload_event_image(self, event_id: str, photo, home_id: int, tenant_name: str = None) -> str:
+        """
+        Upload image for an event and return the image URL.
+        This function can be used by both create and update operations.
+        
+        Args:
+            event_id: The ID of the event
+            photo: The uploaded photo file (UploadFile or mock upload file)
+            home_id: The home ID
+            tenant_name: The tenant name for storage container naming
+            
+        Returns:
+            str: The URL of the uploaded image
+            
+        Raises:
+            Exception: If photo validation or upload fails
+        """
+        from fastapi import HTTPException
+        from storage.storage_service import StorageServiceProxy
+        import asyncio
+        
+        # Validate photo file
+        if not hasattr(photo, 'content_type') or not photo.content_type or not photo.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+        
+        # Read photo data (handle both sync and async read methods)
+        if hasattr(photo, 'read') and callable(photo.read):
+            if asyncio.iscoroutinefunction(photo.read):
+                photo_data = await photo.read()
+            else:
+                photo_data = photo.read()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid photo file")
+        
+        # Upload to Azure Storage using event_id as filename
+        if not tenant_name:
+            raise HTTPException(status_code=400, detail="Tenant name is required for image upload")
+        
+        logger.info(f"Uploading image for event {event_id} with tenant_name: {tenant_name}")
+        
+        storage_service = StorageServiceProxy()
+        success, result = storage_service.upload_event_image(
+            home_id=home_id,
+            event_id=event_id,
+            image_data=photo_data,
+            original_filename=photo.filename or "event_image.jpg",
+            content_type=photo.content_type,
+            tenant_name=tenant_name
+        )
+        
+        if not success:
+            logger.error(f"Image upload failed for event {event_id}: {result}")
+            raise HTTPException(status_code=400, detail=f"Image upload failed: {result}")
+        
+        logger.info(f"Image uploaded successfully for event {event_id}: {result}")
+        return result
 
 # Create global instance
 event_db = EventDatabase()

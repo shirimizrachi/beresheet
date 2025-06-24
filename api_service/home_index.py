@@ -43,30 +43,39 @@ class HomeIndexDatabase:
             return None
 
     def create_home_entry(self, phone_number: str, home_id: int, home_name: str) -> bool:
-        """Create a new home entry for a phone number"""
+        """Create a new home entry for a phone number, or update if it already exists"""
         try:
             home_index_table = self.get_home_index_table()
             if home_index_table is None:
                 raise ValueError("Home index table not found")
 
-            current_time = datetime.now()
+            # Check if entry already exists
+            existing_entry = self.get_home_by_phone(phone_number)
+            
+            if existing_entry:
+                # Update existing entry
+                print(f"Home index entry already exists for phone {phone_number}, updating it...")
+                return self.update_home_entry(phone_number, home_id, home_name)
+            else:
+                # Create new entry
+                current_time = datetime.now()
 
-            # Prepare home index data
-            home_data = {
-                'phone_number': phone_number,
-                'home_id': home_id,
-                'home_name': home_name,
-                'created_at': current_time,
-                'updated_at': current_time
-            }
+                # Prepare home index data
+                home_data = {
+                    'phone_number': phone_number,
+                    'home_id': home_id,
+                    'home_name': home_name,
+                    'created_at': current_time,
+                    'updated_at': current_time
+                }
 
-            # Insert home index data
-            with self.engine.connect() as conn:
-                conn.execute(home_index_table.insert().values(**home_data))
-                conn.commit()
+                # Insert home index data
+                with self.engine.connect() as conn:
+                    conn.execute(home_index_table.insert().values(**home_data))
+                    conn.commit()
 
-            print(f"Home index entry created for phone {phone_number} -> home {home_name} (ID: {home_id})")
-            return True
+                print(f"Home index entry created for phone {phone_number} -> home {home_name} (ID: {home_id})")
+                return True
 
         except Exception as e:
             print(f"Error creating home index entry for phone {phone_number}: {e}")

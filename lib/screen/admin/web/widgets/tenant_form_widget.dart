@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/admin_config.dart';
-import '../../../model/admin/tenant.dart';
-import '../../../services/admin/admin_api_service.dart';
+import '../../../../config/admin_config.dart';
+import '../../../../model/admin/tenant.dart';
+import '../../../../services/admin/admin_api_service.dart';
 
 /// Widget for creating and editing tenants
 /// Provides a form modal for tenant data entry and validation

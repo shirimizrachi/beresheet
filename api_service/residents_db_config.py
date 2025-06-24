@@ -15,6 +15,10 @@ DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "sqlserver")  # Default: sqlserve
 # Storage provider configuration: "azure" or "cloudflare"
 STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  # Default: azure
 
+# Master Admin Configuration
+MASTER_ADMIN_EMAIL = "ranmizrachi@gmail.com"
+MASTER_ADMIN_PASSWORD = "ranmizrachi"
+
 # Connection configuration type: "local" or "azure"/"cloud"
 DATABASE_TYPE = "local"  # Change to "azure" for Azure SQL Database or "cloud" for cloud MySQL
 DATABASE_NAME = "residents"

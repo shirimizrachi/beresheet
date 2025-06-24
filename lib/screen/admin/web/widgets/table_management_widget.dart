@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/admin_config.dart';
-import '../../../model/admin/tenant_table.dart';
-import '../../../services/admin/admin_api_service.dart';
+import '../../../../config/admin_config.dart';
+import '../../../../model/admin/tenant_table.dart';
+import '../../../../services/admin/admin_api_service.dart';
 
 /// Widget for managing tenant tables
 /// Provides functionality to recreate tables and load demo data
