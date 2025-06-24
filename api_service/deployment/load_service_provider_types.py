@@ -26,21 +26,12 @@ async def load_service_provider_types(tenant_name: str, home_id: int):
     """
     
     try:
-        # Import the create_service_provider_type function from main.py
+        # Import the service provider type database directly from the users module
         import sys
-        import importlib.util
+        sys.path.append(str(Path(__file__).parent.parent))
         
-        # Get path to main.py
-        main_path = Path(__file__).parent.parent / "main.py"
-        
-        # Load main.py as a module to access create_service_provider_type function
-        spec = importlib.util.spec_from_file_location("main", main_path)
-        main_module = importlib.util.module_from_spec(spec)
-        sys.modules["main_temp"] = main_module
-        spec.loader.exec_module(main_module)
-        
-        # Import models for ServiceProviderTypeCreate
-        from models import ServiceProviderTypeCreate
+        from modules.users import service_provider_type_db
+        from modules.users.models import ServiceProviderTypeCreate
         
         # Get the CSV file path
         script_dir = Path(__file__).parent
@@ -72,11 +63,10 @@ async def load_service_provider_types(tenant_name: str, home_id: int):
                     description=type_data['description']
                 )
                 
-                # Call the create_service_provider_type function from main.py
-                new_type = await main_module.create_service_provider_type(
-                    provider_type=type_create,
-                    home_id=home_id,
-                    current_user_id='default-manager-user'  # Use default manager as creator
+                # Call the create_service_provider_type function from service_provider_type_db
+                new_type = service_provider_type_db.create_service_provider_type(
+                    type_data=type_create,
+                    home_id=home_id
                 )
                 
                 if new_type:
@@ -89,10 +79,6 @@ async def load_service_provider_types(tenant_name: str, home_id: int):
             except Exception as e:
                 failed_count += 1
                 logger.error(f"Error creating service provider type {type_data['id']}: {e}")
-        
-        # Clean up module
-        if "main_temp" in sys.modules:
-            del sys.modules["main_temp"]
         
         logger.info(f"Service provider types loading completed for tenant {tenant_name}: {success_count} successful, {failed_count} failed")
         return success_count > 0

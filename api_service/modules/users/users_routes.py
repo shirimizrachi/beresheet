@@ -1,0 +1,364 @@
+"""
+User management routes
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Header, Form
+from typing import List, Optional
+from .models import (
+    UserProfile, UserProfileCreate, UserProfileUpdate, ServiceProviderProfile,
+    ServiceProviderType, ServiceProviderTypeCreate, ServiceProviderTypeUpdate
+)
+from .users import user_db
+from .service_provider_types import service_provider_type_db
+# Import header dependencies from main module
+async def get_home_id(home_id: str = Header(..., alias="homeID")):
+    """Dependency to extract and validate homeID header"""
+    if not home_id:
+        raise HTTPException(status_code=400, detail="homeID header is required")
+    try:
+        return int(home_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="homeID must be a valid integer")
+
+async def get_current_user_id(current_user_id: Optional[str] = Header(None, alias="currentUserId")):
+    """Dependency to extract current user ID header"""
+    return current_user_id
+
+from storage.storage_service import azure_storage_service
+import uuid
+
+# Add missing dependencies that are needed for some user routes
+async def get_user_id(user_id: Optional[str] = Header(None, alias="userId")):
+    """Dependency to extract user ID header"""
+    return user_id
+
+async def get_firebase_token(firebase_token: Optional[str] = Header(None, alias="firebaseToken")):
+    """Dependency to extract Firebase token header"""
+    return firebase_token
+
+router = APIRouter()
+
+# User Profile CRUD endpoints
+@router.get("/users", response_model=List[UserProfile])
+async def get_all_users(home_id: int = Depends(get_home_id)):
+    """Get all user profiles"""
+    users = user_db.get_all_users(home_id)
+    return users
+
+@router.get("/users/service-providers", response_model=List[ServiceProviderProfile])
+async def get_service_providers(
+    home_id: int = Depends(get_home_id),
+    user_id: Optional[str] = Depends(get_current_user_id)
+):
+    """Get all users with service provider role, ordered by most recent request interaction"""
+    try:
+        service_providers = user_db.get_service_providers_ordered_by_requests(
+            home_id=home_id, 
+            user_id=user_id
+        )
+        return service_providers
+    except Exception as e:
+        print(f"Error getting service providers: {e}")
+        raise HTTPException(status_code=500, detail="Error retrieving service providers")
+
+@router.get("/users/{user_id}", response_model=UserProfile)
+async def get_user_profile(user_id: str, home_id: int = Depends(get_home_id)):
+    """Get a specific user profile"""
+    user = user_db.get_user_profile(user_id, home_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.post("/users/by-phone", response_model=UserProfile)
+async def get_user_profile_by_phone(
+    phone_number: str,
+    home_id: int = Depends(get_home_id)
+):
+    """Get a user profile by phone number"""
+    user = user_db.get_user_profile_by_phone(phone_number, home_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.post("/users", response_model=UserProfile, status_code=201)
+async def create_user_profile(
+    user: UserProfileCreate,
+    firebase_id: str,
+    home_id: int = Depends(get_home_id)
+):
+    """Create a new user profile"""
+    try:
+        # Set home_id from the authenticated request
+        user.home_id = home_id
+        new_user = user_db.create_user_profile(firebase_id, user, home_id)
+        return new_user
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/users/{user_id}", response_model=UserProfile)
+async def update_user_profile(
+    user_id: str,
+    full_name: Optional[str] = None,
+    phone_number: Optional[str] = None,
+    role: Optional[str] = None,
+    birthday: Optional[str] = None,
+    apartment_number: Optional[str] = None,
+    marital_status: Optional[str] = None,
+    gender: Optional[str] = None,
+    religious: Optional[str] = None,
+    native_language: Optional[str] = None,
+    service_provider_type_id: Optional[str] = None,
+    photo: Optional[UploadFile] = File(None),
+    home_id: int = Depends(get_home_id)
+):
+    """Update user profile with optional photo upload"""
+    try:
+        # Handle photo upload if provided
+        photo_url = None
+        if photo and photo.filename:
+            # Generate unique filename
+            file_extension = photo.filename.split('.')[-1] if '.' in photo.filename else 'jpg'
+            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+            blob_path = f"{home_id}/users/photos/{unique_filename}"
+            
+            # Read file content
+            photo_content = await photo.read()
+            
+            # Upload to Azure Storage
+            success = azure_storage_service.upload_image(blob_path, photo_content)
+            
+            if success:
+                photo_url = blob_path
+            else:
+                raise HTTPException(status_code=500, detail="Failed to upload photo")
+        
+        # Parse birthday if provided
+        birthday_date = None
+        if birthday:
+            from datetime import datetime
+            try:
+                birthday_date = datetime.strptime(birthday, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid birthday format. Use YYYY-MM-DD")
+        
+        # Create update data
+        update_data = UserProfileUpdate(
+            full_name=full_name,
+            phone_number=phone_number,
+            role=role,
+            birthday=birthday_date,
+            apartment_number=apartment_number,
+            marital_status=marital_status,
+            gender=gender,
+            religious=religious,
+            native_language=native_language,
+            service_provider_type_id=service_provider_type_id,
+            photo=photo_url
+        )
+        
+        updated_user = user_db.update_user_profile(user_id, update_data, home_id)
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/users/{user_id}")
+async def delete_user_profile(user_id: str, home_id: int = Depends(get_home_id)):
+    """Delete a user profile"""
+    success = user_db.delete_user_profile(user_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted successfully"}
+
+@router.patch("/users/{user_id}/fcm-token")
+async def update_user_fcm_token(
+    user_id: str,
+    fcm_token: str,
+    home_id: int = Depends(get_home_id)
+):
+    """Update user's Firebase FCM token"""
+    try:
+        success = user_db.update_user_fcm_token(user_id, fcm_token, home_id)
+        if success:
+            return {"message": "FCM token updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        print(f"Error updating FCM token: {e}")
+        raise HTTPException(status_code=500, detail="Error updating FCM token")
+
+# User photo endpoints
+@router.post("/users/{user_id}/photo")
+async def upload_user_photo(
+    user_id: str,
+    photo: UploadFile = File(...),
+    home_id: int = Depends(get_home_id)
+):
+    """Upload a photo for a user"""
+    try:
+        # Validate file type
+        if not photo.content_type or not photo.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Generate unique filename
+        file_extension = photo.filename.split('.')[-1] if photo.filename and '.' in photo.filename else 'jpg'
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        blob_path = f"{home_id}/users/photos/{unique_filename}"
+        
+        # Read file content
+        photo_content = await photo.read()
+        
+        # Upload to Azure Storage
+        success = azure_storage_service.upload_image(blob_path, photo_content)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to upload photo")
+        
+        # Update user record with photo path
+        update_data = UserProfileUpdate(photo=blob_path)
+        updated_user = user_db.update_user_profile(user_id, update_data, home_id)
+        
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Return the URL for the uploaded photo
+        photo_url = azure_storage_service.get_image_url(blob_path)
+        return {
+            "message": "Photo uploaded successfully",
+            "photo_url": photo_url
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error uploading photo: {e}")
+        raise HTTPException(status_code=500, detail="Error uploading photo")
+
+@router.get("/users/{user_id}/photo")
+async def get_user_photo(user_id: str, home_id: int = Depends(get_home_id)):
+    """Get user photo URL"""
+    try:
+        user = user_db.get_user_profile(user_id, home_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user.photo:
+            # If user has a photo path, generate SAS URL
+            photo_url = azure_storage_service.get_image_url(user.photo)
+            return {"photo_url": photo_url}
+        
+        # Otherwise, assume it's a blob path and generate SAS URL
+        blob_path = f"{home_id}/users/photos/{user_id}.jpg"
+        photo_url = azure_storage_service.get_image_url(blob_path)
+        return {"photo_url": photo_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting photo: {e}")
+        raise HTTPException(status_code=500, detail="Error retrieving photo")
+
+# Authentication endpoints - these need special handling in tenant routing
+# They should not require homeID header since that's what users get after login
+# SESSION-BASED AUTHENTICATION ENDPOINTS REMOVED
+# Replaced with JWT authentication in web_jwt_auth.py
+
+# Home Index endpoint - special endpoint that doesn't require homeID header
+@router.get("/users/get_user_home")
+async def get_user_home(phone_number: str = Query(...)):
+    """Get user's home information by phone number - used for tenant routing"""
+    try:
+        home_info = user_db.get_user_home_info(phone_number)
+        if home_info:
+            return {
+                "success": True,
+                "home_id": home_info['home_id'],
+                "home_name": home_info['home_name']
+            }
+        else:
+            return {
+                "success": False,
+                "message": "User not found in any home"
+            }
+    except Exception as e:
+        print(f"Error getting user home info: {e}")
+        raise HTTPException(status_code=500, detail="Error retrieving user home information")
+
+
+# ------------------------- Service Provider Types Endpoints ------------------------- #
+@router.get("/service-provider-types", response_model=List[ServiceProviderType])
+async def get_service_provider_types(
+    home_id: int = Depends(get_home_id),
+):
+    """List all service provider types - public access"""
+    types = service_provider_type_db.get_all_service_provider_types(home_id)
+    return types
+
+
+@router.get("/service-provider-types/{type_id}", response_model=ServiceProviderType)
+async def get_service_provider_type(
+    type_id: str,
+    home_id: int = Depends(get_home_id),
+):
+    """Get a specific service provider type by ID"""
+    provider_type = service_provider_type_db.get_service_provider_type_by_id(type_id, home_id)
+    if not provider_type:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return provider_type
+
+
+@router.post("/service-provider-types", response_model=ServiceProviderType, status_code=201)
+async def create_service_provider_type(
+    provider_type: ServiceProviderTypeCreate,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Create a new service provider type - manager role required"""
+    # Check if current user has manager role
+    from main import require_manager_role
+    await require_manager_role(current_user_id, home_id)
+    
+    new_type = service_provider_type_db.create_service_provider_type(provider_type, home_id)
+    if not new_type:
+        raise HTTPException(
+            status_code=400, detail="Unable to create service provider type (duplicate name?)"
+        )
+    return new_type
+
+
+@router.put("/service-provider-types/{type_id}", response_model=ServiceProviderType)
+async def update_service_provider_type(
+    type_id: str,
+    provider_type: ServiceProviderTypeUpdate,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Update a service provider type (only description) - manager role required"""
+    # Check if current user has manager role
+    from main import require_manager_role
+    await require_manager_role(current_user_id, home_id)
+    
+    updated_type = service_provider_type_db.update_service_provider_type(type_id, provider_type, home_id)
+    if not updated_type:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return updated_type
+
+
+@router.delete("/service-provider-types/{type_id}")
+async def delete_service_provider_type(
+    type_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+):
+    """Delete a service provider type by ID - manager role required"""
+    # Check if current user has manager role
+    from main import require_manager_role
+    await require_manager_role(current_user_id, home_id)
+    
+    success = service_provider_type_db.delete_service_provider_type(type_id, home_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Service provider type not found")
+    return {"message": "Service provider type deleted successfully"}

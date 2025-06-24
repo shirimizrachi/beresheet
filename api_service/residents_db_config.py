@@ -12,6 +12,9 @@ from urllib.parse import quote_plus
 # Database engine type: "sqlserver" or "mysql"
 DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "sqlserver")  # Default: sqlserver
 
+# Storage provider configuration: "azure" or "cloudflare"
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  # Default: azure
+
 # Connection configuration type: "local" or "azure"/"cloud"
 DATABASE_TYPE = "local"  # Change to "azure" for Azure SQL Database or "cloud" for cloud MySQL
 DATABASE_NAME = "residents"
@@ -157,6 +160,28 @@ def get_home_index_server_info():
             "engine": "sqlserver",
             "server": server,
             "connection_string": get_home_index_connection_string()
+        }
+
+# Storage configuration
+def get_storage_provider():
+    """Get the configured storage provider"""
+    return STORAGE_PROVIDER.lower()
+
+def get_storage_config():
+    """Get storage configuration information"""
+    provider = get_storage_provider()
+    
+    if provider == "cloudflare":
+        return {
+            "provider": "cloudflare",
+            "type": "r2",
+            "description": "Cloudflare R2 Storage"
+        }
+    else:
+        return {
+            "provider": "azure",
+            "type": "blob",
+            "description": "Azure Blob Storage"
         }
 
 # Additional configuration constants for compatibility

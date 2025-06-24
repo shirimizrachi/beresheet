@@ -19,14 +19,17 @@ def test_server():
             print("❌ API health check failed")
             return
         
-        # Test events endpoint
-        print("\n2. Testing events endpoint...")
-        response = requests.get(f"{base_url}/api/events")
+        # Test tenant events endpoint (using beresheet as default tenant)
+        print("\n2. Testing tenant events endpoint...")
+        tenant_name = "beresheet"  # Default tenant for testing
+        response = requests.get(f"{base_url}/{tenant_name}/api/events", headers={"homeID": "1"})
         if response.status_code == 200:
             events = response.json()
             print(f"✅ Events endpoint working - Found {len(events)} events")
+            print(f"   Tested tenant: {tenant_name}")
         else:
             print("❌ Events endpoint failed")
+            print(f"   Attempted URL: {base_url}/{tenant_name}/api/events")
             return
         
         # Test web app

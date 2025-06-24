@@ -9,10 +9,10 @@ from typing import List, Optional
 from datetime import datetime
 
 from sqlalchemy import create_engine, MetaData, Table, text
-from models import ServiceRequest, ServiceRequestCreate, ServiceRequestUpdate, RequestStatusUpdate, ChatMessage
+from .models import ServiceRequest, ServiceRequestCreate, ServiceRequestUpdate, RequestStatusUpdate, ChatMessage
 from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
-from users import user_db
+from modules.users import user_db
 
 
 class RequestDatabase:
@@ -70,7 +70,7 @@ class RequestDatabase:
     def _get_service_provider_type_details(self, service_provider_type_id: str, home_id: int) -> dict:
         """Get service provider type name and description by ID"""
         try:
-            from service_provider_types import service_provider_type_db
+            from modules.users import service_provider_type_db
             service_type = service_provider_type_db.get_service_provider_type_by_id(service_provider_type_id, home_id)
             if service_type:
                 return {
@@ -512,9 +512,9 @@ class RequestDatabase:
     # --------------------------------------------------------------------- #
     # Helper methods                                                        #
     # --------------------------------------------------------------------- #
-    def _row_to_request(self, row) ->ServiceRequest:
+    def _row_to_request(self, row) -> ServiceRequest:
         """Convert database row to Request model"""
-        return Request(
+        return ServiceRequest(
             id=row.id,
             resident_id=row.resident_id,
             resident_phone_number=row.resident_phone_number,

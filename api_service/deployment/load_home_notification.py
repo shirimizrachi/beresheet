@@ -27,7 +27,7 @@ async def load_home_notification(tenant_name: str, home_id: int):
     
     try:
         # Import the home notification database and models
-        from home_notification import home_notification_db, HomeNotificationCreate
+        from modules.notification import home_notification_db, HomeNotificationCreate
         
         # Get the CSV file path
         script_dir = Path(__file__).parent
@@ -79,7 +79,7 @@ async def load_home_notification(tenant_name: str, home_id: int):
                 if new_notification:
                     # If the notification should be approved, update its status
                     if notification_data['send_status'] == 'approved':
-                        from home_notification import HomeNotificationUpdate
+                        from modules.notification import HomeNotificationUpdate
                         status_update = HomeNotificationUpdate(send_status='approved')
                         
                         # Create approver user dict

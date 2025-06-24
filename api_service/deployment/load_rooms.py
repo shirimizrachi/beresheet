@@ -40,7 +40,7 @@ async def load_rooms(tenant_name: str, home_id: int):
         spec.loader.exec_module(main_module)
         
         # Import models for RoomCreate
-        from models import RoomCreate
+        from modules.events import RoomCreate
         
         # Get the CSV file path
         script_dir = Path(__file__).parent

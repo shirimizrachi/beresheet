@@ -27,21 +27,14 @@ async def load_users(tenant_name: str, home_id: int):
     """
     
     try:
-        # Import the create_user_profile function from main.py
+        # Import the user database directly from the users module
         import sys
-        import importlib.util
+        sys.path.append(str(Path(__file__).parent.parent))
         
-        # Get path to main.py
-        main_path = Path(__file__).parent.parent / "main.py"
-        
-        # Load main.py as a module to access create_user_profile function
-        spec = importlib.util.spec_from_file_location("main", main_path)
-        main_module = importlib.util.module_from_spec(spec)
-        sys.modules["main_temp"] = main_module
-        spec.loader.exec_module(main_module)
+        from modules.users import user_db
         
         # Import models for UserProfileCreate
-        from models import UserProfileCreate
+        from modules.users.models import UserProfileCreate
         
         # Get the CSV file path
         script_dir = Path(__file__).parent
@@ -95,12 +88,11 @@ async def load_users(tenant_name: str, home_id: int):
                     service_provider_type_id=service_provider_type
                 )
                 
-                # Call the create_user_profile function from main.py
-                new_user = await main_module.create_user_profile(
-                    user=user_profile_create,
-                    current_user_id='default-manager-user',  # Use default manager as creator
-                    home_id=home_id,
-                    firebase_id=user_data['firebase_id']
+                # Call the create_user_profile function from user_db
+                new_user = user_db.create_user_profile(
+                    firebase_id=user_data['firebase_id'],
+                    user_data=user_profile_create,
+                    home_id=home_id
                 )
                 
                 if new_user:
@@ -136,19 +128,11 @@ async def load_users(tenant_name: str, home_id: int):
                                 image_file = MockUploadFile(image_filename, image_data, content_type)
                                 
                                 # Update user with photo using update_user_profile function
-                                updated_user = await main_module.update_user_profile(
+                                from modules.users.models import UserProfileUpdate
+                                user_update = UserProfileUpdate(photo=image_filename)
+                                updated_user = user_db.update_user_profile(
                                     user_id=new_user.id,
-                                    full_name=None,
-                                    phone_number=None,
-                                    role=None,
-                                    birthday=None,
-                                    apartment_number=None,
-                                    marital_status=None,
-                                    gender=None,
-                                    religious=None,
-                                    native_language=None,
-                                    service_provider_type_id=None,
-                                    photo=image_file,
+                                    user_data=user_update,
                                     home_id=home_id
                                 )
                                 
@@ -169,10 +153,6 @@ async def load_users(tenant_name: str, home_id: int):
             except Exception as e:
                 failed_count += 1
                 logger.error(f"Error creating user {user_data['id']}: {e}")
-        
-        # Clean up module
-        if "main_temp" in sys.modules:
-            del sys.modules["main_temp"]
         
         logger.info(f"Users loading completed for tenant {tenant_name}: {success_count} successful, {failed_count} failed")
         return success_count > 0

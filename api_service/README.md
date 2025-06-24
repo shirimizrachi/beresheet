@@ -50,27 +50,36 @@ The server will start on `http://localhost:8000`
 - **Health Check**: `GET /health` - Server health status
 - **API Documentation**: `GET /docs` - Interactive Swagger UI documentation
 
-### Events CRUD
+### Tenant-Aware Events CRUD
 
-- **Get All Events**: `GET /events`
+**Note**: All endpoints now require a tenant name. Replace `{tenant_name}` with your organization name (e.g., "beresheet").
+
+- **Get All Events**: `GET /{tenant_name}/api/events`
   - Query Parameters:
     - `type` (optional): Filter by event type
     - `upcoming` (optional): Get only upcoming events
-- **Get Event by ID**: `GET /events/{event_id}`
-- **Create Event**: `POST /events`
-- **Update Event**: `PUT /events/{event_id}`
-- **Delete Event**: `DELETE /events/{event_id}`
+  - Headers: `homeID: {tenant_id}` (required)
+- **Get Event by ID**: `GET /{tenant_name}/api/events/{event_id}`
+- **Create Event**: `POST /{tenant_name}/api/events`
+- **Update Event**: `PUT /{tenant_name}/api/events/{event_id}`
+- **Delete Event**: `DELETE /{tenant_name}/api/events/{event_id}`
 
 ### Event Registration
 
-- **Register for Event**: `POST /events/{event_id}/register`
-- **Unregister from Event**: `POST /events/{event_id}/unregister`
+- **Register for Event**: `POST /{tenant_name}/api/events/{event_id}/register`
+- **Unregister from Event**: `POST /{tenant_name}/api/events/{event_id}/unregister`
 
 ### Filtering & Statistics
 
-- **Get Events by Type**: `GET /events/types/{event_type}`
-- **Get Upcoming Events**: `GET /events/upcoming/all`
+- **Get Events by Type**: `GET /{tenant_name}/api/events/types/{event_type}`
+- **Get Upcoming Events**: `GET /{tenant_name}/api/events/upcoming/all`
 - **Get Statistics**: `GET /stats`
+
+### Legacy Endpoints (Deprecated)
+
+⚠️ **These endpoints are no longer available:**
+- `GET /api/events` → Use `GET /{tenant_name}/api/events`
+- `GET /events` → Use `GET /{tenant_name}/api/events`
 
 ## Event Data Structure
 
@@ -97,25 +106,31 @@ The server will start on `http://localhost:8000`
 
 ## Usage Examples
 
+**Note**: Replace `beresheet` with your tenant name and `1` with your tenant's homeID.
+
 ### Get All Events
 ```bash
-curl http://localhost:8000/events
+curl http://localhost:8000/beresheet/api/events \
+  -H "homeID: 1"
 ```
 
 ### Get Upcoming Events Only
 ```bash
-curl http://localhost:8000/events?upcoming=true
+curl http://localhost:8000/beresheet/api/events?upcoming=true \
+  -H "homeID: 1"
 ```
 
 ### Get Events by Type
 ```bash
-curl http://localhost:8000/events?type=class
+curl http://localhost:8000/beresheet/api/events?type=class \
+  -H "homeID: 1"
 ```
 
 ### Create a New Event
 ```bash
-curl -X POST http://localhost:8000/events \
+curl -X POST http://localhost:8000/beresheet/api/events \
   -H "Content-Type: application/json" \
+  -H "homeID: 1" \
   -d '{
     "name": "New Yoga Class",
     "type": "class",
@@ -129,7 +144,15 @@ curl -X POST http://localhost:8000/events \
 
 ### Register for an Event
 ```bash
-curl -X POST http://localhost:8000/events/1/register
+curl -X POST http://localhost:8000/beresheet/api/events/1/register \
+  -H "homeID: 1"
+```
+
+### Legacy Examples (No longer work)
+```bash
+# ❌ These will return 404 errors:
+curl http://localhost:8000/events
+curl http://localhost:8000/api/events
 ```
 
 ## Integration with Flutter App
