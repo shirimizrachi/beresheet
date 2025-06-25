@@ -23,12 +23,14 @@ class CloudflareStorageService:
         self.access_key_id = os.getenv('CLOUDFLARE_R2_ACCESS_KEY_ID')
         self.secret_access_key = os.getenv('CLOUDFLARE_R2_SECRET_ACCESS_KEY')
         self.account_id = os.getenv('CLOUDFLARE_ACCOUNT_ID')
-        self.bucket_name = os.getenv('CLOUDFLARE_R2_BUCKET_NAME')
         self.custom_domain = os.getenv('CLOUDFLARE_R2_CUSTOM_DOMAIN')  # Optional custom domain
         self.tenant_name = tenant_name
         
-        if not all([self.access_key_id, self.secret_access_key, self.account_id, self.bucket_name]):
-            raise ValueError("CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_R2_BUCKET_NAME environment variables are required")
+        # Use a default bucket name - actual bucket will be determined by tenant_name in method calls
+        self.bucket_name = os.getenv('CLOUDFLARE_R2_BUCKET_NAME', 'default-bucket')
+        
+        if not all([self.access_key_id, self.secret_access_key, self.account_id]):
+            raise ValueError("CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY, and CLOUDFLARE_ACCOUNT_ID environment variables are required")
         
         try:
             # Cloudflare R2 endpoint
@@ -52,21 +54,17 @@ class CloudflareStorageService:
     def _test_connection(self):
         """Test the connection to Cloudflare R2"""
         try:
+            # Test with default bucket, actual buckets will be tested when used
             self.s3_client.head_bucket(Bucket=self.bucket_name)
         except ClientError as e:
-            if e.response['Error']['Code'] == '404':
-                raise ValueError(f"Bucket '{self.bucket_name}' not found in Cloudflare R2")
-            else:
-                raise ValueError(f"Failed to access Cloudflare R2 bucket: {str(e)}")
+            # Don't fail initialization if default bucket doesn't exist
+            # Tenant-specific buckets will be tested when used
+            pass
     
     def get_container_name(self, tenant_name: str = None) -> str:
-        """Get container name for a tenant (in R2, this is a prefix within the bucket)"""
-        if tenant_name:
-            return f"{tenant_name}-images"
-        elif self.tenant_name:
-            return f"{self.tenant_name}-images"
-        else:
-            raise ValueError("Tenant name is required to determine container name")
+        """Get container name for a tenant (now just returns 'images' since we use separate buckets per tenant)"""
+        # Since we now use separate buckets per tenant, we just use 'images' as the container/prefix
+        return "images"
     
     def _get_content_type(self, filename: str) -> str:
         """Get content type based on file extension"""
@@ -88,13 +86,16 @@ class CloudflareStorageService:
         
         return True
     
-    def _generate_presigned_url(self, object_key: str, expiry_seconds: int = 31536000) -> str:
-        """Generate a presigned URL for an object with 1 year expiration by default"""
+    def _generate_presigned_url(self, object_key: str, bucket_name: str = None, expiry_seconds: int = 604800) -> str:
+        """Generate a presigned URL for an object with 1 week expiration by default (Cloudflare R2 maximum)"""
         try:
+            # Use provided bucket_name or fall back to instance bucket_name
+            effective_bucket_name = bucket_name or self.bucket_name
+            
             # Generate presigned URL
             presigned_url = self.s3_client.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': self.bucket_name, 'Key': object_key},
+                Params={'Bucket': effective_bucket_name, 'Key': object_key},
                 ExpiresIn=expiry_seconds
             )
             
@@ -102,7 +103,7 @@ class CloudflareStorageService:
             if self.custom_domain:
                 # Replace the R2 endpoint with custom domain
                 presigned_url = presigned_url.replace(
-                    f"{self.account_id}.r2.cloudflarestorage.com/{self.bucket_name}/",
+                    f"{self.account_id}.r2.cloudflarestorage.com/{effective_bucket_name}/",
                     f"{self.custom_domain}/"
                 )
             
@@ -114,7 +115,7 @@ class CloudflareStorageService:
             if self.custom_domain:
                 return f"https://{self.custom_domain}/{object_key}"
             else:
-                return f"{self.endpoint_url}/{self.bucket_name}/{object_key}"
+                return f"{self.endpoint_url}/{effective_bucket_name}/{object_key}"
     
     def upload_image(self, home_id: int, file_name: str, file_path: str, image_data: bytes,
                     content_type: Optional[str] = None, tenant_name: str = None) -> Tuple[bool, str]:
@@ -127,7 +128,7 @@ class CloudflareStorageService:
             file_path: The relative path within the home folder (e.g., "events/images/")
             image_data: The image data as bytes
             content_type: MIME content type of the image
-            tenant_name: Name of the tenant (used for container naming)
+            tenant_name: Name of the tenant (used for bucket naming)
         
         Returns:
             Tuple of (success: bool, url_or_error_message: str)
@@ -137,7 +138,13 @@ class CloudflareStorageService:
             if not self._validate_image(content_type, len(image_data)):
                 return False, "Invalid image file or file too large (max 10MB)"
             
-            # Get container name for tenant
+            # Determine bucket name from tenant_name (required for Cloudflare)
+            if tenant_name:
+                bucket_name = f"{tenant_name}-images"
+            else:
+                raise ValueError("tenant_name is required for Cloudflare storage operations")
+            
+            # Get container name for tenant (now just returns 'images' since we use separate buckets)
             container_name = self.get_container_name(tenant_name)
             
             # Clean file_path (remove leading/trailing slashes, ensure it ends with /)
@@ -154,14 +161,14 @@ class CloudflareStorageService:
             
             # Upload to Cloudflare R2
             self.s3_client.put_object(
-                Bucket=self.bucket_name,
+                Bucket=bucket_name,
                 Key=object_key,
                 Body=image_data,
                 ContentType=content_type
             )
             
-            # Generate presigned URL with 1 year expiration
-            presigned_url = self._generate_presigned_url(object_key)
+            # Generate presigned URL with 1 week expiration (Cloudflare R2 maximum)
+            presigned_url = self._generate_presigned_url(object_key, bucket_name)
             
             return True, presigned_url
             
@@ -321,6 +328,12 @@ class CloudflareStorageService:
             Tuple of (success: bool, url_or_error_message: str)
         """
         try:
+            # Determine bucket name from tenant_name (required for Cloudflare)
+            if tenant_name:
+                bucket_name = f"{tenant_name}-images"
+            else:
+                raise ValueError("tenant_name is required for Cloudflare storage operations")
+            
             # Get container name for tenant
             container_name = self.get_container_name(tenant_name)
             
@@ -362,14 +375,14 @@ class CloudflareStorageService:
             
             # Upload to Cloudflare R2
             self.s3_client.put_object(
-                Bucket=self.bucket_name,
+                Bucket=bucket_name,
                 Key=object_key,
                 Body=media_data,
                 ContentType=content_type
             )
             
-            # Generate presigned URL with 1 year expiration
-            presigned_url = self._generate_presigned_url(object_key)
+            # Generate presigned URL with 1 week expiration (Cloudflare R2 maximum)
+            presigned_url = self._generate_presigned_url(object_key, bucket_name)
             
             return True, presigned_url
             
@@ -384,7 +397,7 @@ def get_cloudflare_storage_service(tenant_name: str = None) -> CloudflareStorage
     Get a CloudflareStorageService instance for a specific tenant
     
     Args:
-        tenant_name: Name of the tenant (used for container naming)
+        tenant_name: Name of the tenant (optional, can be provided in method calls)
     
     Returns:
         CloudflareStorageService instance configured for the tenant
@@ -392,4 +405,9 @@ def get_cloudflare_storage_service(tenant_name: str = None) -> CloudflareStorage
     return CloudflareStorageService(tenant_name)
 
 # Backward compatibility - default instance (deprecated)
-cloudflare_storage_service = CloudflareStorageService()
+# Note: This will fail if no CLOUDFLARE_R2_BUCKET_NAME is set in environment
+try:
+    cloudflare_storage_service = CloudflareStorageService()
+except ValueError:
+    # If no default bucket is configured, this will be None
+    cloudflare_storage_service = None

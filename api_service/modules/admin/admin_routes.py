@@ -290,44 +290,50 @@ async def create_tenant(tenant: TenantCreate):
             tenant_config_db.delete_tenant(new_tenant.id)
             raise HTTPException(status_code=500, detail=f"Failed to create schema and user: {str(e)}")
         
-        # Step 2: Create tables in the new schema
+        # Step 2: Create storage container for tenant
         try:
-            tables_result = await admin_service.create_tables_for_tenant(new_tenant.name, drop_if_exists=True)
-            logger.info(f"Step 2 completed: Created tables for tenant '{tenant.name}'")
+            from residents_db_config import get_storage_provider
+            storage_type = get_storage_provider()
+            print(f"Storage provider: {storage_type}")
+            
+            storage_result = await admin_service.create_storage_container_for_tenant(new_tenant.name)
+            logger.info(f"Step 2 completed: Created storage container for tenant '{tenant.name}'")
         except Exception as e:
             logger.error(f"Step 2 failed for tenant '{tenant.name}': {e}")
-            # Note: We don't clean up schema here as it might be needed for debugging
-            raise HTTPException(status_code=500, detail=f"Failed to create tables: {str(e)}")
-        
-        # Step 3: Initialize tables with demo data
+            # Note: We don't fail the whole process if blob container creation fails
+            logger.warning(f"Tenant '{tenant.name}' created successfully but blob container creation failed: {str(e)}")
+                    
+        # Step 3: Create tables in the new schema
         try:
-            init_result = await admin_service.init_data_for_tenant(new_tenant.name)
-            logger.info(f"Step 3 completed: Initialized data for tenant '{tenant.name}'")
+            tables_result = await admin_service.create_tables_for_tenant(new_tenant.name, drop_if_exists=True)
+            logger.info(f"Step 3 completed: Created tables for tenant '{tenant.name}'")
         except Exception as e:
             logger.error(f"Step 3 failed for tenant '{tenant.name}': {e}")
+            # Note: We don't clean up schema here as it might be needed for debugging
+            raise HTTPException(status_code=500, detail=f"Failed to create tables: {str(e)}")
+
+        # Step 4: Initialize tables with demo data
+        try:
+            init_result = await admin_service.init_data_for_tenant(new_tenant.name)
+            logger.info(f"Step 4 completed: Initialized data for tenant '{tenant.name}'")
+        except Exception as e:
+            logger.error(f"Step 4 failed for tenant '{tenant.name}': {e}")
             # Note: We don't fail the whole process if data initialization fails
             logger.warning(f"Tenant '{tenant.name}' created successfully but data initialization failed: {str(e)}")
         
-        # Step 4: Create blob container for tenant
-        try:
-            blob_result = await admin_service.create_blob_container_for_tenant(new_tenant.name)
-            logger.info(f"Step 4 completed: Created blob container for tenant '{tenant.name}'")
-        except Exception as e:
-            logger.error(f"Step 4 failed for tenant '{tenant.name}': {e}")
-            # Note: We don't fail the whole process if blob container creation fails
-            logger.warning(f"Tenant '{tenant.name}' created successfully but blob container creation failed: {str(e)}")
+
         
         # Add setup information to the response
         setup_info = {
             "schema_created": schema_result.get("status") == "success" if 'schema_result' in locals() else False,
             "tables_created": tables_result.get("status") in ["success", "partial_success"] if 'tables_result' in locals() else False,
             "data_initialized": init_result.get("status") in ["success", "partial_success"] if 'init_result' in locals() else False,
-            "blob_container_created": blob_result.get("status") == "success" if 'blob_result' in locals() else False,
+            "storage_container_created": storage_result.get("status") == "success" if 'storage_result' in locals() else False,
             "setup_details": {
                 "schema_info": schema_result if 'schema_result' in locals() else None,
                 "tables_info": tables_result if 'tables_result' in locals() else None,
                 "init_info": init_result if 'init_result' in locals() else None,
-                "blob_info": blob_result if 'blob_result' in locals() else None
+                "storage_info": storage_result if 'storage_result' in locals() else None
             }
         }
         

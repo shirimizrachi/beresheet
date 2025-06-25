@@ -86,4 +86,8 @@ class ServiceProviderTypeCreate(BaseModel):
 class ServiceProviderTypeUpdate(BaseModel):
     description: Optional[str] = None  # Only description can be updated
 
+# Request Models for user lookup
+class UserByPhoneRequest(BaseModel):
+    phone_number: str
+
 # Request Models have been moved to modules/service_requests/models.py

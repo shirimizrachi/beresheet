@@ -12,8 +12,8 @@ from urllib.parse import quote_plus
 # Database engine type: "sqlserver" or "mysql"
 DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "sqlserver")  # Default: sqlserver
 
-# Storage provider configuration: "azure" or "cloudflare"
-STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  # Default: azure
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  
+#STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "cloudflare")  #
 
 # Master Admin Configuration
 MASTER_ADMIN_EMAIL = "ranmizrachi@gmail.com"

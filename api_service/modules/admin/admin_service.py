@@ -66,44 +66,60 @@ class AdminService:
             logger.error(f"Error creating schema '{schema_name}': {e}")
             raise
 
-    async def create_blob_container_for_tenant(self, tenant_name: str):
+    async def create_storage_container_for_tenant(self, tenant_name: str):
         """
-        Create Azure Blob Storage container for a tenant
+        Create storage container for a tenant (Azure Blob or Cloudflare R2 based on environment)
         """
+        # Get storage provider from residents_db_config
+        from residents_db_config import get_storage_provider
+        
         try:
-            # Import the blob container creation function
-            from deployment.schema.resources.create_blob_container import create_blob_container
+            storage_type = get_storage_provider()
             
-            # Create the blob container
-            success = create_blob_container(tenant_name)
+            if storage_type == 'cloudflare':
+                # Use Cloudflare R2 bucket creation
+                from deployment.schema.resources.create_bucket_cloudflare import create_cloudflare_bucket
+                
+                success = create_cloudflare_bucket(tenant_name)
+                storage_name = "Cloudflare R2 bucket"
+                
+            else:
+                # Default to Azure Blob Storage
+                from deployment.schema.resources.create_blob_container import create_blob_container
+                
+                success = create_blob_container(tenant_name)
+                storage_name = "Azure blob container"
             
             if success:
                 response = {
                     "status": "success",
-                    "message": f"Blob container created successfully for tenant '{tenant_name}'",
+                    "message": f"{storage_name} created successfully for tenant '{tenant_name}'",
                     "container_name": f"{tenant_name}-images",
-                    "tenant_name": tenant_name
+                    "tenant_name": tenant_name,
+                    "storage_type": storage_type
                 }
-                logger.info(f"Successfully created blob container for tenant '{tenant_name}'")
+                logger.info(f"Successfully created {storage_name} for tenant '{tenant_name}'")
                 return response
             else:
                 response = {
                     "status": "failed",
-                    "message": f"Failed to create blob container for tenant '{tenant_name}'",
+                    "message": f"Failed to create {storage_name} for tenant '{tenant_name}'",
                     "container_name": f"{tenant_name}-images",
-                    "tenant_name": tenant_name
+                    "tenant_name": tenant_name,
+                    "storage_type": storage_type
                 }
-                logger.error(f"Failed to create blob container for tenant '{tenant_name}'")
+                logger.error(f"Failed to create {storage_name} for tenant '{tenant_name}'")
                 return response
                 
         except Exception as e:
-            error_message = f"Error creating blob container for tenant '{tenant_name}': {str(e)}"
+            error_message = f"Error creating storage container for tenant '{tenant_name}': {str(e)}"
             logger.error(error_message)
             return {
                 "status": "error",
                 "message": error_message,
                 "container_name": f"{tenant_name}-images",
                 "tenant_name": tenant_name,
+                "storage_type": storage_type,
                 "error": str(e)
             }
 

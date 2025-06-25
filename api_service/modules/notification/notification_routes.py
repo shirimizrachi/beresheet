@@ -9,7 +9,7 @@ from .notification import home_notification_db
 from ..users import user_db
 
 # Create FastAPI router
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 # Helper function to get current user from session

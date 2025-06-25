@@ -136,6 +136,7 @@ class UserDatabase:
     def get_user_profile_by_phone(self, phone_number: str, home_id: int) -> Optional[UserProfile]:
         """Get a user profile by phone number from the appropriate schema"""
         try:
+            
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:

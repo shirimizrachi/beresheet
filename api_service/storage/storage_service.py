@@ -12,7 +12,7 @@ load_dotenv()
 
 def get_storage_service(tenant_name: str = None):
     """
-    Get the appropriate storage service based on environment configuration
+    Get the appropriate storage service based on configuration
     
     Args:
         tenant_name: Name of the tenant (used for container naming)
@@ -20,7 +20,8 @@ def get_storage_service(tenant_name: str = None):
     Returns:
         Storage service instance (Azure or Cloudflare)
     """
-    storage_provider = os.getenv('STORAGE_PROVIDER', 'azure').lower()
+    from residents_db_config import get_storage_provider
+    storage_provider = get_storage_provider()
     
     if storage_provider == 'cloudflare':
         from .cloudflare.cloudflare_storage_service import get_cloudflare_storage_service

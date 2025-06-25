@@ -16,7 +16,7 @@ from modules.users import user_db
 import json
 
 # Create FastAPI router
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 # Header dependencies
 async def get_home_id(home_id: str = Header(..., alias="homeID")):

@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, 
 from typing import List, Optional
 from .models import (
     UserProfile, UserProfileCreate, UserProfileUpdate, ServiceProviderProfile,
-    ServiceProviderType, ServiceProviderTypeCreate, ServiceProviderTypeUpdate
+    ServiceProviderType, ServiceProviderTypeCreate, ServiceProviderTypeUpdate,
+    UserByPhoneRequest
 )
 from .users import user_db
 from .service_provider_types import service_provider_type_db
@@ -36,7 +37,7 @@ async def get_firebase_token(firebase_token: Optional[str] = Header(None, alias=
     """Dependency to extract Firebase token header"""
     return firebase_token
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 # User Profile CRUD endpoints
 @router.get("/users", response_model=List[UserProfile])
@@ -71,11 +72,11 @@ async def get_user_profile(user_id: str, home_id: int = Depends(get_home_id)):
 
 @router.post("/users/by-phone", response_model=UserProfile)
 async def get_user_profile_by_phone(
-    phone_number: str,
+    request: UserByPhoneRequest,
     home_id: int = Depends(get_home_id)
 ):
     """Get a user profile by phone number"""
-    user = user_db.get_user_profile_by_phone(phone_number, home_id)
+    user = user_db.get_user_profile_by_phone(request.phone_number, home_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
