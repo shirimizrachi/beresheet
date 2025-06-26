@@ -41,23 +41,18 @@ class AdminService:
     async def create_schema_and_user(self, schema_name: str):
         """
         Create a new database schema and a user with full permissions
-        Automatically detects database engine and uses appropriate implementation
+        Uses the abstract factory pattern to automatically select the correct implementation
         """
         try:
             # Get admin database connection with elevated privileges for schema creation
-            from residents_db_config import get_admin_connection_string, get_server_info, DATABASE_ENGINE
+            from residents_config import get_admin_connection_string, DATABASE_ENGINE
+            from deployment.admin.schema_operations import create_schema_and_user
             
             admin_connection_string = get_admin_connection_string()
-            server_info = get_server_info()
             database_engine = DATABASE_ENGINE
             
-            # Import and use the appropriate database-specific function
-            if database_engine == "mysql":
-                from deployment.admin.mysql.schema_operations import create_schema_and_user_mysql
-                result = create_schema_and_user_mysql(schema_name, admin_connection_string)
-            else:
-                from deployment.admin.sqlserver.schema_operations import create_schema_and_user_sqlserver
-                result = create_schema_and_user_sqlserver(schema_name, admin_connection_string)
+            # Use the abstract factory function that automatically selects the correct implementation
+            result = create_schema_and_user(schema_name, admin_connection_string)
             
             logger.info(f"Successfully created schema '{schema_name}' using {database_engine} implementation")
             return result
@@ -70,8 +65,8 @@ class AdminService:
         """
         Create storage container for a tenant (Azure Blob or Cloudflare R2 based on environment)
         """
-        # Get storage provider from residents_db_config
-        from residents_db_config import get_storage_provider
+        # Get storage provider from residents_config
+        from residents_config import get_storage_provider
         
         try:
             storage_type = get_storage_provider()

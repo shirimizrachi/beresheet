@@ -47,7 +47,7 @@ def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def authenticate_admin(email: str, password: str) -> dict:
     """Authenticate admin against master admin or home table"""
     try:
-        from residents_db_config import get_connection_string, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD
+        from residents_config import get_connection_string, MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD
         
         # Check master admin credentials first
         if email == MASTER_ADMIN_EMAIL and password == MASTER_ADMIN_PASSWORD:

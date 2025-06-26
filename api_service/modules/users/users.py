@@ -18,6 +18,28 @@ from home_index import home_index_db
 
 logger = logging.getLogger(__name__)
 
+def normalize_phone_number(phone_number: str) -> str:
+    """
+    Normalize phone number by removing leading zeros
+    
+    Args:
+        phone_number: The phone number to normalize
+        
+    Returns:
+        Normalized phone number without leading zeros
+    """
+    if not phone_number:
+        return phone_number
+    
+    # Remove leading zeros
+    normalized = phone_number.lstrip('0')
+    
+    # If the entire string was zeros, return a single zero
+    if not normalized:
+        normalized = '0'
+    
+    return normalized
+
 class UserDatabase:
     def __init__(self):
         # Note: This class now uses tenant-specific connections through database_utils
@@ -60,24 +82,26 @@ class UserDatabase:
             current_time = datetime.now()
             auto_password = user_data.phone_number  # Password is the phone number
 
-            # Prepare user data with defaults
+            # Prepare user data using actual values from user_data (no defaults)
             user_data_dict = {
                 'id': user_id,  # Primary key
                 'firebase_id': firebase_id,
                 'home_id': user_data.home_id,
                 'phone_number': user_data.phone_number,
                 'password': auto_password,  # Auto-generated password
-                'full_name': "",  # To be updated later
-                'role': "resident",  # Default role
-                'birthday': current_time.date(),  # Default to today, to be updated
-                'apartment_number': "",  # To be updated later
-                'marital_status': "single",  # Default
-                'gender': "",  # To be updated later
-                'religious': "",  # To be updated later
-                'native_language': "hebrew",  # Default
-                'photo': None,
-                'created_at': current_time.isoformat(),
-                'updated_at': current_time.isoformat()
+                'full_name': user_data.full_name,
+                'role': user_data.role,
+                'birthday': user_data.birthday,
+                'apartment_number': user_data.apartment_number,
+                'marital_status': user_data.marital_status,
+                'gender': user_data.gender,
+                'religious': user_data.religious,
+                'native_language': user_data.native_language,
+                'service_provider_type_name': user_data.service_provider_type_name,
+                'service_provider_type_id': user_data.service_provider_type_id,
+                'photo': None,  # Will be updated later with actual photo
+                'created_at': current_time,  # Use datetime object like events module
+                'updated_at': current_time   # Use datetime object like events module
             }
 
             # Insert user data using schema-specific engine
@@ -109,21 +133,23 @@ class UserDatabase:
             except Exception as e:
                 print(f"Warning: Error creating home_index entry for user {user_data.phone_number}: {e}")
 
-            # Create and return UserProfile object
+            # Create and return UserProfile object using actual values
             return UserProfile(
                 id=user_id,
                 firebase_id=firebase_id,
                 home_id=user_data.home_id,
                 phone_number=user_data.phone_number,
                 password=auto_password,
-                full_name="",
-                role="resident",
-                birthday=current_time.date(),
-                apartment_number="",
-                marital_status="single",
-                gender="",
-                religious="",
-                native_language="hebrew",
+                full_name=user_data.full_name,
+                role=user_data.role,
+                birthday=user_data.birthday,
+                apartment_number=user_data.apartment_number,
+                marital_status=user_data.marital_status,
+                gender=user_data.gender,
+                religious=user_data.religious,
+                native_language=user_data.native_language,
+                service_provider_type_name=user_data.service_provider_type_name,
+                service_provider_type_id=user_data.service_provider_type_id,
                 photo=None,
                 created_at=current_time.isoformat(),
                 updated_at=current_time.isoformat()
@@ -136,6 +162,8 @@ class UserDatabase:
     def get_user_profile_by_phone(self, phone_number: str, home_id: int) -> Optional[UserProfile]:
         """Get a user profile by phone number from the appropriate schema"""
         try:
+            # Normalize phone number by removing leading zeros
+            normalized_phone = normalize_phone_number(phone_number)
             
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
@@ -147,11 +175,11 @@ class UserDatabase:
             if users_table is None:
                 return None
 
-            # Query user by phone_number using schema-specific engine
+            # Query user by normalized phone_number using schema-specific engine
             schema_engine = get_schema_engine(schema_name)
             with schema_engine.connect() as conn:
                 result = conn.execute(
-                    users_table.select().where(users_table.c.phone_number == phone_number)
+                    users_table.select().where(users_table.c.phone_number == normalized_phone)
                 ).fetchone()
 
                 if result:
@@ -172,7 +200,7 @@ class UserDatabase:
                         native_language=result.native_language,
                         photo=result.photo,
                         service_provider_type_id=getattr(result, 'service_provider_type_id', None),
-                        service_provider_type=getattr(result, 'service_provider_type', None),
+                        service_provider_type_name=getattr(result, 'service_provider_type_name', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     )
@@ -220,7 +248,7 @@ class UserDatabase:
                         native_language=result.native_language,
                         photo=result.photo,
                         service_provider_type_id=getattr(result, 'service_provider_type_id', None),
-                        service_provider_type=getattr(result, 'service_provider_type', None),
+                        service_provider_type_name=getattr(result, 'service_provider_type_name', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     )
@@ -249,8 +277,8 @@ class UserDatabase:
                 if value is not None:
                     update_data[field] = value
             
-            # Add updated timestamp
-            update_data['updated_at'] = datetime.now().isoformat()
+            # Add updated timestamp (use datetime object like events module)
+            update_data['updated_at'] = datetime.now()
 
             # Update user using schema-specific engine
             schema_engine = get_schema_engine(schema_name)
@@ -285,7 +313,7 @@ class UserDatabase:
                             native_language=updated_result.native_language,
                             photo=updated_result.photo,
                             service_provider_type_id=getattr(updated_result, 'service_provider_type_id', None),
-                            service_provider_type=getattr(updated_result, 'service_provider_type', None),
+                            service_provider_type_name=getattr(updated_result, 'service_provider_type_name', None),
                             created_at=updated_result.created_at.isoformat() if isinstance(updated_result.created_at, datetime) else updated_result.created_at,
                             updated_at=updated_result.updated_at.isoformat() if isinstance(updated_result.updated_at, datetime) else updated_result.updated_at
                         )
@@ -334,10 +362,10 @@ class UserDatabase:
             if users_table is None:
                 return False
 
-            # Update only the FCM token and updated timestamp
+            # Update only the FCM token and updated timestamp (use datetime object like events module)
             update_data = {
                 'firebase_fcm_token': fcm_token,
-                'updated_at': datetime.now().isoformat()
+                'updated_at': datetime.now()
             }
 
             # Update user using schema-specific engine
@@ -390,6 +418,8 @@ class UserDatabase:
                         religious=result.religious,
                         native_language=result.native_language,
                         photo=result.photo,
+                        service_provider_type_name=getattr(result, 'service_provider_type_name', None),
+                        service_provider_type_id=getattr(result, 'service_provider_type_id', None),
                         created_at=result.created_at.isoformat() if isinstance(result.created_at, datetime) else result.created_at,
                         updated_at=result.updated_at.isoformat() if isinstance(result.updated_at, datetime) else result.updated_at
                     ))
@@ -447,7 +477,7 @@ class UserDatabase:
                         GROUP BY u.id, u.firebase_id, u.home_id, u.phone_number, u.password, u.full_name, u.role,
                                  u.birthday, u.apartment_number, u.marital_status, u.gender, u.religious,
                                  u.native_language, u.photo, u.created_at, u.updated_at, u.firebase_fcm_token,
-                                 u.service_provider_type, u.service_provider_type_id, spt.name, spt.description
+                                 u.service_provider_type_name, u.service_provider_type_id, spt.name, spt.description
                         HAVING COUNT(CASE WHEN r.resident_id = :user_id THEN r.id END) >= 0
                         ORDER BY last_interaction DESC
                     """)
@@ -482,9 +512,8 @@ class UserDatabase:
                         religious=result.religious,
                         native_language=result.native_language,
                         photo=result.photo,
-                        service_provider_type=result.service_provider_type,
-                        service_provider_type_id=result.service_provider_type_id,
                         service_provider_type_name=getattr(result, 'service_provider_type_name', None),
+                        service_provider_type_id=result.service_provider_type_id,
                         service_provider_type_description=getattr(result, 'service_provider_type_description', None),
                         request_count=getattr(result, 'request_count', 0),
                         firebase_fcm_token=getattr(result, 'firebase_fcm_token', None),
@@ -501,8 +530,11 @@ class UserDatabase:
     def authenticate_user(self, phone_number: str, password: str, home_id: int) -> Optional[UserProfile]:
         """Authenticate user with phone number and password"""
         try:
-            # Get user by phone number
-            user = self.get_user_profile_by_phone(phone_number, home_id)
+            # Normalize phone number by removing leading zeros
+            normalized_phone = normalize_phone_number(phone_number)
+            
+            # Get user by phone number (this will also normalize internally)
+            user = self.get_user_profile_by_phone(normalized_phone, home_id)
             if not user:
                 return None
             
@@ -521,7 +553,10 @@ class UserDatabase:
     def get_user_home_info(self, phone_number: str) -> Optional[Dict[str, any]]:
         """Get user's home information by phone number using home_index"""
         try:
-            home_info = home_index_db.get_home_by_phone(phone_number)
+            # Normalize phone number by removing leading zeros
+            normalized_phone = normalize_phone_number(phone_number)
+            
+            home_info = home_index_db.get_home_by_phone(normalized_phone)
             if home_info:
                 return {
                     'home_id': home_info['home_id'],

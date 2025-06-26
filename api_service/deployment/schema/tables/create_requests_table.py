@@ -1,13 +1,17 @@
 """
-DDL script for creating the requests table in a specific schema
+DDL script for creating the requests table in a specific schema using SQLAlchemy ORM
 Usage with API engine: create_requests_table(engine, schema_name)
 """
 
-from sqlalchemy import text
+from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, event, Unicode, UnicodeText
+from sqlalchemy.ext.declarative import declarative_base
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_requests_table(engine, schema_name: str, drop_if_exists: bool = True):
     """
-    Create the requests table in the specified schema using provided engine
+    Create the requests table in the specified schema using SQLAlchemy ORM
     
     Args:
         engine: SQLAlchemy engine object
@@ -16,132 +20,91 @@ def create_requests_table(engine, schema_name: str, drop_if_exists: bool = True)
     """
     
     try:
+        # Create a new base for this table
+        Base = declarative_base()
+        
+        class RequestsTable(Base):
+            __tablename__ = 'requests'
+            __table_args__ = {'schema': schema_name}
+            
+            id = Column(String(50), primary_key=True)
+            
+            # Resident information
+            resident_id = Column(String(50), nullable=False)
+            resident_phone_number = Column(String(20))
+            resident_full_name = Column(Unicode(100))
+            resident_fcm_token = Column(String(500))
+            
+            # Service provider information
+            service_provider_id = Column(String(50), nullable=False)
+            service_provider_full_name = Column(Unicode(100))
+            service_provider_phone_number = Column(String(20))
+            service_provider_fcm_token = Column(String(500))
+            service_provider_type_name = Column(Unicode(100))
+            service_provider_type_description = Column(Unicode(500))
+            
+            # Request details
+            request_message = Column(UnicodeText, nullable=False)
+            request_status = Column(String(20), default='open')  # 'open', 'in_progress', 'closed', 'abandoned'
+            
+            # Timestamps
+            request_created_at = Column(DateTime, default=func.now())
+            request_read_at = Column(DateTime)
+            request_closed_by_resident_at = Column(DateTime)
+            request_closed_by_service_provider_at = Column(DateTime)
+            
+            # Communication and feedback
+            chat_messages = Column(UnicodeText)  # JSON string array of chat messages
+            service_rating = Column(Integer)  # 1-5 rating
+            service_comment = Column(UnicodeText)
+            
+            # Duration calculation (in minutes)
+            request_duration_minutes = Column(Integer)
+            
+            # Standard audit fields
+            created_at = Column(DateTime, default=func.now())
+            updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+        
+        # Drop table if it exists and drop_if_exists is True
+        if drop_if_exists:
+            try:
+                RequestsTable.__table__.drop(engine, checkfirst=True)
+                logger.info(f"Dropped existing requests table in schema {schema_name}")
+            except Exception as e:
+                logger.info(f"No existing requests table to drop in schema {schema_name}: {e}")
+        
+        # Create the table
+        RequestsTable.__table__.create(engine, checkfirst=True)
+        
+        # Create indexes for better performance
         with engine.connect() as conn:
-            # Drop table if exists and drop_if_exists is True
-            if drop_if_exists:
-                # First drop trigger if it exists
-                drop_trigger_sql = text(f"""
-                    IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'TR_{schema_name}_requests_update_timestamp')
-                    BEGIN
-                        DROP TRIGGER [{schema_name}].[TR_{schema_name}_requests_update_timestamp]
-                        PRINT 'Dropped existing trigger TR_{schema_name}_requests_update_timestamp'
-                    END
-                """)
-                conn.execute(drop_trigger_sql)
-                
-                # Then drop table if it exists
-                drop_table_sql = text(f"""
-                    IF EXISTS (SELECT * FROM information_schema.tables 
-                              WHERE table_schema = '{schema_name}' AND table_name = 'requests')
-                    BEGIN
-                        DROP TABLE [{schema_name}].[requests]
-                        PRINT 'Dropped existing requests table in schema {schema_name}'
-                    END
-                """)
-                conn.execute(drop_table_sql)
+            # Define indexes
+            indexes = [
+                Index(f'ix_{schema_name}_requests_resident_id', RequestsTable.resident_id),
+                Index(f'ix_{schema_name}_requests_service_provider_id', RequestsTable.service_provider_id),
+                Index(f'ix_{schema_name}_requests_status', RequestsTable.request_status),
+                Index(f'ix_{schema_name}_requests_created_at', RequestsTable.request_created_at),
+                Index(f'ix_{schema_name}_requests_service_provider_status', RequestsTable.service_provider_id, RequestsTable.request_status),
+                Index(f'ix_{schema_name}_requests_resident_status', RequestsTable.resident_id, RequestsTable.request_status),
+                Index(f'ix_{schema_name}_requests_service_provider_type_name', RequestsTable.service_provider_type_name),
+                Index(f'ix_{schema_name}_requests_service_type_status', RequestsTable.service_provider_type_name, RequestsTable.request_status),
+            ]
             
-            # Create requests table
-            create_table_sql = text(f"""
-                CREATE TABLE [{schema_name}].[requests] (
-                    id NVARCHAR(50) PRIMARY KEY,
-                    
-                    -- Resident information
-                    resident_id NVARCHAR(50) NOT NULL,
-                    resident_phone_number NVARCHAR(20),
-                    resident_full_name NVARCHAR(100),
-                    resident_fcm_token NVARCHAR(500),
-                    
-                    -- Service provider information
-                    service_provider_id NVARCHAR(50) NOT NULL,
-                    service_provider_full_name NVARCHAR(100),
-                    service_provider_phone_number NVARCHAR(20),
-                    service_provider_fcm_token NVARCHAR(500),
-                    service_provider_type_name NVARCHAR(100),
-                    service_provider_type_description NVARCHAR(500),
-                    
-                    -- Request details
-                    request_message NTEXT NOT NULL,
-                    request_status NVARCHAR(20) DEFAULT 'open', -- 'open', 'in_progress', 'closed', 'abandoned'
-                    
-                    -- Timestamps
-                    request_created_at DATETIME2 DEFAULT GETDATE(),
-                    request_read_at DATETIME2 NULL,
-                    request_closed_by_resident_at DATETIME2 NULL,
-                    request_closed_by_service_provider_at DATETIME2 NULL,
-                    
-                    -- Communication and feedback
-                    chat_messages NTEXT NULL, -- JSON string array of chat messages
-                    service_rating INT NULL, -- 1-5 rating
-                    service_comment NTEXT NULL,
-                    
-                    -- Duration calculation (in minutes)
-                    request_duration_minutes INT NULL,
-                    
-                    -- Standard audit fields
-                    created_at DATETIME2 DEFAULT GETDATE(),
-                    updated_at DATETIME2 DEFAULT GETDATE()
-                );
-            """)
-            conn.execute(create_table_sql)
-            
-            # Create indexes for better performance
-            indexes_sql = text(f"""
-                -- Index on resident_id for quick lookups by resident
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_resident_id 
-                ON [{schema_name}].[requests](resident_id);
-                
-                -- Index on service_provider_id for quick lookups by service provider
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_provider_id 
-                ON [{schema_name}].[requests](service_provider_id);
-                
-                -- Index on request_status for filtering by status
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_status 
-                ON [{schema_name}].[requests](request_status);
-                
-                -- Index on request_created_at for chronological sorting
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_created_at 
-                ON [{schema_name}].[requests](request_created_at);
-                
-                -- Composite index for active requests by service provider
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_provider_status 
-                ON [{schema_name}].[requests](service_provider_id, request_status);
-                
-                -- Composite index for active requests by resident
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_resident_status
-                ON [{schema_name}].[requests](resident_id, request_status);
-                
-                -- Index on service_provider_type_name for filtering by service type
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_provider_type_name
-                ON [{schema_name}].[requests](service_provider_type_name);
-                
-                -- Composite index for filtering by service provider type and status
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_requests_service_type_status
-                ON [{schema_name}].[requests](service_provider_type_name, request_status);
-            """)
-            conn.execute(indexes_sql)
-            
-            # Create trigger to automatically update updated_at timestamp
-            trigger_sql = text(f"""
-                CREATE TRIGGER TR_{schema_name}_requests_update_timestamp
-                ON [{schema_name}].[requests]
-                AFTER UPDATE
-                AS
-                BEGIN
-                    SET NOCOUNT ON;
-                    UPDATE [{schema_name}].[requests]
-                    SET updated_at = GETDATE()
-                    FROM [{schema_name}].[requests] r
-                    INNER JOIN inserted i ON r.id = i.id;
-                END;
-            """)
-            conn.execute(trigger_sql)
+            # Create each index
+            for index in indexes:
+                try:
+                    index.create(engine, checkfirst=True)
+                except Exception as e:
+                    logger.warning(f"Could not create index {index.name}: {e}")
             
             conn.commit()
-            
-            print(f"Requests table created successfully in schema '{schema_name}' with indexes and triggers.")
-            print(f"Table supports communication tracking between residents and service providers.")
-            return True
-            
+        
+        logger.info(f"Requests table created successfully in schema '{schema_name}' with indexes.")
+        print(f"Requests table created successfully in schema '{schema_name}' with indexes.")
+        print(f"Table supports communication tracking between residents and service providers.")
+        return True
+        
     except Exception as e:
+        logger.error(f"Error creating requests table in schema '{schema_name}': {e}")
         print(f"Error creating requests table in schema '{schema_name}': {e}")
         return False

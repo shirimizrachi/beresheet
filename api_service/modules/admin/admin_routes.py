@@ -250,7 +250,7 @@ async def get_tenant_by_name(tenant_name: str):
         raise HTTPException(status_code=500, detail=f"Error retrieving tenant: {str(e)}")
 
 @admin_api_router.post("/tenants", response_model=TenantConfig, status_code=201)
-async def create_tenant(tenant: TenantCreate):
+async def create_tenant(tenant: TenantCreate, current_user: dict = Depends(get_current_admin_user)):
     """
     Create a new tenant configuration with full setup:
     1. Create the schema and user
@@ -258,7 +258,8 @@ async def create_tenant(tenant: TenantCreate):
     3. Initialize tables with demo data
     
     Args:
-        tenant: Tenant configuration to create
+        tenant: Tenant name to create
+        current_user: Current admin user from JWT token
         
     Returns:
         Created tenant configuration with setup details
@@ -273,8 +274,24 @@ async def create_tenant(tenant: TenantCreate):
         if not tenant.name.replace("_", "").replace("-", "").isalnum():
             raise HTTPException(status_code=400, detail="Tenant name must be alphanumeric (with optional hyphens and underscores)")
         
+        # Get values from environment and JWT token
+        import os
+        database_name = os.getenv("DATABASE_NAME", "residents")
+        admin_user_email = current_user.get("sub", "admin@example.com")  # Email from JWT token
+        
+        # Create internal tenant configuration (database_type doesn't matter since we use same connection)
+        from tenant_config import TenantCreateInternal
+        tenant_internal = TenantCreateInternal(
+            name=tenant.name,
+            database_name=database_name,
+            database_type="mssql",  # Default value, not used since we use same connection
+            database_schema=tenant.name,  # Use tenant name as schema name
+            admin_user_email=admin_user_email,
+            admin_user_password=admin_user_email  # Use email as password for now
+        )
+        
         # Create the tenant configuration first
-        new_tenant = tenant_config_db.create_tenant(tenant)
+        new_tenant = tenant_config_db.create_tenant(tenant_internal)
         if not new_tenant:
             raise HTTPException(status_code=400, detail="Failed to create tenant")
         
@@ -283,7 +300,18 @@ async def create_tenant(tenant: TenantCreate):
         # Step 1: Create the schema and user
         try:
             schema_result = await admin_service.create_schema_and_user(new_tenant.database_schema)
+            
+            # Check if schema creation actually succeeded
+            if schema_result.get("status") != "success":
+                error_msg = schema_result.get("message", "Unknown schema creation error")
+                logger.error(f"Step 1 failed for tenant '{tenant.name}': {error_msg}")
+                # Clean up the tenant config
+                tenant_config_db.delete_tenant(new_tenant.id)
+                raise HTTPException(status_code=500, detail=f"Failed to create schema and user: {error_msg}")
+                
             logger.info(f"Step 1 completed: Created schema and user for tenant '{tenant.name}'")
+        except HTTPException:
+            raise  # Re-raise HTTP exceptions
         except Exception as e:
             logger.error(f"Step 1 failed for tenant '{tenant.name}': {e}")
             # If schema creation fails, we should clean up the tenant config
@@ -292,7 +320,7 @@ async def create_tenant(tenant: TenantCreate):
         
         # Step 2: Create storage container for tenant
         try:
-            from residents_db_config import get_storage_provider
+            from residents_config import get_storage_provider
             storage_type = get_storage_provider()
             print(f"Storage provider: {storage_type}")
             

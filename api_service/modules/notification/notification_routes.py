@@ -37,7 +37,7 @@ async def get_current_user_from_session(authorization: str = Header(None)) -> di
         'id': user_profile.id,
         'full_name': user_profile.full_name,
         'role': user_profile.role,
-        'service_provider_type': getattr(user_profile, 'service_provider_type', None),
+        'service_provider_type': getattr(user_profile, 'service_provider_type_name', None),
         'home_id': home_id
     }
 

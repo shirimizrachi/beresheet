@@ -255,7 +255,13 @@ async def get_user_photo(user_id: str, home_id: int = Depends(get_home_id)):
 async def get_user_home(phone_number: str = Query(...)):
     """Get user's home information by phone number - used for tenant routing"""
     try:
-        home_info = user_db.get_user_home_info(phone_number)
+        # Import the normalization function
+        from .users import normalize_phone_number
+        
+        # Normalize phone number by removing leading zeros
+        normalized_phone = normalize_phone_number(phone_number)
+        
+        home_info = user_db.get_user_home_info(normalized_phone)
         if home_info:
             return {
                 "success": True,

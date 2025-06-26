@@ -57,7 +57,7 @@ class UserModel {
       photo: json['photo'] as String?,
       firebaseFcmToken: json['firebase_fcm_token'] as String?,
       serviceProviderTypeId: json['service_provider_type_id']?.toString(),
-      serviceProviderType: json['service_provider_type'] as String?,
+      serviceProviderType: json['service_provider_type_name'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
     );
@@ -80,7 +80,7 @@ class UserModel {
       if (photo != null) 'photo': photo,
       if (firebaseFcmToken != null) 'firebase_fcm_token': firebaseFcmToken,
       if (serviceProviderTypeId != null) 'service_provider_type_id': serviceProviderTypeId,
-      if (serviceProviderType != null) 'service_provider_type': serviceProviderType,
+      if (serviceProviderType != null) 'service_provider_type_name': serviceProviderType,
     };
   }
 

@@ -107,7 +107,9 @@ class ServiceProviderTypeDatabase:
                 return None
 
             # Generate GUID for service provider type ID
+            from datetime import datetime
             type_id = str(uuid.uuid4())
+            current_time = datetime.now()
 
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
@@ -117,7 +119,9 @@ class ServiceProviderTypeDatabase:
                     types_table.insert().values(
                         id=type_id,
                         name=type_data.name,
-                        description=type_data.description
+                        description=type_data.description,
+                        created_at=current_time,
+                        updated_at=current_time
                     )
                 )
                 conn.commit()
@@ -154,12 +158,16 @@ class ServiceProviderTypeDatabase:
                 return None
             with schema_engine.connect() as conn:
                 # Update the record
+                from datetime import datetime
                 update_data = {}
                 if type_data.description is not None:
                     update_data['description'] = type_data.description
                 
-                if not update_data:
-                    # No data to update, just return the existing record
+                # Always update the updated_at timestamp
+                update_data['updated_at'] = datetime.now()
+                
+                if len(update_data) == 1:  # Only updated_at, no actual data changes
+                    # No meaningful data to update, just return the existing record
                     return self.get_service_provider_type_by_id(type_id, home_id)
 
                 result = conn.execute(

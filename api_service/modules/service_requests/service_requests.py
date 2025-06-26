@@ -57,7 +57,7 @@ class RequestDatabase:
                 'full_name': user.full_name,
                 'phone_number': user.phone_number,
                 'fcm_token': user.firebase_fcm_token,
-                'service_provider_type': user.service_provider_type,
+                'service_provider_type': user.service_provider_type_name,
                 'service_provider_type_id': user.service_provider_type_id
             }
         return {
@@ -275,7 +275,7 @@ class RequestDatabase:
             if not schema_engine:
                 return None
             with schema_engine.connect() as conn:
-                query = requests_table.select().where(requests_table.c.service_provider_type == service_provider_type)
+                query = requests_table.select().where(requests_table.c.service_provider_type_name == service_provider_type)
                 
                 if status_filter:
                     query = query.where(requests_table.c.request_status == status_filter)

@@ -63,39 +63,37 @@ async def get_tenant_tables_endpoint(tenant_name: str):
             raise HTTPException(status_code=500, detail=f"Could not create database engine for tenant '{tenant_name}'")
         
         with engine.connect() as conn:
-            # Query to get all tables in the tenant's schema
-            tables_sql = text("""
-                SELECT
-                    t.table_name,
-                    t.table_type,
-                    COALESCE(
-                        (SELECT COUNT(*)
-                         FROM INFORMATION_SCHEMA.COLUMNS c
-                         WHERE c.table_schema = t.table_schema
-                         AND c.table_name = t.table_name), 0) as column_count,
-                    COALESCE(
-                        (SELECT TOP 1 p.rows
-                         FROM sys.tables st
-                         INNER JOIN sys.partitions p ON st.object_id = p.object_id
-                         INNER JOIN sys.schemas s ON st.schema_id = s.schema_id
-                         WHERE s.name = :schema_name
-                         AND st.name = t.table_name
-                         AND p.index_id IN (0,1)), 0) as row_count
-                FROM INFORMATION_SCHEMA.TABLES t
-                WHERE t.table_schema = :schema_name
-                AND t.table_type = 'BASE TABLE'
-                ORDER BY t.table_name
-            """)
+            # Use database-agnostic approach to get tables
+            from sqlalchemy import inspect
+            inspector = inspect(engine)
             
-            result = conn.execute(tables_sql, {"schema_name": tenant.database_schema})
+            # Get table names for the schema
+            table_names = inspector.get_table_names(schema=tenant.database_schema)
+            
             tables = []
-            
-            for row in result:
+            for table_name in table_names:
+                # Get column count
+                columns = inspector.get_columns(table_name, schema=tenant.database_schema)
+                column_count = len(columns)
+                
+                # For row count, we'll use a simple database-agnostic query
+                try:
+                    if tenant.database_type == "oracle":
+                        count_sql = text(f'SELECT COUNT(*) FROM "{tenant.database_schema}"."{table_name}"')
+                    else:
+                        count_sql = text(f'SELECT COUNT(*) FROM [{tenant.database_schema}].[{table_name}]')
+                    
+                    row_count_result = conn.execute(count_sql)
+                    row_count = row_count_result.scalar() or 0
+                except Exception:
+                    # If row count query fails, default to 0
+                    row_count = 0
+                
                 tables.append({
-                    "table_name": row.table_name,
-                    "table_type": row.table_type,
-                    "column_count": row.column_count,
-                    "row_count": row.row_count
+                    "table_name": table_name,
+                    "table_type": "BASE TABLE",
+                    "column_count": column_count,
+                    "row_count": row_count
                 })
             
             logger.info(f"Retrieved {len(tables)} tables for tenant '{tenant_name}'")

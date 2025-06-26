@@ -101,7 +101,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
 
   Widget _buildServiceProviderCard(Map<String, dynamic> provider) {
     final name = provider['full_name'] ?? context.l10n.unknownProvider;
-    final serviceType = provider['service_provider_type_name'] ?? provider['service_provider_type'] ?? context.l10n.serviceProvider;
+    final serviceType = provider['service_provider_type_name'] ?? context.l10n.serviceProvider;
     final serviceTypeDescription = provider['service_provider_type_description'];
     final photo = provider['photo'];
     final requestCount = provider['request_count'] ?? 0;

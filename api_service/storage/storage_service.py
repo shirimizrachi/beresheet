@@ -20,7 +20,7 @@ def get_storage_service(tenant_name: str = None):
     Returns:
         Storage service instance (Azure or Cloudflare)
     """
-    from residents_db_config import get_storage_provider
+    from residents_config  import get_storage_provider
     storage_provider = get_storage_provider()
     
     if storage_provider == 'cloudflare':

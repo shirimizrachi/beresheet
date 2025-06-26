@@ -118,7 +118,9 @@ class EventInstructorDatabase:
 
             # Generate GUID for instructor ID
             import uuid
+            from datetime import datetime
             instructor_id = str(uuid.uuid4())
+            current_time = datetime.now()
 
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
@@ -129,7 +131,9 @@ class EventInstructorDatabase:
                         id=instructor_id,
                         name=instructor_data.name,
                         description=instructor_data.description,
-                        photo=None  # Will be updated separately if needed
+                        photo=None,  # Will be updated separately if needed
+                        created_at=current_time,
+                        updated_at=current_time
                     )
                 )
                 conn.commit()
@@ -171,8 +175,9 @@ class EventInstructorDatabase:
             if instructor_data.photo is not None:
                 update_values['photo'] = instructor_data.photo
 
-            # Always update the updated_at timestamp
-            update_values['updated_at'] = text('GETDATE()')
+            # Always update the updated_at timestamp (use datetime object like other modules)
+            from datetime import datetime
+            update_values['updated_at'] = datetime.now()
 
             if not update_values:
                 # No fields to update

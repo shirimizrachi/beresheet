@@ -1,0 +1,18 @@
+# Oracle Database requirements
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+requests==2.31.0
+urllib3==2.0.7
+azure-core[aio]==1.30.2
+azure-storage-blob==12.19.0
+sqlalchemy==2.0.23
+pyodbc==5.1.0
+python-dotenv==1.0.0
+pillow==10.1.0
+pyjwt==2.8.0
+bcrypt==4.1.2
+boto3==1.34.0
+oracledb==2.0.1
+cx_Oracle==8.3.0

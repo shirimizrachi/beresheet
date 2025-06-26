@@ -20,13 +20,23 @@ class UserProfileBase(BaseModel):
     home_id: int  # Not displayed in profile page, used for internal operations
     id: str  # Unique user identifier (primary key)
     photo: Optional[str] = None
-    service_provider_type: Optional[str] = None
+    service_provider_type_name: Optional[str] = None
     service_provider_type_id: Optional[str] = None
     firebase_fcm_token: Optional[str] = None
 
 class UserProfileCreate(BaseModel):
     home_id: int
     phone_number: str
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    birthday: Optional[date] = None
+    apartment_number: Optional[str] = None
+    marital_status: Optional[str] = None
+    gender: Optional[str] = None
+    religious: Optional[str] = None
+    native_language: Optional[str] = None
+    service_provider_type_name: Optional[str] = None
+    service_provider_type_id: Optional[str] = None
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -40,7 +50,7 @@ class UserProfileUpdate(BaseModel):
     native_language: Optional[str] = None
     home_id: Optional[int] = None
     photo: Optional[str] = None
-    service_provider_type: Optional[str] = None
+    service_provider_type_name: Optional[str] = None
     service_provider_type_id: Optional[str] = None
     service_provider_type_name: Optional[str] = None
     service_provider_type_description: Optional[str] = None

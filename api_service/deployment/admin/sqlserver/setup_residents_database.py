@@ -1,5 +1,5 @@
 """
-Script to create the residents database with home schema and user
+SQL Server-specific implementation for database setup operations
 Supports both SQL Express local and Azure SQL Database configurations
 """
 
@@ -7,49 +7,38 @@ import sys
 import os
 import getpass
 from sqlalchemy import create_engine, text
-from typing import Optional
+from typing import Optional, Dict, Any
+from ..models import create_home_table, create_home_index_table
+from deployment.admin.setup_residents_database import DatabaseSetupBase
 
-# Import configuration from residents_db_config
-# Add the api_service directory to sys.path (go up 2 levels from deployment/admin)
-script_dir = os.path.dirname(os.path.abspath(__file__))  # deployment/admin
-deployment_dir = os.path.dirname(script_dir)            # deployment
+# Import configuration from residents_config
+# Add the api_service directory to sys.path (go up 3 levels from deployment/admin/sqlserver)
+script_dir = os.path.dirname(os.path.abspath(__file__))  # deployment/admin/sqlserver
+admin_dir = os.path.dirname(script_dir)                 # deployment/admin
+deployment_dir = os.path.dirname(admin_dir)             # deployment
 api_service_dir = os.path.dirname(deployment_dir)       # api_service
 sys.path.insert(0, api_service_dir)
 
-from residents_db_config import (
-    DATABASE_NAME, SCHEMA_NAME, USER_NAME, USER_PASSWORD,
-    HOME_INDEX_SCHEMA_NAME, HOME_INDEX_USER_NAME, HOME_INDEX_USER_PASSWORD,
+from residents_config import (
     get_connection_string, get_admin_connection_string, get_server_info,
     get_home_index_connection_string, get_home_index_server_info,
     get_master_connection_string
 )
 
-class DatabaseSetup:
-    """Database setup class for residents database"""
-    
-    def __init__(self):
-        # Import all configuration from residents_db_config.py
-        self.database_name = DATABASE_NAME
-        self.schema_name = SCHEMA_NAME
-        self.user_name = USER_NAME
-        self.user_password = USER_PASSWORD
+class SqlServerDatabaseSetup(DatabaseSetupBase):
+    """SQL Server-specific database setup implementation"""
         
-        # Home Index configuration from residents_db_config.py
-        self.home_index_schema_name = HOME_INDEX_SCHEMA_NAME
-        self.home_index_user_name = HOME_INDEX_USER_NAME
-        self.home_index_user_password = HOME_INDEX_USER_PASSWORD
-        
-    def get_connection_config(self) -> dict:
-        """Get database connection configuration from residents_db_config.py"""
+    def get_connection_config(self) -> Dict[str, Any]:
+        """Get database connection configuration from residents_config.py"""
         print("🏠 Residents Database Setup")
         print("=" * 50)
-        print("Using configuration from residents_db_config.py")
+        print("Using configuration from residents_config.py")
         
-        # Get server info from residents_db_config
+        # Get server info from residents_config
         server_info = get_server_info()
         home_index_server_info = get_home_index_server_info()
         
-        # Build configuration using the connection strings from residents_db_config
+        # Build configuration using the connection strings from residents_config
         config = {
             "type": server_info["type"],
             "server": server_info["server"],
@@ -62,7 +51,7 @@ class DatabaseSetup:
         return config
     
     
-    def create_database(self, config: dict) -> bool:
+    def create_database(self, config: Dict[str, Any]) -> bool:
         """Create the residents database"""
         print(f"\n🔧 Creating database '{self.database_name}'...")
         
@@ -94,7 +83,7 @@ class DatabaseSetup:
             print(f"❌ Error creating database: {e}")
             return False
     
-    def create_schema(self, config: dict) -> bool:
+    def create_schema(self, config: Dict[str, Any]) -> bool:
         """Create the home schema"""
         print(f"\n🔧 Creating schema '{self.schema_name}'...")
         
@@ -126,7 +115,7 @@ class DatabaseSetup:
             print(f"❌ Error creating schema: {e}")
             return False
     
-    def create_user_and_permissions(self, config: dict) -> bool:
+    def create_user_and_permissions(self, config: Dict[str, Any]) -> bool:
         """Create user and grant permissions on schema"""
         print(f"\n🔧 Creating user '{self.user_name}' with permissions...")
         
@@ -181,7 +170,20 @@ class DatabaseSetup:
                 else:
                     print(f"✅ User '{self.user_name}' already exists.")
                 
-                # Grant database-level permissions first
+                # Grant database access by adding user to database roles
+                try:
+                    # Add user to db_datareader and db_datawriter roles for database access
+                    add_datareader_sql = text(f"ALTER ROLE db_datareader ADD MEMBER [{self.user_name}]")
+                    conn.execute(add_datareader_sql)
+                    
+                    add_datawriter_sql = text(f"ALTER ROLE db_datawriter ADD MEMBER [{self.user_name}]")
+                    conn.execute(add_datawriter_sql)
+                    
+                    print(f"✅ User '{self.user_name}' added to db_datareader and db_datawriter roles.")
+                except Exception as e:
+                    print(f"⚠️  Could not add user to database roles: {e}")
+                
+                # Grant database-level permissions
                 db_permissions = [
                     "CREATE TABLE", "CREATE VIEW", "CREATE PROCEDURE",
                     "CREATE FUNCTION", "CREATE TYPE"
@@ -222,6 +224,16 @@ class DatabaseSetup:
                 except Exception as e:
                     print(f"⚠️  Could not make user schema owner: {e}")
                 
+                # Also make the user the owner of the schema for full control
+                try:
+                    alter_schema_sql = text(f"""
+                        ALTER AUTHORIZATION ON SCHEMA::[{self.schema_name}] TO [{self.user_name}]
+                    """)
+                    conn.execute(alter_schema_sql)
+                    print(f"✅ User '{self.user_name}' is now owner of schema '{self.schema_name}'.")
+                except Exception as e:
+                    print(f"⚠️  Could not make user schema owner: {e}")
+                
                 conn.commit()
                 print(f"✅ Database and schema permissions granted to user '{self.user_name}'.")
                 
@@ -231,18 +243,19 @@ class DatabaseSetup:
             print(f"❌ Error creating user and permissions: {e}")
             return False
     
-    def create_home_table(self, config: dict) -> bool:
+    def create_home_table(self, config: Dict[str, Any]) -> bool:
         """Create the home table for managing all homes"""
         print(f"\n🔧 Creating home table...")
         
         try:
-            engine = create_engine(config["user_connection"])
+            # Use admin connection to create the table since the user may not be fully set up yet
+            engine = create_engine(config["db_connection"])
             
+            # Check if table exists
             with engine.connect() as conn:
-                # Check if table exists
                 check_table_sql = text(f"""
-                    SELECT TABLE_NAME 
-                    FROM INFORMATION_SCHEMA.TABLES 
+                    SELECT TABLE_NAME
+                    FROM INFORMATION_SCHEMA.TABLES
                     WHERE TABLE_SCHEMA = '{self.schema_name}' AND TABLE_NAME = 'home'
                 """)
                 
@@ -250,36 +263,27 @@ class DatabaseSetup:
                 
                 if result:
                     print(f"✅ Table '{self.schema_name}.home' already exists.")
-                else:
-                    # Create home table
-                    create_table_sql = text(f"""
-                        CREATE TABLE [{self.schema_name}].[home] (
-                            [id] INT IDENTITY(1,1) PRIMARY KEY,
-                            [name] NVARCHAR(50) NOT NULL UNIQUE,
-                            [database_name] NVARCHAR(50) NOT NULL,
-                            [database_type] NVARCHAR(20) NOT NULL DEFAULT 'mssql',
-                            [database_schema] NVARCHAR(50) NOT NULL,
-                            [admin_user_email] NVARCHAR(100) NOT NULL,
-                            [admin_user_password] NVARCHAR(100) NOT NULL,
-                            [created_at] DATETIME2 DEFAULT GETDATE(),
-                            [updated_at] DATETIME2 DEFAULT GETDATE()
-                        )
-                    """)
-                    
-                    conn.execute(create_table_sql)
-                    conn.commit()
-                    print(f"✅ Table '{self.schema_name}.home' created successfully.")
-                    
-                    # Create index
+                    return True
+            
+            # Create table using SQLAlchemy model
+            create_home_table(engine, self.schema_name)
+            print(f"✅ Table '{self.schema_name}.home' created successfully using SQLAlchemy model.")
+            
+            # Create additional SQL Server-specific indexes and triggers
+            with engine.connect() as conn:
+                # Create index on name
+                try:
                     create_index_sql = text(f"""
                         CREATE INDEX IX_home_name ON [{self.schema_name}].[home] ([name])
                     """)
-                    
                     conn.execute(create_index_sql)
                     conn.commit()
                     print(f"✅ Index on 'name' column created successfully.")
-                    
-                    # Create update trigger
+                except Exception as e:
+                    print(f"⚠️  Index may already exist: {e}")
+                
+                # Create update trigger
+                try:
                     create_trigger_sql = text(f"""
                         CREATE TRIGGER [{self.schema_name}].[tr_home_update_timestamp]
                         ON [{self.schema_name}].[home]
@@ -293,18 +297,19 @@ class DatabaseSetup:
                             INNER JOIN inserted i ON h.id = i.id;
                         END
                     """)
-                    
                     conn.execute(create_trigger_sql)
                     conn.commit()
                     print(f"✅ Update timestamp trigger created successfully.")
-                
-                return True
+                except Exception as e:
+                    print(f"⚠️  Trigger creation issue: {e}")
+            
+            return True
                 
         except Exception as e:
             print(f"❌ Error creating home table: {e}")
             return False
     
-    def test_user_connection(self, config: dict) -> bool:
+    def test_user_connection(self, config: Dict[str, Any]) -> bool:
         """Test connection with the created user"""
         print(f"\n🔧 Testing user connection...")
         
@@ -315,7 +320,7 @@ class DatabaseSetup:
                 # Test basic query
                 test_sql = text(f"""
                     SELECT COUNT(*) as table_count
-                    FROM INFORMATION_SCHEMA.TABLES 
+                    FROM INFORMATION_SCHEMA.TABLES
                     WHERE TABLE_SCHEMA = '{self.schema_name}'
                 """)
                 
@@ -326,9 +331,11 @@ class DatabaseSetup:
                 
         except Exception as e:
             print(f"❌ Error testing user connection: {e}")
+            print(f"⚠️  This may be normal if SQL Server is not configured for mixed authentication")
+            print(f"⚠️  Connection string: {config['user_connection']}")
             return False
     
-    def display_connection_info(self, config: dict) -> bool:
+    def display_connection_info(self, config: Dict[str, Any]) -> bool:
         """Display connection information for manual configuration"""
         print(f"\n🔧 Connection Information:")
         print("=" * 50)
@@ -342,14 +349,14 @@ class DatabaseSetup:
         print(f"User Connection String: {config['user_connection']}")
         print(f"Home Index Connection String: {config['home_index_connection']}")
         
-        print("\n📝 Configuration is already set in residents_db_config.py:")
+        print("\n📝 Configuration is already set in residents_config.py:")
         print(f"✅ DATABASE_TYPE = \"{config['type']}\"")
         print(f"✅ Connection strings are properly configured with URL encoding")
         print("✅ All database credentials are set")
         
         return True
     
-    def create_home_index_schema(self, config: dict) -> bool:
+    def create_home_index_schema(self, config: Dict[str, Any]) -> bool:
         """Create the home_index schema"""
         print(f"\n🔧 Creating home_index schema '{self.home_index_schema_name}'...")
         
@@ -381,7 +388,7 @@ class DatabaseSetup:
             print(f"❌ Error creating home_index schema: {e}")
             return False
     
-    def create_home_index_user_and_permissions(self, config: dict) -> bool:
+    def create_home_index_user_and_permissions(self, config: Dict[str, Any]) -> bool:
         """Create home_index user and grant permissions on home_index schema only"""
         print(f"\n🔧 Creating home_index user '{self.home_index_user_name}' with limited permissions...")
         
@@ -436,29 +443,29 @@ class DatabaseSetup:
                 else:
                     print(f"✅ User '{self.home_index_user_name}' already exists.")
                 
-                # Grant specific permissions on home_index schema only
-                schema_permissions = [
-                    "SELECT", "INSERT", "UPDATE", "REFERENCES"
-                ]
+                # Grant minimal database access (only what's needed to connect)
+                try:
+                    # Add user to db_datareader role for minimal database access
+                    add_datareader_sql = text(f"ALTER ROLE db_datareader ADD MEMBER [{self.home_index_user_name}]")
+                    conn.execute(add_datareader_sql)
+                    
+                    print(f"✅ User '{self.home_index_user_name}' added to db_datareader role (read-only access).")
+                except Exception as e:
+                    print(f"⚠️  Could not add home_index user to database roles: {e}")
+                
+                # Grant necessary permissions on home_index schema (SELECT, INSERT, UPDATE)
+                schema_permissions = ["SELECT", "INSERT", "UPDATE"]
                 
                 for permission in schema_permissions:
-                    grant_permission_sql = text(f"""
-                        GRANT {permission} ON SCHEMA::[{self.home_index_schema_name}] TO [{self.home_index_user_name}]
-                    """)
                     try:
+                        grant_permission_sql = text(f"""
+                            GRANT {permission} ON SCHEMA::[{self.home_index_schema_name}] TO [{self.home_index_user_name}]
+                        """)
                         conn.execute(grant_permission_sql)
                     except Exception as e:
                         print(f"⚠️  Could not grant {permission} permission on home_index schema: {e}")
                 
-                # Make the user the owner of the home_index schema for full control
-                try:
-                    alter_schema_sql = text(f"""
-                        ALTER AUTHORIZATION ON SCHEMA::[{self.home_index_schema_name}] TO [{self.home_index_user_name}]
-                    """)
-                    conn.execute(alter_schema_sql)
-                    print(f"✅ User '{self.home_index_user_name}' is now owner of schema '{self.home_index_schema_name}'.")
-                except Exception as e:
-                    print(f"⚠️  Could not make user schema owner: {e}")
+                print(f"✅ User '{self.home_index_user_name}' granted SELECT, INSERT, UPDATE permissions on home_index schema.")
                 
                 conn.commit()
                 print(f"✅ Limited permissions granted to user '{self.home_index_user_name}' on home_index schema only.")
@@ -469,7 +476,7 @@ class DatabaseSetup:
             print(f"❌ Error creating home_index user and permissions: {e}")
             return False
     
-    def create_home_index_table(self, config: dict) -> bool:
+    def create_home_index_table(self, config: Dict[str, Any]) -> bool:
         """Create the home_index table"""
         print(f"\n🔧 Creating home_index table...")
         
@@ -477,8 +484,8 @@ class DatabaseSetup:
             # Use admin connection to create the table (since home_index user may not be fully set up yet)
             engine = create_engine(config["db_connection"])
             
+            # Check if table exists
             with engine.connect() as conn:
-                # Check if table exists
                 check_table_sql = text(f"""
                     SELECT TABLE_NAME
                     FROM INFORMATION_SCHEMA.TABLES
@@ -489,32 +496,27 @@ class DatabaseSetup:
                 
                 if result:
                     print(f"✅ Table '{self.home_index_schema_name}.home_index' already exists.")
-                else:
-                    # Create home_index table
-                    create_table_sql = text(f"""
-                        CREATE TABLE [{self.home_index_schema_name}].[home_index] (
-                            [phone_number] NVARCHAR(20) PRIMARY KEY,
-                            [home_id] INT NOT NULL,
-                            [home_name] NVARCHAR(50) NOT NULL,
-                            [created_at] DATETIME2 DEFAULT GETDATE(),
-                            [updated_at] DATETIME2 DEFAULT GETDATE()
-                        )
-                    """)
-                    
-                    conn.execute(create_table_sql)
-                    conn.commit()
-                    print(f"✅ Table '{self.home_index_schema_name}.home_index' created successfully.")
-                    
-                    # Create index on home_id
+                    return True
+            
+            # Create table using SQLAlchemy model
+            create_home_index_table(engine, self.home_index_schema_name)
+            print(f"✅ Table '{self.home_index_schema_name}.home_index' created successfully using SQLAlchemy model.")
+            
+            # Create additional SQL Server-specific indexes and triggers
+            with engine.connect() as conn:
+                # Create index on home_id
+                try:
                     create_index_sql = text(f"""
                         CREATE INDEX IX_home_index_home_id ON [{self.home_index_schema_name}].[home_index] ([home_id])
                     """)
-                    
                     conn.execute(create_index_sql)
                     conn.commit()
                     print(f"✅ Index on 'home_id' column created successfully.")
-                    
-                    # Create update trigger
+                except Exception as e:
+                    print(f"⚠️  Index may already exist: {e}")
+                
+                # Create update trigger
+                try:
                     create_trigger_sql = text(f"""
                         CREATE TRIGGER [{self.home_index_schema_name}].[tr_home_index_update_timestamp]
                         ON [{self.home_index_schema_name}].[home_index]
@@ -528,23 +530,24 @@ class DatabaseSetup:
                             INNER JOIN inserted i ON h.phone_number = i.phone_number;
                         END
                     """)
-                    
                     conn.execute(create_trigger_sql)
                     conn.commit()
                     print(f"✅ Update timestamp trigger created successfully.")
-                
-                return True
+                except Exception as e:
+                    print(f"⚠️  Trigger creation issue: {e}")
+            
+            return True
                 
         except Exception as e:
             print(f"❌ Error creating home_index table: {e}")
             return False
     
-    def test_home_index_connection(self, config: dict) -> bool:
+    def test_home_index_connection(self, config: Dict[str, Any]) -> bool:
         """Test connection with the home_index user"""
         print(f"\n🔧 Testing home_index user connection...")
         
         try:
-            # Use the connection string from residents_db_config.py
+            # Use the connection string from residents_config.py
             home_index_connection = config["home_index_connection"]
             
             print(f"Testing home_index user connection...")
@@ -568,70 +571,9 @@ class DatabaseSetup:
             return False
 
 def main():
-    """Main setup function"""
-    setup = DatabaseSetup()
-    
-    # Get configuration
-    config = setup.get_connection_config()
-    
-    print(f"\n📋 Setup Summary:")
-    print(f"   Database Type: {config['type']}")
-    print(f"   Server: {config['server']}")
-    print(f"   Database: {setup.database_name}")
-    print(f"   Schema: {setup.schema_name}")
-    print(f"   User: {setup.user_name}")
-    
-    # Confirm before proceeding
-    response = input("\nDo you want to proceed with this configuration? (y/N): ").strip().lower()
-    if response != 'y':
-        print("Setup cancelled.")
-        return
-    
-    # Run setup steps
-    steps = [
-        ("Creating database", lambda: setup.create_database(config)),
-        ("Creating schema", lambda: setup.create_schema(config)),
-        ("Creating user and permissions", lambda: setup.create_user_and_permissions(config)),
-        ("Creating home table", lambda: setup.create_home_table(config)),
-        ("Creating home_index schema", lambda: setup.create_home_index_schema(config)),
-        ("Creating home_index user and permissions", lambda: setup.create_home_index_user_and_permissions(config)),
-        ("Creating home_index table", lambda: setup.create_home_index_table(config)),
-        ("Testing user connection", lambda: setup.test_user_connection(config)),
-        ("Testing home_index connection", lambda: setup.test_home_index_connection(config)),
-        ("Displaying connection information", lambda: setup.display_connection_info(config))
-    ]
-    
-    success_count = 0
-    for step_name, step_func in steps:
-        print(f"\n{'='*60}")
-        print(f"🚀 {step_name}")
-        print(f"{'='*60}")
-        
-        if step_func():
-            success_count += 1
-        else:
-            print(f"\n❌ Setup failed at step: {step_name}")
-            print("Please fix the error and run the setup again.")
-            return
-    
-    print(f"\n{'='*60}")
-    print(f"🎉 RESIDENTS DATABASE SETUP COMPLETE")
-    print(f"{'='*60}")
-    print(f"✅ {success_count}/{len(steps)} steps completed successfully")
-    print()
-    print("📋 What was created:")
-    print(f"   • Database: {setup.database_name}")
-    print(f"   • Schema: {setup.schema_name}")
-    print(f"   • User: {setup.user_name} (password: {setup.user_password})")
-    print(f"   • Table: {setup.schema_name}.home")
-    print(f"   • Home Index Schema: {setup.home_index_schema_name}")
-    print(f"   • Home Index User: {setup.home_index_user_name} (password: {setup.home_index_user_password})")
-    print(f"   • Table: {setup.home_index_schema_name}.home_index")
-    print()
-    print("🚀 Next steps:")
-    print("   1. Configure your API service using the connection information above")
-    print("   2. Test the database connection with: python test_residents_database.py")
-    print("   3. Start your application")
+    """Main setup function for SQL Server"""
+    setup = SqlServerDatabaseSetup()
+    setup.run_setup()
 
 if __name__ == "__main__":
     main()

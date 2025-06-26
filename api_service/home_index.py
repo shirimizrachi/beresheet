@@ -9,7 +9,7 @@ from typing import Optional, Dict
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from residents_db_config import get_home_index_connection_string, HOME_INDEX_SCHEMA_NAME
+from residents_config import get_home_index_connection_string, HOME_INDEX_SCHEMA_NAME
 
 class HomeIndexDatabase:
     def __init__(self):
@@ -123,14 +123,20 @@ class HomeIndexDatabase:
     def get_home_by_phone(self, phone_number: str) -> Optional[Dict[str, any]]:
         """Get home information by phone number"""
         try:
+            # Import the normalization function
+            from modules.users.users import normalize_phone_number
+            
+            # Normalize phone number by removing leading zeros
+            normalized_phone = normalize_phone_number(phone_number)
+            
             home_index_table = self.get_home_index_table()
             if home_index_table is None:
                 return None
 
-            # Query home index by phone_number
+            # Query home index by normalized phone_number
             with self.engine.connect() as conn:
                 result = conn.execute(
-                    home_index_table.select().where(home_index_table.c.phone_number == phone_number)
+                    home_index_table.select().where(home_index_table.c.phone_number == normalized_phone)
                 ).fetchone()
 
                 if result:

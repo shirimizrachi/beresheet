@@ -14,15 +14,22 @@ import sys
 import os
 import logging
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the parent directories to the path so we can import modules
 current_dir = Path(__file__).parent
 api_service_dir = current_dir.parent.parent
 sys.path.insert(0, str(api_service_dir))
 
-from residents_db_config import get_admin_connection_string, DATABASE_ENGINE
-from sqlserver.schema_operations import delete_schema_and_user_sqlserver
-from mysql.schema_operations import delete_schema_and_user_mysql
+# Import database service functions directly to avoid circular imports
+from residents_db.database_service import get_admin_connection_string
+from schema_operations import delete_schema_and_user
+
+# Get database engine from environment
+DATABASE_ENGINE = os.getenv("DATABASE_ENGINE")
 
 # Set up logging
 logging.basicConfig(
@@ -66,13 +73,15 @@ def main():
             print("🚫 Deletion cancelled by user")
             sys.exit(0)
         
-        # Delete schema based on database engine
-        if database_engine == "mysql":
-            print(f"\n🔥 Deleting MySQL database '{schema_name}'...")
-            result = delete_schema_and_user_mysql(schema_name, admin_connection_string)
-        else:
+        # Delete schema using the abstract interface (automatically determines implementation)
+        if database_engine == "oracle":
+            print(f"\n🔥 Deleting Oracle schema '{schema_name}'...")
+        elif database_engine == "sqlserver":
             print(f"\n🔥 Deleting SQL Server schema '{schema_name}'...")
-            result = delete_schema_and_user_sqlserver(schema_name, admin_connection_string)
+        else:
+            print(f"\n🔥 Deleting {database_engine} schema '{schema_name}'...")
+        
+        result = delete_schema_and_user(schema_name, admin_connection_string)
         
         # Display results
         print("\n" + "=" * 60)
@@ -83,13 +92,19 @@ def main():
             print(f"✅ Status: {result['status'].upper()}")
             print(f"📝 Message: {result['message']}")
             print(f"🗃️  Schema: {result['schema_name']}")
-            print(f"📊 Tables dropped: {result['tables_dropped']}")
             
-            if database_engine == "mssql":
-                print(f"👤 User dropped: {'Yes' if result['user_dropped'] else 'No'}")
-                print(f"🔐 Login dropped: {'Yes' if result['login_dropped'] else 'No'}")
+            # Handle different result formats based on database engine
+            if database_engine == "oracle":
+                print(f"📊 Objects dropped: {result.get('objects_dropped', 0)}")
+                print(f"👤 User/Schema dropped: {'Yes' if result.get('user_dropped', False) else 'No'}")
+            elif database_engine == "sqlserver":
+                print(f"📊 Tables dropped: {result.get('tables_dropped', 0)}")
+                print(f"� User dropped: {'Yes' if result.get('user_dropped', False) else 'No'}")
+                print(f"🔐 Login dropped: {'Yes' if result.get('login_dropped', False) else 'No'}")
             else:
-                print(f"👤 User dropped: {'Yes' if result['user_dropped'] else 'No'}")
+                # Generic handling for other database types
+                print(f"📊 Objects dropped: {result.get('tables_dropped', result.get('objects_dropped', 0))}")
+                print(f" User dropped: {'Yes' if result.get('user_dropped', False) else 'No'}")
                 if 'table_names' in result and result['table_names']:
                     print(f"📋 Tables that were dropped: {', '.join(result['table_names'])}")
             

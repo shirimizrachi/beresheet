@@ -22,14 +22,8 @@ class TenantFormWidget extends StatefulWidget {
 class _TenantFormWidgetState extends State<TenantFormWidget> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _databaseNameController = TextEditingController();
-  final _databaseSchemaController = TextEditingController();
-  final _adminEmailController = TextEditingController();
-  final _adminPasswordController = TextEditingController();
 
-  String _selectedDatabaseType = AdminConfig.supportedDatabaseTypes.first;
   bool _isLoading = false;
-  bool _obscurePassword = true;
   String? _errorMessage;
 
   bool get _isEditing => widget.tenant != null;
@@ -43,10 +37,6 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
   @override
   void dispose() {
     _nameController.dispose();
-    _databaseNameController.dispose();
-    _databaseSchemaController.dispose();
-    _adminEmailController.dispose();
-    _adminPasswordController.dispose();
     super.dispose();
   }
 
@@ -55,27 +45,8 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
     if (_isEditing) {
       final tenant = widget.tenant!;
       _nameController.text = tenant.name;
-      _databaseNameController.text = tenant.databaseName;
-      _databaseSchemaController.text = tenant.databaseSchema;
-      _adminEmailController.text = tenant.adminUserEmail;
-      _adminPasswordController.text = tenant.adminUserPassword;
-      _selectedDatabaseType = tenant.databaseType;
-    } else {
-      // Set defaults for new tenant
-      _databaseNameController.text = 'residents';
-      _selectedDatabaseType = 'mssql';
     }
-
-    // Auto-generate schema name when tenant name changes
-    _nameController.addListener(_updateSchemaName);
-  }
-
-  /// Auto-update schema name based on tenant name
-  void _updateSchemaName() {
-    if (!_isEditing && _nameController.text.isNotEmpty) {
-      final tenantName = _nameController.text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-      _databaseSchemaController.text = tenantName;
-    }
+    // For new tenants, we only need the name - everything else is handled by backend
   }
 
   /// Handle form submission
@@ -108,15 +79,10 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
     }
   }
 
-  /// Create new tenant
+  /// Create new tenant (only requires name now)
   Future<void> _createTenant() async {
     final tenantCreate = TenantCreate.fromForm(
       name: _nameController.text.trim(),
-      databaseName: _databaseNameController.text.trim(),
-      databaseType: _selectedDatabaseType,
-      databaseSchema: _databaseSchemaController.text.trim(),
-      adminUserEmail: _adminEmailController.text.trim(),
-      adminUserPassword: _adminPasswordController.text,
     );
 
     final tenant = await AdminApiService.createTenant(tenantCreate);
@@ -127,15 +93,10 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
     }
   }
 
-  /// Update existing tenant
+  /// Update existing tenant (editing still supported but simplified)
   Future<void> _updateTenant() async {
     final tenantUpdate = TenantUpdate(
       name: _nameController.text.trim() != widget.tenant!.name ? _nameController.text.trim() : null,
-      databaseName: _databaseNameController.text.trim() != widget.tenant!.databaseName ? _databaseNameController.text.trim() : null,
-      databaseType: _selectedDatabaseType != widget.tenant!.databaseType ? _selectedDatabaseType : null,
-      databaseSchema: _databaseSchemaController.text.trim() != widget.tenant!.databaseSchema ? _databaseSchemaController.text.trim() : null,
-      adminUserEmail: _adminEmailController.text.trim() != widget.tenant!.adminUserEmail ? _adminEmailController.text.trim() : null,
-      adminUserPassword: _adminPasswordController.text != widget.tenant!.adminUserPassword ? _adminPasswordController.text : null,
     );
 
     if (!tenantUpdate.hasUpdates) {
@@ -161,47 +122,6 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
     }
     if (value.length > AdminConfig.maxTenantNameLength) {
       return 'Tenant name must be less than ${AdminConfig.maxTenantNameLength} characters';
-    }
-    return null;
-  }
-
-  /// Validate database name
-  String? _validateDatabaseName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Database name is required';
-    }
-    return null;
-  }
-
-  /// Validate schema name
-  String? _validateSchemaName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Database schema is required';
-    }
-    if (!AdminConfig.isValidSchemaName(value)) {
-      return 'Schema name must start with a letter and contain only letters, numbers, and underscores';
-    }
-    return null;
-  }
-
-  /// Validate email
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Admin email is required';
-    }
-    if (!AdminConfig.isValidEmail(value)) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  }
-
-  /// Validate password
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Admin password is required';
-    }
-    if (!AdminConfig.isValidPassword(value)) {
-      return 'Password must be at least ${AdminConfig.minPasswordLength} characters';
     }
     return null;
   }
@@ -290,7 +210,7 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
                         const SizedBox(height: AdminConfig.defaultPadding),
                       ],
 
-                      // Tenant name
+                      // Tenant name (only field needed now)
                       TextFormField(
                         controller: _nameController,
                         enabled: !_isLoading,
@@ -305,89 +225,32 @@ class _TenantFormWidgetState extends State<TenantFormWidget> {
 
                       const SizedBox(height: AdminConfig.defaultPadding),
 
-                      // Database name
-                      TextFormField(
-                        controller: _databaseNameController,
-                        enabled: !_isLoading,
-                        validator: _validateDatabaseName,
-                        decoration: const InputDecoration(
-                          labelText: 'Database Name',
-                          border: OutlineInputBorder(),
+                      // Info text explaining automatic configuration
+                      Container(
+                        padding: const EdgeInsets.all(AdminConfig.defaultPadding),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-
-                      const SizedBox(height: AdminConfig.defaultPadding),
-
-                      // Database type
-                      DropdownButtonFormField<String>(
-                        value: _selectedDatabaseType,
-                        onChanged: _isLoading ? null : (value) {
-                          setState(() {
-                            _selectedDatabaseType = value!;
-                          });
-                        },
-                        items: AdminConfig.supportedDatabaseTypes
-                            .map((type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type.toUpperCase()),
-                                ))
-                            .toList(),
-                        decoration: const InputDecoration(
-                          labelText: 'Database Type',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-
-                      const SizedBox(height: AdminConfig.defaultPadding),
-
-                      // Database schema
-                      TextFormField(
-                        controller: _databaseSchemaController,
-                        enabled: !_isLoading,
-                        validator: _validateSchemaName,
-                        decoration: const InputDecoration(
-                          labelText: 'Database Schema',
-                          border: OutlineInputBorder(),
-                          helperText: 'Must start with letter, contain only letters/numbers/_',
-                        ),
-                      ),
-
-                      const SizedBox(height: AdminConfig.defaultPadding),
-
-                      // Admin email
-                      TextFormField(
-                        controller: _adminEmailController,
-                        keyboardType: TextInputType.emailAddress,
-                        enabled: !_isLoading,
-                        validator: _validateEmail,
-                        decoration: const InputDecoration(
-                          labelText: 'Admin Email',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-
-                      const SizedBox(height: AdminConfig.defaultPadding),
-
-                      // Admin password
-                      TextFormField(
-                        controller: _adminPasswordController,
-                        obscureText: _obscurePassword,
-                        enabled: !_isLoading,
-                        validator: _validatePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Admin Password',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.info,
+                              color: Colors.blue,
+                              size: 20,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                          helperText: 'Minimum ${AdminConfig.minPasswordLength} characters',
+                            SizedBox(width: AdminConfig.smallPadding),
+                            Expanded(
+                              child: Text(
+                                'Database configuration, admin credentials, and schema will be automatically configured based on your environment settings and login credentials.',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

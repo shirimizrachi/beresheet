@@ -90,7 +90,9 @@ class RoomDatabase:
 
             # Generate GUID for room ID
             import uuid
+            from datetime import datetime
             room_id = str(uuid.uuid4())
+            current_time = datetime.now()
 
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
@@ -99,7 +101,9 @@ class RoomDatabase:
                 conn.execute(
                     rooms_table.insert().values(
                         id=room_id,
-                        room_name=room_data.room_name
+                        room_name=room_data.room_name,
+                        created_at=current_time,
+                        updated_at=current_time
                     )
                 )
                 conn.commit()

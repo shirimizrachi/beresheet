@@ -231,7 +231,13 @@ global_router = APIRouter()
 async def global_get_user_home(phone_number: str = Query(...)):
     """Global endpoint to get user's home information by phone number - used for tenant discovery"""
     try:
-        home_info = user_db.get_user_home_info(phone_number)
+        # Import the normalization function
+        from modules.users.users import normalize_phone_number
+        
+        # Normalize phone number by removing leading zeros
+        normalized_phone = normalize_phone_number(phone_number)
+        
+        home_info = user_db.get_user_home_info(normalized_phone)
         if not home_info:
             raise HTTPException(
                 status_code=404,
@@ -245,8 +251,14 @@ async def global_get_user_home(phone_number: str = Query(...)):
 async def global_get_home_by_phone(phone_number: str = Query(...)):
     """Global endpoint to get home information by phone number directly from home_index - used for tenant discovery"""
     try:
+        # Import the normalization function
+        from modules.users.users import normalize_phone_number
         from home_index import home_index_db
-        home_info = home_index_db.get_home_by_phone(phone_number)
+        
+        # Normalize phone number by removing leading zeros
+        normalized_phone = normalize_phone_number(phone_number)
+        
+        home_info = home_index_db.get_home_by_phone(normalized_phone)
         if not home_info:
             raise HTTPException(
                 status_code=404,

@@ -29,7 +29,7 @@ admin/
 ### Prerequisites
 1. Make sure you're in the `api_service` directory
 2. Ensure Python environment has required dependencies (`sqlalchemy`, `pyodbc`, etc.)
-3. Database connection must be configured in `residents_db_config.py`
+3. Database connection must be configured in `residents_config.py`
 
 ### Usage
 
@@ -109,7 +109,7 @@ The deletion script will:
 - For MySQL: Requires `DROP`, `CREATE USER`, and `RELOAD` privileges
 
 #### Connection Issues
-- Verify `residents_db_config.py` is properly configured
+- Verify `residents_config.py` is properly configured
 - Check that database server is running and accessible
 - Ensure firewall allows database connections
 
@@ -125,7 +125,7 @@ You can also import and use the deletion functions directly in your Python code:
 ### SQL Server
 ```python
 from deployment.admin.sqlserver.schema_operations import delete_schema_and_user_sqlserver
-from residents_db_config import get_admin_connection_string
+from residents_config import get_admin_connection_string
 
 admin_conn_str = get_admin_connection_string()
 result = delete_schema_and_user_sqlserver("schema_name", admin_conn_str)
@@ -139,7 +139,7 @@ else:
 ### MySQL
 ```python
 from deployment.admin.mysql.schema_operations import delete_schema_and_user_mysql
-from residents_db_config import get_admin_connection_string
+from residents_config import get_admin_connection_string
 
 admin_conn_str = get_admin_connection_string()
 result = delete_schema_and_user_mysql("database_name", admin_conn_str)
@@ -176,3 +176,9 @@ If you encounter issues:
 5. Review the logs for detailed error information
 
 For persistent issues, check the application logs or contact your database administrator.
+
+DROP TABLE home.home;
+DROP SCHEMA home;
+
+DROP TABLE home_index.home_index;
+DROP SCHEMA home_index;

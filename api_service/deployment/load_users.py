@@ -9,10 +9,32 @@ import json
 import asyncio
 from pathlib import Path
 from datetime import datetime, date
+from typing import Optional
 from fastapi import UploadFile
 import logging
 
 logger = logging.getLogger(__name__)
+
+def get_service_provider_type_id_by_name(service_type_name: str, home_id: int) -> Optional[str]:
+    """Get service provider type ID by name from the database"""
+    try:
+        import sys
+        sys.path.append(str(Path(__file__).parent.parent))
+        
+        from modules.users import service_provider_type_db
+        
+        # Get all service provider types for this home
+        all_types = service_provider_type_db.get_all_service_provider_types(home_id)
+        
+        # Find the type by name
+        for service_type in all_types:
+            if service_type.name == service_type_name:
+                return service_type.id
+        
+        return None
+    except Exception as e:
+        logger.error(f"Error getting service provider type ID by name '{service_type_name}': {e}")
+        return None
 
 def load_users(tenant_name: str, home_id: int):
     """
@@ -61,32 +83,46 @@ def load_users(tenant_name: str, home_id: int):
         
         for user_data in users_data:
             try:
-                # Parse birthday
+                # Parse birthday - ensure it's None if empty or invalid
                 birthday_date = None
-                if user_data.get('birthday'):
+                birthday_str = user_data.get('birthday', '').strip()
+                if birthday_str and birthday_str != 'NULL':
                     try:
-                        birthday_date = datetime.strptime(user_data['birthday'], '%Y-%m-%d').date()
+                        birthday_date = datetime.strptime(birthday_str, '%Y-%m-%d').date()
                     except ValueError:
-                        logger.warning(f"Invalid birthday format for user {user_data['id']}: {user_data['birthday']}")
+                        logger.warning(f"Invalid birthday format for user {user_data['id']}: {birthday_str}")
+                        birthday_date = None
                 
-                # Handle service provider type
-                service_provider_type = user_data.get('service_provider_type')
-                if service_provider_type == 'NULL':
-                    service_provider_type = None
+                # Handle service provider type - need to map Hebrew names to IDs
+                service_provider_type_name = user_data.get('service_provider_type')
+                service_provider_type_id = None
+                
+                if service_provider_type_name and service_provider_type_name != 'NULL' and service_provider_type_name.strip():
+                    # Get service provider type ID by name from the database
+                    service_provider_type_id = get_service_provider_type_id_by_name(service_provider_type_name.strip(), home_id)
+                    if not service_provider_type_id:
+                        logger.warning(f"Service provider type '{service_provider_type_name}' not found for user {user_data['id']}")
+                
+                # Helper function to convert empty strings to None
+                def clean_field(value):
+                    if value == 'NULL' or not value or not value.strip():
+                        return None
+                    return value.strip()
                 
                 # Create UserProfileCreate object
                 user_profile_create = UserProfileCreate(
                     home_id=home_id,
-                    full_name=user_data['full_name'],
+                    full_name=clean_field(user_data['full_name']),
                     phone_number=user_data['phone_number'],
-                    role=user_data['role'],
+                    role=clean_field(user_data['role']),
                     birthday=birthday_date,
-                    apartment_number=user_data['apartment_number'],
-                    marital_status=user_data['marital_status'],
-                    gender=user_data['gender'],
-                    religious=user_data['religious'],
-                    native_language=user_data['native_language'],
-                    service_provider_type_id=service_provider_type
+                    apartment_number=clean_field(user_data['apartment_number']),
+                    marital_status=clean_field(user_data['marital_status']),
+                    gender=clean_field(user_data['gender']),
+                    religious=clean_field(user_data['religious']),
+                    native_language=clean_field(user_data['native_language']),
+                    service_provider_type_name=service_provider_type_name.strip() if service_provider_type_name and service_provider_type_name != 'NULL' else None,
+                    service_provider_type_id=service_provider_type_id
                 )
                 
                 # Call the create_user_profile function from user_db

@@ -1,6 +1,6 @@
 """
 Template configuration for residents database connection
-Copy this file to residents_db_config.py and update with your settings
+Copy this file to residents_config.py and update with your settings
 """
 
 import os
@@ -10,7 +10,7 @@ from urllib.parse import quote_plus
 # Choose one configuration type and update the corresponding settings
 
 # Database engine type: "sqlserver" or "mysql"
-DATABASE_ENGINE = os.getenv("DATABASE_ENGINE", "sqlserver")  # Default: sqlserver
+DATABASE_ENGINE = os.getenv("DATABASE_ENGINE")  # Default: sqlserver
 
 STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  
 #STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "cloudflare")  #

@@ -1,13 +1,17 @@
 """
-DDL script for creating the user_notification table in a specific schema
+DDL script for creating the user_notification table in a specific schema using SQLAlchemy ORM
 Usage with API engine: create_user_notification_table(engine, schema_name)
 """
 
-from sqlalchemy import text
+from sqlalchemy import Column, String, DateTime, Text, func, Index, CheckConstraint, Unicode, UnicodeText
+from sqlalchemy.ext.declarative import declarative_base
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_user_notification_table(engine, schema_name: str, drop_if_exists: bool = True):
     """
-    Create the user_notification table in the specified schema using provided engine
+    Create the user_notification table in the specified schema using SQLAlchemy ORM
     
     Args:
         engine: SQLAlchemy engine object
@@ -16,80 +20,72 @@ def create_user_notification_table(engine, schema_name: str, drop_if_exists: boo
     """
     
     try:
+        # Create a new base for this table
+        Base = declarative_base()
+        
+        class UserNotificationTable(Base):
+            __tablename__ = 'user_notification'
+            __table_args__ = (
+                CheckConstraint("notification_status IN ('pending', 'sent', 'read', 'canceled')", 
+                               name=f'ck_{schema_name}_user_notification_status'),
+                CheckConstraint("notification_type IN ('regular', 'urgent')", 
+                               name=f'ck_{schema_name}_user_notification_type'),
+                {'schema': schema_name}
+            )
+            
+            id = Column(String(36), primary_key=True)
+            user_id = Column(String(50), nullable=False)
+            user_read_date = Column(DateTime)
+            user_fcm = Column(Text)
+            notification_id = Column(String(36), nullable=False)
+            notification_sender_user_id = Column(String(50), nullable=False)
+            notification_sender_user_name = Column(Unicode(255), nullable=False)
+            notification_sender_user_role_name = Column(Unicode(100), nullable=False)
+            notification_sender_user_service_provider_type_name = Column(Unicode(255))
+            notification_status = Column(String(20), nullable=False, default='pending')
+            notification_time = Column(DateTime, nullable=False, default=func.now())
+            notification_message = Column(UnicodeText, nullable=False)
+            notification_type = Column(String(20), nullable=False, default='regular')
+            created_at = Column(DateTime, default=func.now())
+            updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+        
+        # Drop table if it exists and drop_if_exists is True
+        if drop_if_exists:
+            try:
+                UserNotificationTable.__table__.drop(engine, checkfirst=True)
+                logger.info(f"Dropped existing user_notification table in schema {schema_name}")
+            except Exception as e:
+                logger.info(f"No existing user_notification table to drop in schema {schema_name}: {e}")
+        
+        # Create the table
+        UserNotificationTable.__table__.create(engine, checkfirst=True)
+        
+        # Create indexes for better performance
         with engine.connect() as conn:
-            # Drop table if exists and drop_if_exists is True
-            if drop_if_exists:
-                drop_table_sql = text(f"""
-                    IF EXISTS (SELECT * FROM information_schema.tables 
-                              WHERE table_schema = '{schema_name}' AND table_name = 'user_notification')
-                    BEGIN
-                        DROP TABLE [{schema_name}].[user_notification]
-                        PRINT 'Dropped existing user_notification table in schema {schema_name}'
-                    END
-                """)
-                conn.execute(drop_table_sql)
+            # Define indexes
+            indexes = [
+                Index(f'ix_{schema_name}_user_notification_user_id', UserNotificationTable.user_id),
+                Index(f'ix_{schema_name}_user_notification_notification_id', UserNotificationTable.notification_id),
+                Index(f'ix_{schema_name}_user_notification_status', UserNotificationTable.notification_status),
+                Index(f'ix_{schema_name}_user_notification_time', UserNotificationTable.notification_time),
+                Index(f'ix_{schema_name}_user_notification_user_status', UserNotificationTable.user_id, UserNotificationTable.notification_status),
+                Index(f'ix_{schema_name}_user_notification_notif_user', UserNotificationTable.notification_id, UserNotificationTable.user_id),
+            ]
             
-            # Create user_notification table
-            create_table_sql = text(f"""
-                CREATE TABLE [{schema_name}].[user_notification] (
-                    id NVARCHAR(36) PRIMARY KEY,
-                    user_id NVARCHAR(50) NOT NULL,
-                    user_read_date DATETIME2 NULL,
-                    user_fcm NVARCHAR(MAX) NULL,
-                    notification_id NVARCHAR(36) NOT NULL,
-                    notification_sender_user_id NVARCHAR(50) NOT NULL,
-                    notification_sender_user_name NVARCHAR(255) NOT NULL,
-                    notification_sender_user_role_name NVARCHAR(100) NOT NULL,
-                    notification_sender_user_service_provider_type_name NVARCHAR(255) NULL,
-                    notification_status NVARCHAR(20) NOT NULL DEFAULT 'pending',
-                    notification_time DATETIME2 NOT NULL DEFAULT GETDATE(),
-                    notification_message NVARCHAR(MAX) NOT NULL,
-                    notification_type NVARCHAR(20) NOT NULL DEFAULT 'regular',
-                    created_at DATETIME2 DEFAULT GETDATE(),
-                    updated_at DATETIME2 DEFAULT GETDATE(),
-                    
-                    -- Check constraints
-                    CONSTRAINT CK_{schema_name}_user_notification_status 
-                        CHECK (notification_status IN ('pending', 'sent', 'read', 'canceled')),
-                    CONSTRAINT CK_{schema_name}_user_notification_type 
-                        CHECK (notification_type IN ('regular', 'urgent'))
-                );
-            """)
-            conn.execute(create_table_sql)
-            
-            # Create indexes for better performance
-            indexes_sql = text(f"""
-                -- Index on user_id for fast lookup of user notifications
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_user_id 
-                ON [{schema_name}].[user_notification](user_id);
-                
-                -- Index on notification_id for linking to home_notification
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_notification_id 
-                ON [{schema_name}].[user_notification](notification_id);
-                
-                -- Index on notification_status for filtering
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_status 
-                ON [{schema_name}].[user_notification](notification_status);
-                
-                -- Index on notification_time for chronological queries
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_time 
-                ON [{schema_name}].[user_notification](notification_time);
-                
-                -- Composite index for user and status
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_user_status 
-                ON [{schema_name}].[user_notification](user_id, notification_status);
-                
-                -- Composite index for notification and user
-                CREATE NONCLUSTERED INDEX IX_{schema_name}_user_notification_notif_user 
-                ON [{schema_name}].[user_notification](notification_id, user_id);
-            """)
-            conn.execute(indexes_sql)
+            # Create each index
+            for index in indexes:
+                try:
+                    index.create(engine, checkfirst=True)
+                except Exception as e:
+                    logger.warning(f"Could not create index {index.name}: {e}")
             
             conn.commit()
-            
-            print(f"User notification table created successfully in schema '{schema_name}' with indexes and constraints.")
-            return True
-            
+        
+        logger.info(f"User notification table created successfully in schema '{schema_name}' with indexes and constraints.")
+        print(f"User notification table created successfully in schema '{schema_name}' with indexes and constraints.")
+        return True
+        
     except Exception as e:
+        logger.error(f"Error creating user notification table in schema '{schema_name}': {e}")
         print(f"Error creating user notification table in schema '{schema_name}': {e}")
         return False

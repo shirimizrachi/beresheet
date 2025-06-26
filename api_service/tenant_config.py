@@ -5,10 +5,12 @@ Handles loading tenant configurations from the admin database
 
 from pydantic import BaseModel
 from typing import Optional, List, Dict
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, func
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import logging
-from residents_db_config import get_connection_string, SCHEMA_NAME, DATABASE_NAME
+from residents_config import get_connection_string, SCHEMA_NAME, DATABASE_NAME
 
 # Admin database connection string
 ADMIN_CONNECTION_STRING = get_connection_string()
@@ -17,6 +19,24 @@ ADMIN_DATABASE = DATABASE_NAME
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# SQLAlchemy Base and Model
+Base = declarative_base()
+
+class HomeTable(Base):
+    """SQLAlchemy model for the home table"""
+    __tablename__ = 'home'
+    __table_args__ = {'schema': ADMIN_SCHEMA}
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), nullable=False, unique=True)
+    database_name = Column(String(50), nullable=False)
+    database_type = Column(String(20), nullable=False, default='mssql')
+    database_schema = Column(String(50), nullable=False)
+    admin_user_email = Column(String(100), nullable=False)
+    admin_user_password = Column(String(100), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
 class TenantConfig(BaseModel):
     """Model for tenant configuration"""
@@ -35,6 +55,10 @@ class TenantConfig(BaseModel):
 
 class TenantCreate(BaseModel):
     """Model for creating a new tenant"""
+    name: str
+
+class TenantCreateInternal(BaseModel):
+    """Internal model for creating a new tenant with all fields"""
     name: str
     database_name: str
     database_type: str = "mssql"
@@ -55,6 +79,7 @@ class TenantConfigDatabase:
     
     def __init__(self):
         self._engine = None
+        self._session_factory = None
     
     @property
     def engine(self):
@@ -68,6 +93,17 @@ class TenantConfigDatabase:
                 raise
         return self._engine
     
+    @property
+    def session_factory(self):
+        """Get or create the session factory"""
+        if self._session_factory is None:
+            self._session_factory = sessionmaker(bind=self.engine)
+        return self._session_factory
+    
+    def get_session(self):
+        """Get a new database session"""
+        return self.session_factory()
+    
     def load_tenant_config_from_db(self, tenant_id: str) -> Optional[TenantConfig]:
         """
         Load tenant configuration from the admin database
@@ -79,39 +115,27 @@ class TenantConfigDatabase:
             TenantConfig if found, None otherwise
         """
         try:
-            with self.engine.connect() as conn:
-                select_sql = text(f"""
-                    SELECT
-                        [id],
-                        [name],
-                        [database_name],
-                        [database_type],
-                        [database_schema],
-                        [admin_user_email],
-                        [admin_user_password],
-                        [created_at],
-                        [updated_at]
-                    FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
-                    WHERE [name] = :tenant_id
-                """)
+            session = self.get_session()
+            try:
+                home = session.query(HomeTable).filter(HomeTable.name == tenant_id).first()
                 
-                result = conn.execute(select_sql, {"tenant_id": tenant_id}).fetchone()
-                
-                if result:
+                if home:
                     return TenantConfig(
-                        id=result[0],
-                        name=result[1],
-                        database_name=result[2],
-                        database_type=result[3],
-                        database_schema=result[4],
-                        admin_user_email=result[5],
-                        admin_user_password=result[6],
-                        created_at=result[7],
-                        updated_at=result[8]
+                        id=home.id,
+                        name=home.name,
+                        database_name=home.database_name,
+                        database_type=home.database_type,
+                        database_schema=home.database_schema,
+                        admin_user_email=home.admin_user_email,
+                        admin_user_password=home.admin_user_password,
+                        created_at=home.created_at,
+                        updated_at=home.updated_at
                     )
                 
                 logger.warning(f"Tenant '{tenant_id}' not found in admin database")
                 return None
+            finally:
+                session.close()
                 
         except Exception as e:
             logger.error(f"Error loading tenant config for '{tenant_id}': {e}")
@@ -125,45 +149,33 @@ class TenantConfigDatabase:
             List of all tenant configurations
         """
         try:
-            with self.engine.connect() as conn:
-                select_sql = text(f"""
-                    SELECT
-                        [id],
-                        [name],
-                        [database_name],
-                        [database_type],
-                        [database_schema],
-                        [admin_user_email],
-                        [admin_user_password],
-                        [created_at],
-                        [updated_at]
-                    FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
-                    ORDER BY [id]
-                """)
-                
-                result = conn.execute(select_sql).fetchall()
+            session = self.get_session()
+            try:
+                homes = session.query(HomeTable).order_by(HomeTable.id).all()
                 
                 tenants = []
-                for row in result:
+                for home in homes:
                     tenants.append(TenantConfig(
-                        id=row[0],
-                        name=row[1],
-                        database_name=row[2],
-                        database_type=row[3],
-                        database_schema=row[4],
-                        admin_user_email=row[5],
-                        admin_user_password=row[6],
-                        created_at=row[7],
-                        updated_at=row[8]
+                        id=home.id,
+                        name=home.name,
+                        database_name=home.database_name,
+                        database_type=home.database_type,
+                        database_schema=home.database_schema,
+                        admin_user_email=home.admin_user_email,
+                        admin_user_password=home.admin_user_password,
+                        created_at=home.created_at,
+                        updated_at=home.updated_at
                     ))
                 
                 return tenants
+            finally:
+                session.close()
                 
         except Exception as e:
             logger.error(f"Error getting all tenants: {e}")
             return []
     
-    def create_tenant(self, tenant: TenantCreate) -> Optional[TenantConfig]:
+    def create_tenant(self, tenant: TenantCreateInternal) -> Optional[TenantConfig]:
         """
         Create a new tenant configuration
         
@@ -174,44 +186,38 @@ class TenantConfigDatabase:
             Created TenantConfig if successful, None otherwise
         """
         try:
-            with self.engine.connect() as conn:
-                insert_sql = text(f"""
-                    INSERT INTO [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] (
-                        [name],
-                        [database_name],
-                        [database_type],
-                        [database_schema],
-                        [admin_user_email],
-                        [admin_user_password]
-                    ) OUTPUT INSERTED.id
-                    VALUES (
-                        :name,
-                        :database_name,
-                        :database_type,
-                        :database_schema,
-                        :admin_user_email,
-                        :admin_user_password
-                    )
-                """)
+            session = self.get_session()
+            try:
+                # Get the next ID by finding the maximum existing ID and adding 1
+                # If there are no rows in home table, ID will be 1
+                max_id_result = session.query(func.max(HomeTable.id)).scalar()
+                next_id = (max_id_result or 0) + 1
                 
-                result = conn.execute(insert_sql, {
-                    "name": tenant.name,
-                    "database_name": tenant.database_name,
-                    "database_type": tenant.database_type,
-                    "database_schema": tenant.database_schema,
-                    "admin_user_email": tenant.admin_user_email,
-                    "admin_user_password": tenant.admin_user_password
-                }).fetchone()
+                # Create new home record using SQLAlchemy ORM with manual ID assignment
+                new_home = HomeTable(
+                    id=next_id,
+                    name=tenant.name,
+                    database_name=tenant.database_name,
+                    database_type=tenant.database_type,
+                    database_schema=tenant.database_schema,
+                    admin_user_email=tenant.admin_user_email,
+                    admin_user_password=tenant.admin_user_password
+                )
                 
-                if result:
-                    conn.commit()
-                    tenant_id = result[0]
-                    logger.info(f"Created tenant '{tenant.name}' with ID {tenant_id}")
-                    
-                    # Return the created tenant
-                    return self.load_tenant_config_from_db(tenant.name)
+                session.add(new_home)
+                session.commit()
                 
-                return None
+                tenant_id = new_home.id
+                logger.info(f"Created tenant '{tenant.name}' with ID {tenant_id}")
+                
+                # Return the created tenant
+                return self.load_tenant_config_from_db(tenant.name)
+                
+            except Exception as e:
+                session.rollback()
+                raise e
+            finally:
+                session.close()
                 
         except Exception as e:
             logger.error(f"Error creating tenant '{tenant.name}': {e}")
@@ -229,40 +235,35 @@ class TenantConfigDatabase:
             Updated TenantConfig if successful, None otherwise
         """
         try:
-            # Build dynamic update query
-            update_fields = []
-            update_params = {"tenant_id": tenant_id}
-            
-            for field, value in tenant_update.dict(exclude_unset=True).items():
-                if value is not None:
-                    update_fields.append(f"[{field}] = :{field}")
-                    update_params[field] = value
-            
-            if not update_fields:
-                logger.warning("No fields to update")
-                return None
-            
-            with self.engine.connect() as conn:
-                update_sql = text(f"""
-                    UPDATE [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home]
-                    SET {', '.join(update_fields)}
-                    WHERE [id] = :tenant_id
-                """)
+            session = self.get_session()
+            try:
+                home = session.query(HomeTable).filter(HomeTable.id == tenant_id).first()
                 
-                result = conn.execute(update_sql, update_params)
+                if not home:
+                    logger.warning(f"Tenant with ID {tenant_id} not found")
+                    return None
                 
-                if result.rowcount > 0:
-                    conn.commit()
-                    logger.info(f"Updated tenant with ID {tenant_id}")
-                    
-                    # Get the tenant name to return the updated config
-                    name_sql = text(f"SELECT [name] FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] WHERE [id] = :tenant_id")
-                    name_result = conn.execute(name_sql, {"tenant_id": tenant_id}).fetchone()
-                    
-                    if name_result:
-                        return self.load_tenant_config_from_db(name_result[0])
+                # Update fields
+                update_data = tenant_update.dict(exclude_unset=True)
+                if not update_data:
+                    logger.warning("No fields to update")
+                    return None
                 
-                return None
+                for field, value in update_data.items():
+                    if value is not None:
+                        setattr(home, field, value)
+                
+                session.commit()
+                logger.info(f"Updated tenant with ID {tenant_id}")
+                
+                # Return the updated tenant
+                return self.load_tenant_config_from_db(home.name)
+                
+            except Exception as e:
+                session.rollback()
+                raise e
+            finally:
+                session.close()
                 
         except Exception as e:
             logger.error(f"Error updating tenant with ID {tenant_id}: {e}")
@@ -279,16 +280,23 @@ class TenantConfigDatabase:
             True if successful, False otherwise
         """
         try:
-            with self.engine.connect() as conn:
-                delete_sql = text(f"DELETE FROM [{ADMIN_DATABASE}].[{ADMIN_SCHEMA}].[home] WHERE [id] = :tenant_id")
-                result = conn.execute(delete_sql, {"tenant_id": tenant_id})
+            session = self.get_session()
+            try:
+                home = session.query(HomeTable).filter(HomeTable.id == tenant_id).first()
                 
-                if result.rowcount > 0:
-                    conn.commit()
+                if home:
+                    session.delete(home)
+                    session.commit()
                     logger.info(f"Deleted tenant with ID {tenant_id}")
                     return True
                 
                 return False
+                
+            except Exception as e:
+                session.rollback()
+                raise e
+            finally:
+                session.close()
                 
         except Exception as e:
             logger.error(f"Error deleting tenant with ID {tenant_id}: {e}")
@@ -296,21 +304,30 @@ class TenantConfigDatabase:
 
 def get_tenant_connection_string(tenant_config: TenantConfig) -> str:
     """
-    Generate connection string for a tenant
-    Uses schema name as username and schema name + "2025!" as password
+    Get tenant-specific connection string using the database service
     
     Args:
         tenant_config: Tenant configuration
         
     Returns:
-        Connection string for the tenant's database
+        Connection string with tenant credentials
     """
-    if tenant_config.database_type == "mssql":
-        username = tenant_config.database_schema
-        password = tenant_config.database_schema + "2025!"
-        return f"mssql+pyodbc://{username}:{password}@localhost\\SQLEXPRESS/{tenant_config.database_name}?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes"
-    else:
-        raise ValueError(f"Unsupported database type: {tenant_config.database_type}")
+    try:
+        from residents_db.database_service import get_database_service
+        
+        # Get the database service
+        db_service = get_database_service()
+        
+        # Use the tenant name as the username (schema name)
+        tenant_connection = db_service.get_tenant_connection_string(tenant_config.database_schema)
+        
+        logger.info(f"Generated tenant connection string for schema '{tenant_config.database_schema}'")
+        return tenant_connection
+        
+    except Exception as e:
+        logger.error(f"Error creating tenant connection string: {e}")
+        # Fallback to admin connection if there's an issue
+        return ADMIN_CONNECTION_STRING
 
 def get_tenant_connection_string_by_home_id(home_id: int) -> Optional[str]:
     """

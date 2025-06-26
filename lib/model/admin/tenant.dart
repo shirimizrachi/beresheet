@@ -114,58 +114,33 @@ class Tenant {
   }
 }
 
-/// Tenant creation model for new tenant requests
+/// Tenant creation model for new tenant requests (simplified - only requires name)
 class TenantCreate {
   final String name;
-  final String databaseName;
-  final String databaseType;
-  final String databaseSchema;
-  final String adminUserEmail;
-  final String adminUserPassword;
 
   const TenantCreate({
     required this.name,
-    required this.databaseName,
-    required this.databaseType,
-    required this.databaseSchema,
-    required this.adminUserEmail,
-    required this.adminUserPassword,
   });
 
   /// Convert to JSON for API requests
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'database_name': databaseName,
-      'database_type': databaseType,
-      'database_schema': databaseSchema,
-      'admin_user_email': adminUserEmail,
-      'admin_user_password': adminUserPassword,
     };
   }
 
   /// Create from form data or user input
   factory TenantCreate.fromForm({
     required String name,
-    required String databaseName,
-    required String databaseType,
-    required String databaseSchema,
-    required String adminUserEmail,
-    required String adminUserPassword,
   }) {
     return TenantCreate(
       name: name.trim(),
-      databaseName: databaseName.trim(),
-      databaseType: databaseType.trim(),
-      databaseSchema: databaseSchema.trim(),
-      adminUserEmail: adminUserEmail.trim(),
-      adminUserPassword: adminUserPassword,
     );
   }
 
   @override
   String toString() {
-    return 'TenantCreate(name: $name, schema: $databaseSchema, email: $adminUserEmail)';
+    return 'TenantCreate(name: $name)';
   }
 }
 
