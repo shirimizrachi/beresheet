@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "residents-api.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "residents-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "residents-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "residents-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "residents-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            # Port configuration
+            - name: PORT
+              value: {{ .Values.env.PORT | quote }}
+            - name: PYTHONPATH
+              value: {{ .Values.env.PYTHONPATH | quote }}
+            
+            # Database and Storage Provider Configuration
+            - name: DATABASE_ENGINE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: DATABASE_ENGINE
+            - name: STORAGE_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: STORAGE_PROVIDER
+            
+            # Oracle ATP Database Configuration
+            - name: ORACLE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: oracle-username
+            - name: ORACLE_ATP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: oracle-password
+            - name: ORACLE_DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: ORACLE_DATABASE_NAME
+            - name: ORACLE_SERVICE_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: ORACLE_SERVICE_LEVEL
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: DATABASE_NAME
+            - name: SCHEMA_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: SCHEMA_NAME
+            
+            # Cloudflare R2 Storage Configuration
+            - name: CLOUDFLARE_R2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: cloudflare-access-key-id
+            - name: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: cloudflare-secret-access-key
+            - name: CLOUDFLARE_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: cloudflare-account-id
+            - name: CLOUDFLARE_R2_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: CLOUDFLARE_R2_BUCKET_NAME
+            - name: CLOUDFLARE_R2_CUSTOM_DOMAIN
+              value: {{ .Values.env.CLOUDFLARE_R2_CUSTOM_DOMAIN | quote }}
+            
+            # Application Configuration
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: API_BASE_URL
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: CORS_ORIGINS
+            
+            # Logging and Feature Flags
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: LOG_LEVEL
+            - name: ENABLE_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: ENABLE_DEBUG
+            - name: ENABLE_METRICS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: ENABLE_METRICS
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

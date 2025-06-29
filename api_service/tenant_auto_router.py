@@ -363,7 +363,7 @@ def create_tenant_api_router(original_api_router: APIRouter) -> APIRouter:
     tenant_wrapper = TenantAPIRouter(original_api_router)
     
     # Add web routes for serving Flutter web app (tenant-specific build)
-    web_build_path = "../build/web-tenant"
+    web_build_path = "web-tenant"
     if os.path.exists(web_build_path):
         # Add login route (no authentication required)
         @tenant_wrapper.tenant_router.get("/{tenant_name}/login")

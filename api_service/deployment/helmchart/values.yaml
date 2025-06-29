@@ -1,0 +1,205 @@
+# Default values for residents-api
+# This file contains all configurable values for the Helm chart
+
+# Namespace configuration
+namespace: residents
+
+# Replica count
+replicaCount: 2
+
+# Image configuration for Oracle Cloud Infrastructure Registry (OCIR)
+image:
+  # OCIR registry format: <region-key>.ocir.io/<tenancy-namespace>/<repo-name>
+  # Example: iad.ocir.io/mytenancy/residents-api
+  repository: "iad.ocir.io/CHANGE_ME/residents-api"
+  pullPolicy: Always
+  tag: "latest"
+
+# Image pull secrets for OCIR authentication
+imagePullSecrets:
+  - name: ocirsecret
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+# Ingress configuration for Oracle Cloud Network Load Balancer with Let's Encrypt
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Oracle Cloud Load Balancer annotations
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"
+    # Let's Encrypt with cert-manager
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: api.residentsapp.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: www.residentsapp.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: residents-api-tls
+      hosts:
+        - api.residentsapp.com
+        - www.residentsapp.com
+
+# Resource limits and requests optimized for OKE free tier (4 OCPUs, 24GB RAM)
+resources:
+  limits:
+    cpu: 1500m      # 1.5 CPU cores per pod
+    memory: 4Gi     # 4GB memory per pod
+  requests:
+    cpu: 500m       # 0.5 CPU cores minimum
+    memory: 1Gi     # 1GB memory minimum
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector for ARM64 nodes (Oracle Cloud Ampere A1)
+nodeSelector:
+  kubernetes.io/arch: arm64
+
+# Tolerations for ARM64 nodes
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Environment variables configuration
+env:
+  # Application Configuration
+  PORT: "8000"
+  PYTHONPATH: "/app"
+  
+  # Database and Storage Provider Configuration
+  DATABASE_ENGINE: "oracle"
+  STORAGE_PROVIDER: "cloudflare"
+  
+  # Oracle ATP Database Configuration
+  ORACLE_USER: ""
+  ORACLE_ATP_PASSWORD: ""
+  ORACLE_DATABASE_NAME: "residents"
+  ORACLE_SERVICE_LEVEL: "residents_medium"
+  DATABASE_NAME: "residents"
+  SCHEMA_NAME: "RESIDENTS_SCHEMA"
+  
+  # Cloudflare R2 Storage Configuration
+  CLOUDFLARE_R2_ACCESS_KEY_ID: ""
+  CLOUDFLARE_R2_SECRET_ACCESS_KEY: ""
+  CLOUDFLARE_ACCOUNT_ID: ""
+  CLOUDFLARE_R2_BUCKET_NAME: "residents-storage"
+  CLOUDFLARE_R2_CUSTOM_DOMAIN: ""
+  
+  # Application Settings
+  JWT_SECRET_KEY: ""
+  API_BASE_URL: "https://api.residentsapp.com"
+  CORS_ORIGINS: "https://residentsapp.com,https://www.residentsapp.com"
+  
+  # Logging Configuration
+  LOG_LEVEL: "INFO"
+  
+  # Feature Flags
+  ENABLE_DEBUG: "false"
+  ENABLE_METRICS: "true"
+
+# Secrets (will be created from environment variables)
+secrets:
+  # Oracle ATP credentials
+  oracleCredentials:
+    username: ""
+    password: ""
+  
+  # Cloudflare R2 credentials  
+  cloudflareCredentials:
+    accessKeyId: ""
+    secretAccessKey: ""
+    accountId: ""
+  
+  # Application secrets
+  appSecrets:
+    jwtSecret: ""
+
+# ConfigMap for non-sensitive configuration
+configMap:
+  data:
+    # Database and Storage Provider configuration
+    DATABASE_ENGINE: "oracle"
+    STORAGE_PROVIDER: "cloudflare"
+    
+    # Database configuration
+    ORACLE_DATABASE_NAME: "residents"
+    ORACLE_SERVICE_LEVEL: "residents_medium"
+    DATABASE_NAME: "residents"
+    SCHEMA_NAME: "RESIDENTS_SCHEMA"
+    
+    # Storage configuration
+    CLOUDFLARE_R2_BUCKET_NAME: "residents-storage"
+    
+    # Application configuration
+    API_BASE_URL: "https://api.residentsapp.com"
+    CORS_ORIGINS: "https://residentsapp.com,https://www.residentsapp.com"
+    LOG_LEVEL: "INFO"
+    ENABLE_DEBUG: "false"
+    ENABLE_METRICS: "true"
+
+
+# Network Policies (optional, for additional security)
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []

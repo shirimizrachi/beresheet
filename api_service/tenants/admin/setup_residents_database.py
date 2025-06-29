@@ -95,10 +95,43 @@ class DatabaseSetupBase(ABC):
         """Test connection with the home_index user"""
         pass
     
+    def create_shared_storage_bucket(self) -> bool:
+        """Create shared storage bucket for Cloudflare (if storage type is cloudflare)"""
+        try:
+            from residents_config import get_storage_provider, get_cloudflare_shared_bucket_name
+            storage_type = get_storage_provider()
+            
+            if storage_type == 'cloudflare':
+                bucket_name = get_cloudflare_shared_bucket_name()
+                print(f"Creating shared Cloudflare R2 bucket '{bucket_name}'...")
+                from tenants.schema.resources.create_shared_residents_bucket import create_shared_residents_bucket
+                success = create_shared_residents_bucket()
+                if success:
+                    print(f"✅ Shared Cloudflare R2 bucket '{bucket_name}' created successfully")
+                    return True
+                else:
+                    print(f"❌ Failed to create shared Cloudflare R2 bucket '{bucket_name}'")
+                    return False
+            else:
+                print(f"Storage type is '{storage_type}' - skipping shared bucket creation")
+                return True
+                
+        except Exception as e:
+            print(f"❌ Error creating shared storage bucket: {e}")
+            return False
+
     def run_setup(self) -> bool:
         """Run the complete setup process"""
         # Get configuration
         config = self.get_connection_config()
+        
+        # Check storage type for display
+        storage_type = "unknown"
+        try:
+            from residents_config import get_storage_provider
+            storage_type = get_storage_provider()
+        except:
+            pass
         
         print(f"\n📋 Setup Summary:")
         print(f"   Database Type: {config.get('type', 'unknown')}")
@@ -106,6 +139,7 @@ class DatabaseSetupBase(ABC):
         print(f"   Database: {self.database_name}")
         print(f"   Schema: {self.schema_name}")
         print(f"   User: {self.user_name}")
+        print(f"   Storage Type: {storage_type}")
         
         # Confirm before proceeding
         response = input("\nDo you want to proceed with this configuration? (y/N): ").strip().lower()
@@ -122,6 +156,7 @@ class DatabaseSetupBase(ABC):
             ("Creating home_index schema", lambda: self.create_home_index_schema(config)),
             ("Creating home_index user and permissions", lambda: self.create_home_index_user_and_permissions(config)),
             ("Creating home_index table", lambda: self.create_home_index_table(config)),
+            ("Creating shared storage bucket", lambda: self.create_shared_storage_bucket()),
             ("Testing user connection", lambda: self.test_user_connection(config)),
             ("Testing home_index connection", lambda: self.test_home_index_connection(config)),
             ("Displaying connection information", lambda: self.display_connection_info(config))
@@ -153,6 +188,17 @@ class DatabaseSetupBase(ABC):
         print(f"   • Home Index Schema: {self.home_index_schema_name}")
         print(f"   • Home Index User: {self.home_index_user_name} (password: {self.home_index_user_password})")
         print(f"   • Table: {self.home_index_schema_name}.home_index")
+        
+        # Add storage bucket info if Cloudflare
+        try:
+            from residents_config import get_storage_provider, get_cloudflare_shared_bucket_name
+            storage_type = get_storage_provider()
+            if storage_type == 'cloudflare':
+                bucket_name = get_cloudflare_shared_bucket_name()
+                print(f"   • Shared Storage Bucket: {bucket_name} (Cloudflare R2)")
+        except:
+            pass
+            
         print()
         print("🚀 Next steps:")
         print("   1. Configure your API service using the connection information above")
@@ -165,10 +211,10 @@ class DatabaseSetupBase(ABC):
 def get_database_setup() -> DatabaseSetupBase:
     """Factory function to get the appropriate database setup implementation"""
     if DATABASE_ENGINE == "oracle":
-        from deployment.admin.oracle.setup_residents_database import OracleDatabaseSetup
+        from tenants.admin.oracle.setup_residents_database import OracleDatabaseSetup
         return OracleDatabaseSetup()
     elif DATABASE_ENGINE == "sqlserver":
-        from deployment.admin.sqlserver.setup_residents_database import SqlServerDatabaseSetup
+        from tenants.admin.sqlserver.setup_residents_database import SqlServerDatabaseSetup
         return SqlServerDatabaseSetup()
     else:
         raise ValueError(f"Unsupported DATABASE_ENGINE: {DATABASE_ENGINE}")

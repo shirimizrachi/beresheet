@@ -124,7 +124,7 @@ You can also import and use the deletion functions directly in your Python code:
 
 ### SQL Server
 ```python
-from deployment.admin.sqlserver.schema_operations import delete_schema_and_user_sqlserver
+from tenants.admin.sqlserver.schema_operations import delete_schema_and_user_sqlserver
 from residents_config import get_admin_connection_string
 
 admin_conn_str = get_admin_connection_string()
@@ -138,7 +138,7 @@ else:
 
 ### MySQL
 ```python
-from deployment.admin.mysql.schema_operations import delete_schema_and_user_mysql
+from tenants.admin.mysql.schema_operations import delete_schema_and_user_mysql
 from residents_config import get_admin_connection_string
 
 admin_conn_str = get_admin_connection_string()

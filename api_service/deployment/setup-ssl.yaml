@@ -1,0 +1,78 @@
+# Let's Encrypt SSL Configuration for Oracle Cloud Kubernetes (OKE)
+# This file contains all necessary resources for SSL certificate management
+
+---
+# ClusterIssuer for Let's Encrypt production
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  namespace: cert-manager
+spec:
+  acme:
+    # Let's Encrypt ACME v2 production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Replace with your email address
+    email: ranmizrachi@gmail.com
+    # Private key secret reference
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          podTemplate:
+            spec:
+              # Ensure pods run on ARM64 nodes
+              nodeSelector:
+                kubernetes.io/arch: arm64
+
+---
+# ClusterIssuer for Let's Encrypt staging (for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  namespace: cert-manager
+spec:
+  acme:
+    # Let's Encrypt ACME v2 staging server
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Replace with your email address
+    email: ranmizrachi@gmail.com
+    # Private key secret reference
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          podTemplate:
+            spec:
+              # Ensure pods run on ARM64 nodes
+              nodeSelector:
+                kubernetes.io/arch: arm64
+
+---
+# Certificate resource for automatic SSL certificate management
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: residentsapp-com-tls
+  namespace: residents
+spec:
+  # Secret name where the certificate will be stored
+  secretName: residents-api-tls
+  # ClusterIssuer reference
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  # Common name
+  commonName: api.residentsapp.com
+  # Subject Alternative Names (SANs)
+  dnsNames:
+  - api.residentsapp.com
+  - residentsapp.com
+  - www.residentsapp.com

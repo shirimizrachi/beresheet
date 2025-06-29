@@ -23,11 +23,12 @@ class CloudflareStorageService:
         self.access_key_id = os.getenv('CLOUDFLARE_R2_ACCESS_KEY_ID')
         self.secret_access_key = os.getenv('CLOUDFLARE_R2_SECRET_ACCESS_KEY')
         self.account_id = os.getenv('CLOUDFLARE_ACCOUNT_ID')
-        self.custom_domain = os.getenv('CLOUDFLARE_R2_CUSTOM_DOMAIN')  # Optional custom domain
+        self.custom_domain = os.getenv('CLOUDFLARE_R2_CUSTOM_DOMAIN', 'images.residentsapp.com')  # Custom domain for public access
         self.tenant_name = tenant_name
         
-        # Use a default bucket name - actual bucket will be determined by tenant_name in method calls
-        self.bucket_name = os.getenv('CLOUDFLARE_R2_BUCKET_NAME', 'default-bucket')
+        # Use shared bucket for all tenants from configuration
+        from residents_config import get_cloudflare_shared_bucket_name
+        self.bucket_name = get_cloudflare_shared_bucket_name()
         
         if not all([self.access_key_id, self.secret_access_key, self.account_id]):
             raise ValueError("CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY, and CLOUDFLARE_ACCOUNT_ID environment variables are required")
@@ -86,34 +87,38 @@ class CloudflareStorageService:
         
         return True
     
+    def _generate_public_url(self, object_key: str) -> str:
+        """Generate a public URL for an object using custom domain"""
+        if self.custom_domain:
+            return f"https://{self.custom_domain}/{object_key}"
+        else:
+            # Fallback to R2 public URL (if bucket is public)
+            return f"https://pub-{self.account_id}.r2.dev/{self.bucket_name}/{object_key}"
+    
     def _generate_presigned_url(self, object_key: str, bucket_name: str = None, expiry_seconds: int = 604800) -> str:
-        """Generate a presigned URL for an object with 1 week expiration by default (Cloudflare R2 maximum)"""
+        """Generate a URL for an object - public URL if custom domain is configured, otherwise presigned URL"""
         try:
             # Use provided bucket_name or fall back to instance bucket_name
             effective_bucket_name = bucket_name or self.bucket_name
             
-            # Generate presigned URL
+            # If custom domain is configured and bucket is public, use direct public URL
+            if self.custom_domain:
+                return self._generate_public_url(object_key)
+            
+            # Generate presigned URL for private access
             presigned_url = self.s3_client.generate_presigned_url(
                 'get_object',
                 Params={'Bucket': effective_bucket_name, 'Key': object_key},
                 ExpiresIn=expiry_seconds
             )
             
-            # If custom domain is configured, replace the endpoint URL
-            if self.custom_domain:
-                # Replace the R2 endpoint with custom domain
-                presigned_url = presigned_url.replace(
-                    f"{self.account_id}.r2.cloudflarestorage.com/{effective_bucket_name}/",
-                    f"{self.custom_domain}/"
-                )
-            
             return presigned_url
             
         except Exception as e:
-            print(f"Error generating presigned URL: {e}")
-            # Fallback to public URL (though it might not work without proper configuration)
+            print(f"Error generating URL: {e}")
+            # Fallback to public URL
             if self.custom_domain:
-                return f"https://{self.custom_domain}/{object_key}"
+                return self._generate_public_url(object_key)
             else:
                 return f"{self.endpoint_url}/{effective_bucket_name}/{object_key}"
     
@@ -121,6 +126,7 @@ class CloudflareStorageService:
                     content_type: Optional[str] = None, tenant_name: str = None) -> Tuple[bool, str]:
         """
         Upload an image to Cloudflare R2 Storage (generic method)
+        Uses shared bucket with tenant subfolder structure: [shared-bucket]/[tenant_name]/[existing_path]
         
         Args:
             home_id: The home ID for organizing files
@@ -128,7 +134,7 @@ class CloudflareStorageService:
             file_path: The relative path within the home folder (e.g., "events/images/")
             image_data: The image data as bytes
             content_type: MIME content type of the image
-            tenant_name: Name of the tenant (used for bucket naming)
+            tenant_name: Name of the tenant (used for subfolder organization)
         
         Returns:
             Tuple of (success: bool, url_or_error_message: str)
@@ -138,13 +144,11 @@ class CloudflareStorageService:
             if not self._validate_image(content_type, len(image_data)):
                 return False, "Invalid image file or file too large (max 10MB)"
             
-            # Determine bucket name from tenant_name (required for Cloudflare)
-            if tenant_name:
-                bucket_name = f"{tenant_name}-images"
-            else:
+            # tenant_name is required for path organization
+            if not tenant_name:
                 raise ValueError("tenant_name is required for Cloudflare storage operations")
             
-            # Get container name for tenant (now just returns 'images' since we use separate buckets)
+            # Get container name for tenant (now just returns 'images' since we use shared bucket)
             container_name = self.get_container_name(tenant_name)
             
             # Clean file_path (remove leading/trailing slashes, ensure it ends with /)
@@ -152,25 +156,25 @@ class CloudflareStorageService:
             if file_path and not file_path.endswith('/'):
                 file_path += '/'
             
-            # Create object key: [container_name]/[homeId]/[file_path][file_name]
-            object_key = f"{container_name}/{home_id}/{file_path}{file_name}"
+            # Create object key: [tenant_name]/[container_name]/[homeId]/[file_path][file_name]
+            object_key = f"{tenant_name}/{container_name}/{home_id}/{file_path}{file_name}"
             
             # Determine content type
             if not content_type:
                 content_type = self._get_content_type(file_name)
             
-            # Upload to Cloudflare R2
+            # Upload to Cloudflare R2 shared bucket
             self.s3_client.put_object(
-                Bucket=bucket_name,
+                Bucket=self.bucket_name,
                 Key=object_key,
                 Body=image_data,
                 ContentType=content_type
             )
             
-            # Generate presigned URL with 1 week expiration (Cloudflare R2 maximum)
-            presigned_url = self._generate_presigned_url(object_key, bucket_name)
+            # Generate public URL (or presigned URL if not public)
+            url = self._generate_presigned_url(object_key, self.bucket_name)
             
-            return True, presigned_url
+            return True, url
             
         except ClientError as e:
             return False, f"Cloudflare R2 error: {str(e)}"
@@ -258,21 +262,25 @@ class CloudflareStorageService:
     def delete_image(self, blob_path: str, tenant_name: str = None) -> bool:
         """
         Delete an image from Cloudflare R2 Storage
+        Uses shared bucket with tenant subfolder structure
         
         Args:
-            blob_path: The path of the object to delete (should include container name)
-            tenant_name: Name of the tenant (used for container naming)
+            blob_path: The path of the object to delete (should include container name but not tenant)
+            tenant_name: Name of the tenant (used for subfolder organization)
         
         Returns:
             bool: True if successful, False otherwise
         """
         try:
+            if not tenant_name:
+                raise ValueError("tenant_name is required for Cloudflare storage operations")
+                
             # If blob_path doesn't include container name, add it
-            if tenant_name and not blob_path.startswith(self.get_container_name(tenant_name)):
+            if not blob_path.startswith(self.get_container_name(tenant_name)):
                 container_name = self.get_container_name(tenant_name)
-                object_key = f"{container_name}/{blob_path}"
+                object_key = f"{tenant_name}/{container_name}/{blob_path}"
             else:
-                object_key = blob_path
+                object_key = f"{tenant_name}/{blob_path}"
             
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=object_key)
             return True
@@ -282,26 +290,30 @@ class CloudflareStorageService:
     def get_image_url(self, blob_path: str, tenant_name: str = None) -> Optional[str]:
         """
         Get the presigned URL for an image
+        Uses shared bucket with tenant subfolder structure
         
         Args:
-            blob_path: The path of the object (should include container name)
-            tenant_name: Name of the tenant (used for container naming)
+            blob_path: The path of the object (should include container name but not tenant)
+            tenant_name: Name of the tenant (used for subfolder organization)
         
         Returns:
             str: The presigned URL or None if not found
         """
         try:
+            if not tenant_name:
+                raise ValueError("tenant_name is required for Cloudflare storage operations")
+                
             # If blob_path doesn't include container name, add it
-            if tenant_name and not blob_path.startswith(self.get_container_name(tenant_name)):
+            if not blob_path.startswith(self.get_container_name(tenant_name)):
                 container_name = self.get_container_name(tenant_name)
-                object_key = f"{container_name}/{blob_path}"
+                object_key = f"{tenant_name}/{container_name}/{blob_path}"
             else:
-                object_key = blob_path
+                object_key = f"{tenant_name}/{blob_path}"
             
             # Check if object exists
             try:
                 self.s3_client.head_object(Bucket=self.bucket_name, Key=object_key)
-                return self._generate_presigned_url(object_key)
+                return self._generate_presigned_url(object_key, self.bucket_name)
             except ClientError as e:
                 if e.response['Error']['Code'] == '404':
                     return None
@@ -314,6 +326,7 @@ class CloudflareStorageService:
                            content_type: Optional[str] = None, tenant_name: str = None) -> Tuple[bool, str]:
         """
         Upload media (image, video, or audio) for a service request message
+        Uses shared bucket with tenant subfolder structure: [shared-bucket]/[tenant_name]/[existing_path]
         
         Args:
             home_id: The home ID for organizing files
@@ -322,16 +335,14 @@ class CloudflareStorageService:
             media_data: The media data as bytes
             original_filename: Original filename (for extension detection)
             content_type: MIME content type of the media
-            tenant_name: Name of the tenant (used for container naming)
+            tenant_name: Name of the tenant (used for subfolder organization)
         
         Returns:
             Tuple of (success: bool, url_or_error_message: str)
         """
         try:
-            # Determine bucket name from tenant_name (required for Cloudflare)
-            if tenant_name:
-                bucket_name = f"{tenant_name}-images"
-            else:
+            # tenant_name is required for path organization
+            if not tenant_name:
                 raise ValueError("tenant_name is required for Cloudflare storage operations")
             
             # Get container name for tenant
@@ -356,8 +367,8 @@ class CloudflareStorageService:
             # Create filename with message_id and extension
             file_name = f"{message_id}{file_extension}"
             
-            # Create object key: [container_name]/[homeId]/requests/[request_id]/[message_id].ext
-            object_key = f"{container_name}/{home_id}/requests/{request_id}/{file_name}"
+            # Create object key: [tenant_name]/[container_name]/[homeId]/requests/[request_id]/[message_id].ext
+            object_key = f"{tenant_name}/{container_name}/{home_id}/requests/{request_id}/{file_name}"
             
             # Determine content type if not provided
             if not content_type:
@@ -373,18 +384,18 @@ class CloudflareStorageService:
             # For videos and audio, we trust the client-side validation
             # (duration and size should be validated on the client)
             
-            # Upload to Cloudflare R2
+            # Upload to Cloudflare R2 shared bucket
             self.s3_client.put_object(
-                Bucket=bucket_name,
+                Bucket=self.bucket_name,
                 Key=object_key,
                 Body=media_data,
                 ContentType=content_type
             )
             
-            # Generate presigned URL with 1 week expiration (Cloudflare R2 maximum)
-            presigned_url = self._generate_presigned_url(object_key, bucket_name)
+            # Generate public URL (or presigned URL if not public)
+            url = self._generate_presigned_url(object_key, self.bucket_name)
             
-            return True, presigned_url
+            return True, url
             
         except ClientError as e:
             return False, f"Cloudflare R2 error: {str(e)}"

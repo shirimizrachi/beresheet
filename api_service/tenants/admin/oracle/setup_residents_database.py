@@ -9,7 +9,7 @@ import getpass
 from sqlalchemy import create_engine, text
 from typing import Optional, Dict, Any
 from ..models import create_home_table, create_home_index_table
-from deployment.admin.setup_residents_database import DatabaseSetupBase
+from tenants.admin.setup_residents_database import DatabaseSetupBase
 
 # Import configuration from residents_config
 # Add the api_service directory to sys.path (go up 3 levels from deployment/admin/oracle)

@@ -93,6 +93,15 @@ class AppConfig {
   
   /// Get the API base URL based on platform (without prefix)
   static String get apiBaseUrl {
+    // Check for production build
+    const String environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
+    
+    if (environment == 'production') {
+      // For production: use production domain
+      return 'https://www.residentsapp.com';
+    }
+    
+    // Development/local configuration
     if (kIsWeb) {
       return 'http://localhost:8000';    // Web can use localhost
     } else {

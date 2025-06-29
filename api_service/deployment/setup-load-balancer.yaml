@@ -1,0 +1,97 @@
+# Oracle Cloud Network Load Balancer Additional Configuration
+# This file contains supplementary configuration for the load balancer setup
+# Note: The main NGINX Ingress Controller is installed via setup-infrastructure.sh
+
+---
+# Application Load Balancer Monitoring Service in residents namespace
+# This service provides monitoring endpoints for the residents application
+apiVersion: v1
+kind: Service
+metadata:
+  name: residents-api-lb-metrics
+  namespace: residents
+  labels:
+    app: residents-api
+    component: monitoring
+spec:
+  ports:
+    - name: metrics
+      port: 8080
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app.kubernetes.io/name: residents-api
+  type: ClusterIP
+
+---
+# Network Security Group rules for Oracle Cloud (if using NSGs)
+# These rules allow HTTP and HTTPS traffic to the load balancer
+# Note: This is a ConfigMap with the rules, you'll need to apply them in OCI Console
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oci-network-security-rules
+  namespace: ingress-nginx
+data:
+  rules.yaml: |
+    # Ingress Rules for Network Security Group
+    # Apply these rules in Oracle Cloud Console under Networking > Virtual Cloud Networks > Security Lists
+    
+    # HTTP Traffic (Port 80)
+    ingress_rules:
+      - description: "HTTP traffic from internet"
+        protocol: "TCP"
+        source: "0.0.0.0/0"
+        source_type: "CIDR_BLOCK"
+        tcp_options:
+          destination_port_range:
+            min: 80
+            max: 80
+    
+      # HTTPS Traffic (Port 443)
+      - description: "HTTPS traffic from internet"
+        protocol: "TCP"
+        source: "0.0.0.0/0"
+        source_type: "CIDR_BLOCK"
+        tcp_options:
+          destination_port_range:
+            min: 443
+            max: 443
+    
+      # Health Check Traffic (Port 10254)
+      - description: "Health check from OCI Load Balancer"
+        protocol: "TCP"
+        source: "0.0.0.0/0"  # In production, restrict to OCI Load Balancer subnet
+        source_type: "CIDR_BLOCK"
+        tcp_options:
+          destination_port_range:
+            min: 10254
+            max: 10254
+    
+    # Egress Rules (if using stateful security lists)
+    egress_rules:
+      - description: "All outbound traffic"
+        protocol: "all"
+        destination: "0.0.0.0/0"
+        destination_type: "CIDR_BLOCK"
+
+---
+# Service Monitor for the Load Balancer (if using Prometheus)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-metrics
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+spec:
+  ports:
+    - name: prometheus
+      port: 10254
+      protocol: TCP
+      targetPort: prometheus
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/component: controller

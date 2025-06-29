@@ -15,7 +15,7 @@ def get_database_service():
     Get the appropriate database service based on configuration
     
     Returns:
-        Database service instance (Azure SQL Server or MySQL)
+        Database service instance (Oracle or Azure SQL Server)
     """
     # Use environment variable directly to avoid circular import
     DATABASE_ENGINE = os.getenv("DATABASE_ENGINE")
@@ -23,10 +23,11 @@ def get_database_service():
     if DATABASE_ENGINE == 'oracle':
         from .oracle.oracle_database_service import get_oracle_database_service
         return get_oracle_database_service()
-    else:
-        # Default to Azure SQL Server
+    elif DATABASE_ENGINE == 'sqlserver':
         from .azure.azure_database_service import get_azure_database_service
         return get_azure_database_service()
+    else:
+        raise ValueError(f"Invalid or missing DATABASE_ENGINE environment variable. Expected 'oracle' or 'sqlserver', got: '{DATABASE_ENGINE}'")
 
 # For backward compatibility, provide the same interface as the original residents_config 
 class DatabaseServiceProxy:

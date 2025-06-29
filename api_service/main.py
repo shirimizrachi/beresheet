@@ -65,8 +65,8 @@ from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
 
 # Web build paths for Flutter web (dual builds)
-tenant_web_build_path = "../build/web-tenant"
-admin_web_build_path = "../build/web-admin"
+tenant_web_build_path = "web-tenant"
+admin_web_build_path = "web-admin"
 
 # Mount static files for Flutter web (dual builds)
 import os
@@ -136,6 +136,16 @@ async def root():
             "admin": "/home/admin",
             "api_docs": "/docs"
         }
+
+@app.get("/api/health")
+async def global_health_check():
+    """Global health check endpoint for Kubernetes - no tenant validation required"""
+    return {"status": "healthy", "service": "residents-api", "version": "2.0.0"}
+
+@app.get("/health")
+async def simple_health_check():
+    """Simple health check endpoint for load balancers - no tenant validation required"""
+    return {"status": "healthy"}
 
 @app.get("/debug/routes")
 async def debug_routes():

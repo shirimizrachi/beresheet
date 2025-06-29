@@ -55,10 +55,10 @@ class SchemaOperationsBase(ABC):
 def get_schema_operations() -> SchemaOperationsBase:
     """Factory function to get the appropriate schema operations implementation"""
     if DATABASE_ENGINE == "oracle":
-        from deployment.admin.oracle.schema_operations import OracleSchemaOperations
+        from tenants.admin.oracle.schema_operations import OracleSchemaOperations
         return OracleSchemaOperations()
     elif DATABASE_ENGINE == "sqlserver":
-        from deployment.admin.sqlserver.schema_operations import SqlServerSchemaOperations
+        from tenants.admin.sqlserver.schema_operations import SqlServerSchemaOperations
         return SqlServerSchemaOperations()
     else:
         raise ValueError(f"Unsupported DATABASE_ENGINE: {DATABASE_ENGINE}")

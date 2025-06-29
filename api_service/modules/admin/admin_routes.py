@@ -139,7 +139,7 @@ async def admin_html():
         """, status_code=500)
 
 # Flutter Web Admin Routes (admin-specific build)
-web_build_path = "../build/web-admin"
+web_build_path = "web-admin"
 
 @admin_router.get("/", response_class=HTMLResponse)
 async def serve_admin_flutter_web():

@@ -1,0 +1,18 @@
+apiVersion: v2
+name: residents-api
+description: A Helm chart for Residents API service on Oracle Cloud Kubernetes (OKE)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - api
+  - fastapi
+  - python
+  - residents
+  - oracle-cloud
+home: https://residentsapp.com
+sources:
+  - https://github.com/your-org/residents-api
+maintainers:
+  - name: Developer
+    email: dev@residentsapp.com

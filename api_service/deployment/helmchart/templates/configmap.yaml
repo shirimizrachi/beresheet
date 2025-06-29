@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "residents-api.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "residents-api.labels" . | nindent 4 }}
+data:
+  # Database and Storage Provider configuration
+  DATABASE_ENGINE: {{ .Values.configMap.data.DATABASE_ENGINE | quote }}
+  STORAGE_PROVIDER: {{ .Values.configMap.data.STORAGE_PROVIDER | quote }}
+  
+  # Database configuration
+  ORACLE_DATABASE_NAME: {{ .Values.configMap.data.ORACLE_DATABASE_NAME | quote }}
+  ORACLE_SERVICE_LEVEL: {{ .Values.configMap.data.ORACLE_SERVICE_LEVEL | quote }}
+  DATABASE_NAME: {{ .Values.configMap.data.DATABASE_NAME | quote }}
+  SCHEMA_NAME: {{ .Values.configMap.data.SCHEMA_NAME | quote }}
+  
+  # Storage configuration
+  CLOUDFLARE_R2_BUCKET_NAME: {{ .Values.configMap.data.CLOUDFLARE_R2_BUCKET_NAME | quote }}
+  
+  # Application configuration
+  API_BASE_URL: {{ .Values.configMap.data.API_BASE_URL | quote }}
+  CORS_ORIGINS: {{ .Values.configMap.data.CORS_ORIGINS | quote }}
+  LOG_LEVEL: {{ .Values.configMap.data.LOG_LEVEL | quote }}
+  ENABLE_DEBUG: {{ .Values.configMap.data.ENABLE_DEBUG | quote }}
+  ENABLE_METRICS: {{ .Values.configMap.data.ENABLE_METRICS | quote }}

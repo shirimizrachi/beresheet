@@ -265,12 +265,12 @@ async def load_table_data(tenant_name: str, table_name: str, engine, schema_name
         Boolean indicating success
     """
     try:
-        from deployment.load_events import load_events_sync
-        from deployment.load_users import load_users_sync
-        from deployment.load_event_instructor import load_event_instructor_sync
-        from deployment.load_rooms import load_rooms_sync
-        from deployment.load_service_provider_types import load_service_provider_types_sync
-        from deployment.load_home_notification import load_home_notification_sync
+        from tenants.load_events import load_events_sync
+        from tenants.load_users import load_users_sync
+        from tenants.load_event_instructor import load_event_instructor_sync
+        from tenants.load_rooms import load_rooms_sync
+        from tenants.load_service_provider_types import load_service_provider_types_sync
+        from tenants.load_home_notification import load_home_notification_sync
         
         # Map table names to their new loading functions
         table_loader_mapping = {

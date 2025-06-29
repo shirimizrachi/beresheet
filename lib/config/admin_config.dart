@@ -2,7 +2,18 @@
 /// Contains all admin-specific settings and constants
 class AdminConfig {
   /// Admin base URL - independent from main app configuration
-  static const String baseUrl = 'http://localhost:8000';
+  static String get baseUrl {
+    // Check for production build
+    const String environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
+    
+    if (environment == 'production') {
+      // For production: use production domain
+      return 'https://www.residentsapp.com';
+    }
+    
+    // Development/local configuration
+    return 'http://localhost:8000';
+  }
   
   /// Admin panel base routes
   static const String adminLoginRoute = '/home/admin/login';

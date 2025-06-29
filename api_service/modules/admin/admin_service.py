@@ -3,9 +3,6 @@ Admin service class for tenant management operations
 """
 
 import logging
-import importlib.util
-import sys
-from pathlib import Path
 from typing import List, Optional
 from sqlalchemy import text, create_engine
 
@@ -18,12 +15,13 @@ from tenant_config import (
 )
 from database_utils import get_tenant_engine
 from storage.storage_service import azure_storage_service
-from deployment.load_events import load_events_sync
-from deployment.load_users import load_users_sync
-from deployment.load_event_instructor import load_event_instructor_sync
-from deployment.load_rooms import load_rooms_sync
-from deployment.load_service_provider_types import load_service_provider_types_sync
-from deployment.load_home_notification import load_home_notification_sync
+from tenants.load_events import load_events_sync
+from tenants.load_users import load_users_sync
+from tenants.load_event_instructor import load_event_instructor_sync
+from tenants.load_rooms import load_rooms_sync
+from tenants.load_service_provider_types import load_service_provider_types_sync
+from tenants.load_home_notification import load_home_notification_sync
+from tenants.schema.tables import TABLE_CREATION_FUNCTIONS
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -46,7 +44,7 @@ class AdminService:
         try:
             # Get admin database connection with elevated privileges for schema creation
             from residents_config import get_admin_connection_string, DATABASE_ENGINE
-            from deployment.admin.schema_operations import create_schema_and_user
+            from tenants.admin.schema_operations import create_schema_and_user
             
             admin_connection_string = get_admin_connection_string()
             database_engine = DATABASE_ENGINE
@@ -63,7 +61,9 @@ class AdminService:
 
     async def create_storage_container_for_tenant(self, tenant_name: str):
         """
-        Create storage container for a tenant (Azure Blob or Cloudflare R2 based on environment)
+        Create storage container for a tenant (Azure Blob only)
+        For Cloudflare: Shared bucket is created during database setup, no per-tenant action needed
+        For Azure: Creates individual blob containers per tenant
         """
         # Get storage provider from residents_config
         from residents_config import get_storage_provider
@@ -72,47 +72,66 @@ class AdminService:
             storage_type = get_storage_provider()
             
             if storage_type == 'cloudflare':
-                # Use Cloudflare R2 bucket creation
-                from deployment.schema.resources.create_bucket_cloudflare import create_cloudflare_bucket
+                # For Cloudflare, the shared bucket is created during database setup
+                # No per-tenant action needed - return success
+                from residents_config import get_cloudflare_shared_bucket_name
+                bucket_name = get_cloudflare_shared_bucket_name()
                 
-                success = create_cloudflare_bucket(tenant_name)
-                storage_name = "Cloudflare R2 bucket"
+                response = {
+                    "status": "success",
+                    "message": f"Using shared Cloudflare R2 bucket '{bucket_name}' for tenant '{tenant_name}'",
+                    "container_name": bucket_name,
+                    "tenant_name": tenant_name,
+                    "storage_type": storage_type,
+                    "note": "Shared bucket created during database setup"
+                }
+                logger.info(f"Tenant '{tenant_name}' configured to use shared Cloudflare R2 bucket '{bucket_name}'")
+                return response
                 
             else:
-                # Default to Azure Blob Storage
-                from deployment.schema.resources.create_blob_container import create_blob_container
+                # Azure Blob Storage - individual containers per tenant
+                from tenants.schema.resources.create_blob_container import create_blob_container
                 
                 success = create_blob_container(tenant_name)
                 storage_name = "Azure blob container"
-            
-            if success:
-                response = {
-                    "status": "success",
-                    "message": f"{storage_name} created successfully for tenant '{tenant_name}'",
-                    "container_name": f"{tenant_name}-images",
-                    "tenant_name": tenant_name,
-                    "storage_type": storage_type
-                }
-                logger.info(f"Successfully created {storage_name} for tenant '{tenant_name}'")
-                return response
-            else:
-                response = {
-                    "status": "failed",
-                    "message": f"Failed to create {storage_name} for tenant '{tenant_name}'",
-                    "container_name": f"{tenant_name}-images",
-                    "tenant_name": tenant_name,
-                    "storage_type": storage_type
-                }
-                logger.error(f"Failed to create {storage_name} for tenant '{tenant_name}'")
-                return response
+                container_name = f"{tenant_name}-images"
+                
+                if success:
+                    response = {
+                        "status": "success",
+                        "message": f"{storage_name} created successfully for tenant '{tenant_name}'",
+                        "container_name": container_name,
+                        "tenant_name": tenant_name,
+                        "storage_type": storage_type
+                    }
+                    logger.info(f"Successfully created {storage_name} for tenant '{tenant_name}'")
+                    return response
+                else:
+                    response = {
+                        "status": "failed",
+                        "message": f"Failed to create {storage_name} for tenant '{tenant_name}'",
+                        "container_name": container_name,
+                        "tenant_name": tenant_name,
+                        "storage_type": storage_type
+                    }
+                    logger.error(f"Failed to create {storage_name} for tenant '{tenant_name}'")
+                    return response
                 
         except Exception as e:
             error_message = f"Error creating storage container for tenant '{tenant_name}': {str(e)}"
             logger.error(error_message)
+            
+            # Set container_name based on storage type for error response
+            if storage_type == 'cloudflare':
+                from residents_config import get_cloudflare_shared_bucket_name
+                container_name = get_cloudflare_shared_bucket_name()
+            else:
+                container_name = f"{tenant_name}-images"
+                
             return {
                 "status": "error",
                 "message": error_message,
-                "container_name": f"{tenant_name}-images",
+                "container_name": container_name,
                 "tenant_name": tenant_name,
                 "storage_type": storage_type,
                 "error": str(e)
@@ -135,7 +154,7 @@ class AdminService:
             if not engine:
                 raise Exception(f"Could not create database engine for tenant '{tenant_name}'")
             
-            # List of table creation modules to execute
+            # List of table creation functions to execute
             table_scripts = [
                 "create_users_table",
                 "create_service_provider_types_table",
@@ -152,43 +171,24 @@ class AdminService:
             created_tables = []
             failed_tables = []
             
-            # Base path for table scripts
-            tables_path = Path(__file__).parent.parent.parent / "deployment" / "schema" / "tables"
-            
             for script_name in table_scripts:
                 try:
-                    script_path = tables_path / f"{script_name}.py"
-                    
-                    if not script_path.exists():
-                        logger.warning(f"Table script not found: {script_path}")
-                        failed_tables.append(f"{script_name} (file not found)")
+                    # Get the function from the imported functions dictionary
+                    if script_name not in TABLE_CREATION_FUNCTIONS:
+                        logger.warning(f"Table creation function not found: {script_name}")
+                        failed_tables.append(f"{script_name} (function not found)")
                         continue
                     
-                    # Load the module dynamically
-                    spec = importlib.util.spec_from_file_location(script_name, script_path)
-                    module = importlib.util.module_from_spec(spec)
+                    # Get the function and call it
+                    creation_function = TABLE_CREATION_FUNCTIONS[script_name]
+                    success = creation_function(engine, tenant.database_schema, drop_if_exists)
                     
-                    # Add the module to sys.modules temporarily
-                    sys.modules[script_name] = module
-                    spec.loader.exec_module(module)
-                    
-                    # Get the main creation function (assumes it follows naming convention)
-                    function_name = script_name.replace("create_", "create_").replace("_table", "_table")
-                    if hasattr(module, function_name):
-                        # Call the function with engine, schema, and drop flag
-                        success = module.__dict__[function_name](engine, tenant.database_schema, drop_if_exists)
-                        if success:
-                            created_tables.append(script_name.replace("create_", "").replace("_table", ""))
-                            logger.info(f"Successfully created table using {script_name}")
-                        else:
-                            failed_tables.append(script_name)
-                            logger.error(f"Failed to create table using {script_name}")
+                    if success:
+                        created_tables.append(script_name.replace("create_", "").replace("_table", ""))
+                        logger.info(f"Successfully created table using {script_name}")
                     else:
-                        logger.error(f"Function {function_name} not found in {script_name}")
-                        failed_tables.append(f"{script_name} (function not found)")
-                    
-                    # Clean up module from sys.modules
-                    del sys.modules[script_name]
+                        failed_tables.append(script_name)
+                        logger.error(f"Failed to create table using {script_name}")
                     
                 except Exception as e:
                     logger.error(f"Error executing table script {script_name}: {e}")
@@ -327,6 +327,7 @@ class AdminService:
         """
         Upload profile photos for users from demo_data/users-profile directory using provided engine
         """
+        from pathlib import Path
         
         # Get the directory where this script is located
         script_dir = Path(__file__).parent.parent.parent

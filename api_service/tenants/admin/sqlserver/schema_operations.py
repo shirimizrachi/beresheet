@@ -7,7 +7,7 @@ import os
 from sqlalchemy import create_engine, text
 from typing import Dict, Any
 import logging
-from deployment.admin.schema_operations import SchemaOperationsBase
+from tenants.admin.schema_operations import SchemaOperationsBase
 
 # Add the api_service directory to sys.path
 script_dir = os.path.dirname(os.path.abspath(__file__))  # deployment/admin/sqlserver

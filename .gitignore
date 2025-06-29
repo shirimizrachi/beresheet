@@ -138,3 +138,10 @@ lint/tmp/
 # Environment variables
 .env
 api_service/.env
+
+# Production deployment configuration (contains secrets)
+api_service/deployment/production-values.yaml
+
+# API service build folders
+api_service/web-admin/
+api_service/web-tenant/

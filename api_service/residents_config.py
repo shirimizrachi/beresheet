@@ -22,12 +22,13 @@ USER_NAME = os.getenv("USER_NAME", "home")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
 
 # Storage Configuration (handled by separate storage service)
-STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "azure")  # "azure" or "cloudflare"
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER")  # "azure" or "cloudflare"
+CLOUDFLARE_SHARED_BUCKET_NAME = os.getenv("CLOUDFLARE_SHARED_BUCKET_NAME", "residents-images")
 
 # Home Index Configuration (common to all implementations)
 HOME_INDEX_SCHEMA_NAME = os.getenv("HOME_INDEX_SCHEMA_NAME", "home_index")
 HOME_INDEX_USER_NAME = os.getenv("HOME_INDEX_USER_NAME", "home_index")
-HOME_INDEX_USER_PASSWORD = os.getenv("HOME_INDEX_USER_PASSWORD", "HomeIndex2025!@#")
+HOME_INDEX_USER_PASSWORD = os.getenv("HOME_INDEX_USER_PASSWORD")
 
 # Additional configuration constants for compatibility
 ADMIN_SCHEMA = SCHEMA_NAME
@@ -51,6 +52,15 @@ def get_storage_provider():
         str: Storage provider type ('azure' or 'cloudflare')
     """
     return STORAGE_PROVIDER
+
+def get_cloudflare_shared_bucket_name():
+    """
+    Get the shared Cloudflare bucket name
+    
+    Returns:
+        str: Cloudflare shared bucket name
+    """
+    return CLOUDFLARE_SHARED_BUCKET_NAME
 
 # Set ADMIN_CONNECTION_STRING for compatibility
 ADMIN_CONNECTION_STRING = get_connection_string()
