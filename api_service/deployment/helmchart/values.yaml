@@ -5,9 +5,9 @@
 namespace: residents
 
 # Replica count
-replicaCount: 2
+replicaCount: 1
 
-# Image configuration for Oracle Cloud Infrastructure Registry (OCIR)
+# Image configuration for Oracle Cloud Infrastructuou Registry (OCIR)
 image:
   # OCIR registry format: <region-key>.ocir.io/<tenancy-namespace>/<repo-name>
   # Example: iad.ocir.io/mytenancy/residents-api
@@ -73,13 +73,14 @@ ingress:
         - www.residentsapp.com
 
 # Resource limits and requests optimized for OKE free tier (4 OCPUs, 24GB RAM)
+# Increased resources to improve performance and reduce health check timeouts
 resources:
   limits:
-    cpu: 1500m      # 1.5 CPU cores per pod
-    memory: 4Gi     # 4GB memory per pod
+    cpu: 2000m      # 2.0 CPU cores per pod (increased from 1500m)
+    memory: 6Gi     # 6GB memory per pod (increased from 4Gi)
   requests:
-    cpu: 500m       # 0.5 CPU cores minimum
-    memory: 1Gi     # 1GB memory minimum
+    cpu: 750m       # 0.75 CPU cores minimum (increased from 500m)
+    memory: 1.5Gi   # 1.5GB memory minimum (increased from 1Gi)
 
 # Horizontal Pod Autoscaler
 autoscaling:
@@ -99,26 +100,26 @@ tolerations: []
 # Affinity rules
 affinity: {}
 
-# Health checks
+# Health checks - Improved to prevent restarts
 livenessProbe:
   httpGet:
     path: /api/health
     port: 8000
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
+  initialDelaySeconds: 60    # Increased from 30s to allow more startup time
+  periodSeconds: 15          # Increased from 10s to reduce check frequency
+  timeoutSeconds: 10         # Increased from 5s to handle slower responses
   successThreshold: 1
-  failureThreshold: 3
+  failureThreshold: 5        # Increased from 3 to allow more failures before restart
 
 readinessProbe:
   httpGet:
     path: /api/health
     port: 8000
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
+  initialDelaySeconds: 15    # Increased from 5s to allow startup time
+  periodSeconds: 10          # Increased from 5s to reduce check frequency
+  timeoutSeconds: 8          # Increased from 3s to handle slower responses
   successThreshold: 1
-  failureThreshold: 3
+  failureThreshold: 5        # Increased from 3 to allow more failures before marking unready
 
 # Environment variables configuration
 env:
@@ -135,8 +136,11 @@ env:
   ORACLE_ATP_PASSWORD: ""
   ORACLE_DATABASE_NAME: "residents"
   ORACLE_SERVICE_LEVEL: "residents_medium"
+  ORACLE_HOST: "adb.il-jerusalem-1.oraclecloud.com"
+  ORACLE_SERVICE_NAME_MEDIUM: ""
+  TENANT_DEFAULT_PASSWORD: ""
   DATABASE_NAME: "residents"
-  SCHEMA_NAME: "RESIDENTS_SCHEMA"
+  SCHEMA_NAME: "home"
   
   # Cloudflare R2 Storage Configuration
   CLOUDFLARE_R2_ACCESS_KEY_ID: ""
@@ -163,8 +167,10 @@ secrets:
   oracleCredentials:
     username: ""
     password: ""
+    serviceName: ""
+    tenantPassword: ""
   
-  # Cloudflare R2 credentials  
+  # Cloudflare R2 credentials
   cloudflareCredentials:
     accessKeyId: ""
     secretAccessKey: ""
@@ -184,8 +190,9 @@ configMap:
     # Database configuration
     ORACLE_DATABASE_NAME: "residents"
     ORACLE_SERVICE_LEVEL: "residents_medium"
+    ORACLE_HOST: "adb.il-jerusalem-1.oraclecloud.com"
     DATABASE_NAME: "residents"
-    SCHEMA_NAME: "RESIDENTS_SCHEMA"
+    SCHEMA_NAME: "home"
     
     # Storage configuration
     CLOUDFLARE_R2_BUCKET_NAME: "residents-storage"

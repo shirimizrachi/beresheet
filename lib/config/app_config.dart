@@ -97,7 +97,7 @@ class AppConfig {
     const String environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
     
     if (environment == 'production') {
-      // For production: use production domain
+      // For production: use production domain for all platforms
       return 'https://www.residentsapp.com';
     }
     

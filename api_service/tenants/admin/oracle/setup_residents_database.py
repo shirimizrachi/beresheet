@@ -262,9 +262,9 @@ class OracleDatabaseSetup(DatabaseSetupBase):
         
         return True
     
-    def create_home_index_schema(self, config: Dict[str, Any]) -> bool:
+    def create_home_index(self, config: Dict[str, Any]) -> bool:
         """Create the home_index schema"""
-        print(f"\n🔧 Creating home_index schema '{self.home_index_schema_name}'...")
+        print(f"\n🔧 Creating home_index schema '{self.home_index_name}'...")
         
         try:
             engine = create_engine(config["db_connection"])
@@ -280,7 +280,7 @@ class OracleDatabaseSetup(DatabaseSetupBase):
                 result = conn.execute(check_user_sql, {"user_name": self.home_index_user_name.upper()}).fetchone()
                 
                 if result:
-                    print(f"✅ Schema '{self.home_index_schema_name}' already exists.")
+                    print(f"✅ Schema '{self.home_index_name}' already exists.")
                 else:
                     # Create home_index user/schema
                     create_user_sql = text(f"""
@@ -292,7 +292,7 @@ class OracleDatabaseSetup(DatabaseSetupBase):
                     
                     conn.execute(create_user_sql)
                     conn.commit()
-                    print(f"✅ Schema '{self.home_index_schema_name}' created successfully.")
+                    print(f"✅ Schema '{self.home_index_name}' created successfully.")
                 
                 return True
                 
@@ -308,7 +308,7 @@ class OracleDatabaseSetup(DatabaseSetupBase):
             engine = create_engine(config["db_connection"])
             
             with engine.connect() as conn:
-                # Check if user exists (already checked in create_home_index_schema, but keeping consistency)
+                # Check if user exists (already checked in create_home_index, but keeping consistency)
                 check_user_sql = text("""
                     SELECT username
                     FROM ALL_USERS
@@ -363,12 +363,12 @@ class OracleDatabaseSetup(DatabaseSetupBase):
                 result = conn.execute(check_table_sql, {"schema_name": self.home_index_user_name.upper()}).fetchone()
                 
                 if result:
-                    print(f"✅ Table '{self.home_index_schema_name}.home_index' already exists.")
+                    print(f"✅ Table '{self.home_index_name}.home_index' already exists.")
                     return True
             
             # Create table using SQLAlchemy model
             create_home_index_table(engine, self.home_index_user_name)
-            print(f"✅ Table '{self.home_index_schema_name}.home_index' created successfully using SQLAlchemy model.")
+            print(f"✅ Table '{self.home_index_name}.home_index' created successfully using SQLAlchemy model.")
             
             # Create additional Oracle-specific indexes and triggers
             with engine.connect() as conn:
@@ -425,7 +425,7 @@ class OracleDatabaseSetup(DatabaseSetupBase):
                 """)
                 
                 result = conn.execute(test_sql, {"schema_name": self.home_index_user_name.upper()}).fetchone()
-                print(f"✅ Home_index user connection successful. Found {result[0]} tables in schema '{self.home_index_schema_name}'.")
+                print(f"✅ Home_index user connection successful. Found {result[0]} tables in schema '{self.home_index_name}'.")
                 
                 return True
                 

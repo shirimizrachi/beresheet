@@ -64,7 +64,7 @@ class WebJwtRefreshResponse(BaseModel):
     message: str
 
 def create_web_jwt_token(user_data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a web JWT token"""
+    """Create a web JWT token with UTC time for international compatibility"""
     to_encode = user_data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -76,7 +76,7 @@ def create_web_jwt_token(user_data: dict, expires_delta: Optional[timedelta] = N
     return encoded_jwt
 
 def create_web_jwt_refresh_token(user_data: dict) -> str:
-    """Create a web JWT refresh token"""
+    """Create a web JWT refresh token with UTC time for international compatibility"""
     to_encode = user_data.copy()
     expire = datetime.utcnow() + timedelta(days=WEB_JWT_REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh", "iss": "web"})
@@ -151,9 +151,10 @@ async def web_jwt_login(credentials: WebJwtCredentials):
         # Create refresh token (30 days)
         refresh_token = create_web_jwt_refresh_token(user_data)
         
-        # Calculate expiration times (use local time like admin system)
-        expires_at = datetime.now() + access_token_expires
-        refresh_expires_at = datetime.now() + timedelta(days=WEB_JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+        # Calculate expiration times (use UTC for true international compatibility)
+        # Client applications should convert UTC to local time for display
+        expires_at = datetime.utcnow() + access_token_expires
+        refresh_expires_at = datetime.utcnow() + timedelta(days=WEB_JWT_REFRESH_TOKEN_EXPIRE_DAYS)
         
         # Create user object for response
         jwt_user = WebJwtUser(
@@ -165,8 +166,8 @@ async def web_jwt_login(credentials: WebJwtCredentials):
             homeName=homeName,
             photo=user.photo,
             apartmentNumber=user.apartment_number,
-            createdAt=user.created_at or datetime.now(),
-            updatedAt=user.updated_at or datetime.now(),
+            createdAt=user.created_at or datetime.utcnow(),
+            updatedAt=user.updated_at or datetime.utcnow(),
         )
         
         # Create session object
@@ -176,32 +177,34 @@ async def web_jwt_login(credentials: WebJwtCredentials):
             user=jwt_user,
             expiresAt=expires_at,
             refreshExpiresAt=refresh_expires_at,
-            createdAt=datetime.now(),
+            createdAt=datetime.utcnow(),
         )
         
-        # Create response with JWT session data (match admin format)
+        # Create response with JWT data (match admin format exactly)
         response_data = {
-            "success": True,
-            "message": "Login successful",
-            "session": {
-                "token": session.token,
-                "refreshToken": session.refreshToken,
-                "user": {
-                    "id": session.user.id,
-                    "phoneNumber": session.user.phoneNumber,
-                    "fullName": session.user.fullName,
-                    "role": session.user.role,
-                    "homeId": session.user.homeId,
-                    "homeName": session.user.homeName,
-                    "photo": session.user.photo,
-                    "apartmentNumber": session.user.apartmentNumber,
-                    "createdAt": session.user.createdAt.isoformat(),
-                    "updatedAt": session.user.updatedAt.isoformat(),
-                },
-                "expiresAt": session.expiresAt.isoformat(),
-                "refreshExpiresAt": session.refreshExpiresAt.isoformat(),
-                "createdAt": session.createdAt.isoformat(),
-            }
+            "token": session.token,
+            "user": {
+                "id": session.user.id,
+                "name": session.user.fullName,  # Use 'name' to match admin format
+                "database_name": "residents",  # Add database_name like admin
+                "database_type": "tenant",     # Add database_type
+                "database_schema": session.user.homeName or f"home_{session.user.homeId}",  # Add database_schema
+                "admin_user_email": session.user.phoneNumber,  # Map phone to email field
+                "admin_user_password": "***",  # Masked password like admin
+                "created_at": session.user.createdAt.isoformat(),
+                "updated_at": session.user.updatedAt.isoformat(),
+                "is_master_admin": False,  # Tenant users are not master admin
+                # Additional tenant-specific fields
+                "phoneNumber": session.user.phoneNumber,
+                "fullName": session.user.fullName,
+                "role": session.user.role,
+                "homeId": session.user.homeId,
+                "homeName": session.user.homeName,
+                "photo": session.user.photo,
+                "apartmentNumber": session.user.apartmentNumber,
+            },
+            "expires_at": session.expiresAt.isoformat(),  # Use snake_case like admin
+            "created_at": session.createdAt.isoformat(),  # Use snake_case like admin
         }
         
         # Create response with JWT cookie for web browsers
@@ -263,8 +266,8 @@ async def web_jwt_validate(current_user: dict = Depends(get_web_jwt_user_from_to
             homeName=current_user.get("home_name"),
             photo=user.photo,
             apartmentNumber=user.apartment_number,
-            createdAt=user.created_at or datetime.now(),
-            updatedAt=user.updated_at or datetime.now(),
+            createdAt=user.created_at or datetime.utcnow(),
+            updatedAt=user.updated_at or datetime.utcnow(),
         )
         
         print("Web JWT token validation successful")
@@ -320,9 +323,10 @@ async def web_jwt_refresh(refresh_request: WebJwtRefreshRequest, current_user: d
         # Create new refresh token (30 days)
         new_refresh_token = create_web_jwt_refresh_token(user_data)
         
-        # Calculate new expiration times (use local time like admin system)
-        expires_at = datetime.now() + access_token_expires
-        refresh_expires_at = datetime.now() + timedelta(days=WEB_JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+        # Calculate new expiration times (use UTC for true international compatibility)
+        # Client applications should convert UTC to local time for display
+        expires_at = datetime.utcnow() + access_token_expires
+        refresh_expires_at = datetime.utcnow() + timedelta(days=WEB_JWT_REFRESH_TOKEN_EXPIRE_DAYS)
         
         print("Web JWT token refresh successful")
         return WebJwtRefreshResponse(
@@ -385,8 +389,8 @@ async def web_jwt_get_current_user(current_user: dict = Depends(get_web_jwt_user
             homeName=current_user.get("home_name"),
             photo=user.photo,
             apartmentNumber=user.apartment_number,
-            createdAt=user.created_at or datetime.now(),
-            updatedAt=user.updated_at or datetime.now(),
+            createdAt=user.created_at or datetime.utcnow(),
+            updatedAt=user.updated_at or datetime.utcnow(),
         )
         
         return jwt_user

@@ -101,37 +101,54 @@ class WebJwtAuthService {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         
-        if (responseData['success'] == true) {
-          print('Raw session data from backend: ${responseData['session']}');
-          
-          // Create session from response
-          final session = WebJwtSession.fromJson(responseData['session']);
-          
-          print('Parsed session - ExpiresAt: ${session.expiresAt}, RefreshExpiresAt: ${session.refreshExpiresAt}');
-          print('Current time: ${DateTime.now()}');
-          print('Session isValid: ${session.isValid}');
-          
-          // Store session
-          await WebJwtSessionService.storeSession(session);
-          
-          // Store home name for tenant routing
-          if (homeName != null) {
-            await WebJwtSessionService.storeHomeName(homeName);
-          }
-          
-          print('Web JWT login successful for user: ${session.user.fullName}');
-          return WebJwtLoginResult(
-            success: true,
-            message: responseData['message'] ?? 'Login successful',
-            session: session,
-          );
-        } else {
-          return WebJwtLoginResult(
-            success: false,
-            message: responseData['message'] ?? 'Login failed',
-            error: responseData['error'],
-          );
+        print('Raw session data from backend: $responseData');
+        
+        // The API now returns admin-format response: {token, user, expires_at, created_at}
+        // We need to convert this to our WebJwtSession format
+        final userMap = responseData['user'] as Map<String, dynamic>;
+        
+        // Create WebJwtUser from the admin-format response
+        final user = WebJwtUser(
+          id: userMap['id'].toString(),
+          phoneNumber: userMap['phoneNumber'] as String? ?? userMap['admin_user_email'] as String,
+          fullName: userMap['fullName'] as String? ?? userMap['name'] as String,
+          role: userMap['role'] as String? ?? 'resident',
+          homeId: userMap['homeId'] as int? ?? 1,
+          homeName: userMap['homeName'] as String? ?? userMap['database_schema'] as String?,
+          photo: userMap['photo'] as String?,
+          apartmentNumber: userMap['apartmentNumber'] as String?,
+          createdAt: DateTime.parse(userMap['created_at'] as String),
+          updatedAt: DateTime.parse(userMap['updated_at'] as String),
+        );
+        
+        // Create WebJwtSession from the admin-format response
+        final session = WebJwtSession(
+          token: responseData['token'] as String,
+          refreshToken: '', // Will be set by refresh endpoint if needed
+          user: user,
+          expiresAt: DateTime.parse(responseData['expires_at'] as String),
+          refreshExpiresAt: DateTime.parse(responseData['expires_at'] as String).add(Duration(days: 30)), // Default 30 days
+          createdAt: DateTime.parse(responseData['created_at'] as String),
+        );
+        
+        print('Parsed session - ExpiresAt: ${session.expiresAt}, RefreshExpiresAt: ${session.refreshExpiresAt}');
+        print('Current time: ${DateTime.now()}');
+        print('Session isValid: ${session.isValid}');
+        
+        // Store session
+        await WebJwtSessionService.storeSession(session);
+        
+        // Store home name for tenant routing
+        if (homeName != null) {
+          await WebJwtSessionService.storeHomeName(homeName);
         }
+        
+        print('Web JWT login successful for user: ${session.user.fullName}');
+        return WebJwtLoginResult(
+          success: true,
+          message: 'Login successful',
+          session: session,
+        );
       } else if (response.statusCode == 401) {
         print('Web JWT login failed: Invalid credentials');
         return const WebJwtLoginResult(

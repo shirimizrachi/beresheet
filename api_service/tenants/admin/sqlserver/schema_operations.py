@@ -134,8 +134,7 @@ class SqlServerSchemaOperations(SchemaOperationsBase):
                         -- Grant additional permissions to schema user
                         GRANT CREATE TABLE TO [{schema_name}];
                         GRANT CREATE VIEW TO [{schema_name}];
-                        GRANT CREATE PROCEDURE TO [{schema_name}];
-                        GRANT CREATE FUNCTION TO [{schema_name}];
+                        GRANT CREATE PROCEDURE TO [{schema_name}];                        
                         
                         -- Grant permissions on the schema to schema user
                         GRANT CONTROL ON SCHEMA::[{schema_name}] TO [{schema_name}];

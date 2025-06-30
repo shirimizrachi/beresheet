@@ -37,10 +37,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
@@ -83,6 +79,21 @@ spec:
                 configMapKeyRef:
                   name: {{ include "residents-api.fullname" . }}-config
                   key: ORACLE_SERVICE_LEVEL
+            - name: ORACLE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-config
+                  key: ORACLE_HOST
+            - name: ORACLE_SERVICE_NAME_MEDIUM
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: oracle-service-name
+            - name: TENANT_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "residents-api.fullname" . }}-secrets
+                  key: tenant-password
             - name: DATABASE_NAME
               valueFrom:
                 configMapKeyRef:

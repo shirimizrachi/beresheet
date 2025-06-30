@@ -26,7 +26,7 @@ STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER")  # "azure" or "cloudflare"
 CLOUDFLARE_SHARED_BUCKET_NAME = os.getenv("CLOUDFLARE_SHARED_BUCKET_NAME", "residents-images")
 
 # Home Index Configuration (common to all implementations)
-HOME_INDEX_SCHEMA_NAME = os.getenv("HOME_INDEX_SCHEMA_NAME", "home_index")
+home_index_NAME = os.getenv("home_index_NAME", "home_index")
 HOME_INDEX_USER_NAME = os.getenv("HOME_INDEX_USER_NAME", "home_index")
 HOME_INDEX_USER_PASSWORD = os.getenv("HOME_INDEX_USER_PASSWORD")
 

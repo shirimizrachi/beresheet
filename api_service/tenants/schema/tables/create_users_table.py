@@ -65,9 +65,10 @@ def create_users_table(engine, schema_name: str, drop_if_exists: bool = True):
         
         # Create indexes for better performance
         with engine.connect() as conn:
-            # Define indexes
+            # Define indexes - exclude firebase_id since it has unique constraint
+            # Both Oracle and SQL Server automatically create indexes for unique constraints
             indexes = [
-                Index(f'ix_{schema_name}_users_firebase_id', UsersTable.firebase_id),
+                # Skip firebase_id since it has unique constraint (automatic index)
                 Index(f'ix_{schema_name}_users_home_id', UsersTable.home_id),
                 Index(f'ix_{schema_name}_users_phone_number', UsersTable.phone_number),
                 Index(f'ix_{schema_name}_users_role', UsersTable.role),
@@ -76,10 +77,21 @@ def create_users_table(engine, schema_name: str, drop_if_exists: bool = True):
                 Index(f'ix_{schema_name}_users_firebase_fcm_token', UsersTable.firebase_fcm_token),
             ]
             
+            logger.info(f"Skipping index on 'firebase_id' column - automatically created by unique constraint")
+            
             # Create each index
             for index in indexes:
                 try:
-                    index.create(engine, checkfirst=True)
+                    # Drop index first if it exists to avoid ORA-01408 error
+                    try:
+                        index.drop(engine, checkfirst=True)
+                        logger.info(f"Dropped existing index {index.name}")
+                    except Exception as drop_e:
+                        logger.debug(f"No existing index {index.name} to drop: {drop_e}")
+                    
+                    # Now create the index
+                    index.create(engine, checkfirst=False)
+                    logger.info(f"Created index {index.name}")
                 except Exception as e:
                     logger.warning(f"Could not create index {index.name}: {e}")
             

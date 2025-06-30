@@ -72,7 +72,16 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             # Create each index
             for index in indexes:
                 try:
-                    index.create(engine, checkfirst=True)
+                    # Drop index first if it exists to avoid ORA-01408 error
+                    try:
+                        index.drop(engine, checkfirst=True)
+                        logger.info(f"Dropped existing index {index.name}")
+                    except Exception as drop_e:
+                        logger.debug(f"No existing index {index.name} to drop: {drop_e}")
+                    
+                    # Now create the index
+                    index.create(engine, checkfirst=False)
+                    logger.info(f"Created index {index.name}")
                 except Exception as e:
                     logger.warning(f"Could not create index {index.name}: {e}")
             

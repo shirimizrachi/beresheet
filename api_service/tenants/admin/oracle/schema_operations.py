@@ -77,8 +77,8 @@ class OracleSchemaOperations(SchemaOperationsBase):
                 # Grant database-level permissions
                 try:
                     db_permissions = [
-                        "CREATE SESSION", "CREATE TABLE", "CREATE VIEW", "CREATE PROCEDURE",
-                        "CREATE SEQUENCE", "CREATE TRIGGER", "CREATE TYPE", "CREATE FUNCTION"
+                        "CREATE SESSION", "CREATE TABLE", "CREATE VIEW",
+                        "CREATE SEQUENCE", "CREATE TYPE",
                     ]
                     
                     for permission in db_permissions:

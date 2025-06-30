@@ -68,14 +68,15 @@ class _WebJwtLoginScreenState extends State<WebJwtLoginScreen> {
           );
         }
         
-        // Call success callback or navigate
+        // Call success callback or navigate to management panel
         if (widget.onLoginSuccess != null) {
           widget.onLoginSuccess!();
         } else {
-          // Navigate to tenant-specific web page
+          // Navigate to management panel using Flutter navigation (preserves session state)
           if (mounted) {
             final tenantWebUrl = AppConfig.webHomepageUrl;
-            html.window.location.href = tenantWebUrl;
+            // Use Flutter navigation instead of page reload to preserve session
+            html.window.location.href = '$tenantWebUrl#/manage';
           }
         }
       } else {

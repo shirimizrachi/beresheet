@@ -28,20 +28,31 @@ import time
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     
-    # Log incoming request details
-    print(f"\n=== INCOMING REQUEST ===")
-    print(f"Method: {request.method}")
-    print(f"URL: {request.url}")
-    print(f"Path: {request.url.path}")
-    print(f"Query: {request.url.query}")
-    print(f"Headers: {dict(request.headers)}")
+    # Only log specific request types (API, web, home)
+    path = request.url.path
+    should_log = (
+        path.startswith('/api') or
+        path.startswith('/web') or
+        path.startswith('/home') or
+        any(f'/{part}/api' in path or f'/{part}/web' in path for part in path.split('/')[1:2])
+    )
+    
+    if should_log:
+        # Log incoming request details
+        print(f"\n=== INCOMING REQUEST ===")
+        print(f"Method: {request.method}")
+        print(f"URL: {request.url}")
+        print(f"Path: {request.url.path}")
+        print(f"Query: {request.url.query}")
+        #print(f"Headers: {dict(request.headers)}")
     
     response = await call_next(request)
     
-    process_time = time.time() - start_time
-    print(f"Status: {response.status_code}")
-    print(f"Process time: {process_time:.4f}s")
-    print(f"========================\n")
+    if should_log:
+        process_time = time.time() - start_time
+        print(f"Status: {response.status_code}")
+        print(f"Process time: {process_time:.4f}s")
+        print(f"========================\n")
     
     return response
 

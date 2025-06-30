@@ -86,7 +86,7 @@ def get_urgent_connection():
     return get_oracle_connection_string("residents_tpurgent")
 
 # Schema and user configuration
-ORACLE_SCHEMA_NAME = "RESIDENTS_SCHEMA"
+ORACLE_SCHEMA_NAME = "home"
 ORACLE_TEST_USER = "TEST_USER"
 
 # Connection pool settings for SQLAlchemy

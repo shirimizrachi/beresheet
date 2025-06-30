@@ -59,19 +59,29 @@ def create_events_registration_table(engine, schema_name: str, drop_if_exists: b
         
         # Create indexes for better performance
         with engine.connect() as conn:
-            # Define indexes
+            # Define indexes - exclude columns that have unique constraints since both Oracle and SQL Server
+            # automatically create indexes for unique constraints
             indexes = [
-                Index(f'ix_{schema_name}_events_registration_event_id', EventsRegistrationTable.event_id),
-                Index(f'ix_{schema_name}_events_registration_user_id', EventsRegistrationTable.user_id),
+                # Skip event_id and user_id since they're covered by unique constraint (event_id, user_id)
                 Index(f'ix_{schema_name}_events_registration_date', EventsRegistrationTable.registration_date),
                 Index(f'ix_{schema_name}_events_registration_status', EventsRegistrationTable.status),
-                Index(f'ix_{schema_name}_events_registration_event_date', EventsRegistrationTable.event_id, EventsRegistrationTable.registration_date),
+                # Note: Composite index (event_id, registration_date) might also conflict with unique constraint
+                # so we'll skip it to be safe
             ]
             
             # Create each index
             for index in indexes:
                 try:
-                    index.create(engine, checkfirst=True)
+                    # Drop index first if it exists to avoid ORA-01408 error
+                    try:
+                        index.drop(engine, checkfirst=True)
+                        logger.info(f"Dropped existing index {index.name}")
+                    except Exception as drop_e:
+                        logger.debug(f"No existing index {index.name} to drop: {drop_e}")
+                    
+                    # Now create the index
+                    index.create(engine, checkfirst=False)
+                    logger.info(f"Created index {index.name}")
                 except Exception as e:
                     logger.warning(f"Could not create index {index.name}: {e}")
             

@@ -13,6 +13,7 @@ data:
   # Database configuration
   ORACLE_DATABASE_NAME: {{ .Values.configMap.data.ORACLE_DATABASE_NAME | quote }}
   ORACLE_SERVICE_LEVEL: {{ .Values.configMap.data.ORACLE_SERVICE_LEVEL | quote }}
+  ORACLE_HOST: {{ .Values.configMap.data.ORACLE_HOST | quote }}
   DATABASE_NAME: {{ .Values.configMap.data.DATABASE_NAME | quote }}
   SCHEMA_NAME: {{ .Values.configMap.data.SCHEMA_NAME | quote }}
   

@@ -117,9 +117,6 @@ class RequestDatabase:
             service_provider_type_id = service_provider_info['service_provider_type_id']
             service_provider_type_details = self._get_service_provider_type_details(service_provider_type_id, home_id) if service_provider_type_id else {'name': None, 'description': None}
             
-            print(f"DEBUG: service_provider_type_id: {service_provider_type_id}")
-            print(f"DEBUG: service_provider_type_details: {service_provider_type_details}")
-
             # Generate unique request ID
             request_id = str(uuid.uuid4())
 

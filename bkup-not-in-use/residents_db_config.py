@@ -114,7 +114,7 @@ def get_server_info():
         }
 
 # Home Index Configuration
-HOME_INDEX_SCHEMA_NAME = "home_index"
+home_index_NAME = "home_index"
 HOME_INDEX_USER_NAME = "home_index"
 HOME_INDEX_USER_PASSWORD = "HomeIndex2025!@#"
 
@@ -122,10 +122,10 @@ HOME_INDEX_USER_PASSWORD = "HomeIndex2025!@#"
 if DATABASE_ENGINE == "mysql":
     # For MySQL, home_index is a separate database
     if DATABASE_TYPE == "cloud":
-        LOCAL_HOME_INDEX_CONNECTION_STRING = f"mysql+pymysql://{HOME_INDEX_USER_NAME}:{quote_plus(HOME_INDEX_USER_PASSWORD)}@{MYSQL_SERVER}/{HOME_INDEX_SCHEMA_NAME}"
+        LOCAL_HOME_INDEX_CONNECTION_STRING = f"mysql+pymysql://{HOME_INDEX_USER_NAME}:{quote_plus(HOME_INDEX_USER_PASSWORD)}@{MYSQL_SERVER}/{home_index_NAME}"
         AZURE_HOME_INDEX_CONNECTION_STRING = LOCAL_HOME_INDEX_CONNECTION_STRING
     else:
-        LOCAL_HOME_INDEX_CONNECTION_STRING = f"mysql+pymysql://{HOME_INDEX_USER_NAME}:{quote_plus(HOME_INDEX_USER_PASSWORD)}@{MYSQL_SERVER}/{HOME_INDEX_SCHEMA_NAME}"
+        LOCAL_HOME_INDEX_CONNECTION_STRING = f"mysql+pymysql://{HOME_INDEX_USER_NAME}:{quote_plus(HOME_INDEX_USER_PASSWORD)}@{MYSQL_SERVER}/{home_index_NAME}"
         AZURE_HOME_INDEX_CONNECTION_STRING = LOCAL_HOME_INDEX_CONNECTION_STRING
 else:
     # For SQL Server, home_index is a schema in the same database

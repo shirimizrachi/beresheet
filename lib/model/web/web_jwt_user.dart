@@ -2,6 +2,13 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'web_jwt_user.g.dart';
 
+/// Helper function to parse UTC timestamp to local DateTime
+DateTime _parseUtcToLocal(String utcString) {
+  // Add 'Z' suffix if not present to ensure UTC parsing
+  final utcStringWithZ = utcString.endsWith('Z') ? utcString : utcString + 'Z';
+  return DateTime.parse(utcStringWithZ).toLocal();
+}
+
 /// Web JWT User model - completely separate from admin user
 @JsonSerializable()
 class WebJwtUser {
@@ -39,8 +46,8 @@ class WebJwtUser {
       homeName: json['homeName'] as String?,
       photo: json['photo'] as String?,
       apartmentNumber: json['apartmentNumber'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: _parseUtcToLocal(json['createdAt'] as String),
+      updatedAt: _parseUtcToLocal(json['updatedAt'] as String),
     );
   }
   Map<String, dynamic> toJson() => _$WebJwtUserToJson(this);
@@ -73,9 +80,9 @@ class WebJwtSession {
       token: json['token'] as String,
       refreshToken: json['refreshToken'] as String,
       user: WebJwtUser.fromJson(json['user'] as Map<String, dynamic>),
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
-      refreshExpiresAt: DateTime.parse(json['refreshExpiresAt'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      expiresAt: _parseUtcToLocal(json['expiresAt'] as String),
+      refreshExpiresAt: _parseUtcToLocal(json['refreshExpiresAt'] as String),
+      createdAt: _parseUtcToLocal(json['createdAt'] as String),
     );
   }
   Map<String, dynamic> toJson() => _$WebJwtSessionToJson(this);
@@ -83,11 +90,11 @@ class WebJwtSession {
   /// Check if the main token is still valid
   bool get isValid {
     final now = DateTime.now();
-    print('Session validation - Local now: $now, ExpiresAt: $expiresAt');
+    print('Session validation - Local now: $now, ExpiresAt (converted to local): $expiresAt');
     
-    // Use local time comparison like admin system
+    // Both times are now in local timezone after UTC conversion in fromJson
     final isValidLocal = now.isBefore(expiresAt);
-    print('Using local time comparison: $isValidLocal');
+    print('Token validity check: $isValidLocal');
     return isValidLocal;
   }
 

@@ -43,21 +43,9 @@ def create_rooms_table(engine, schema_name: str, drop_if_exists: bool = True):
         # Create the table
         RoomsTable.__table__.create(engine, checkfirst=True)
         
-        # Create indexes for better performance
-        with engine.connect() as conn:
-            # Define indexes
-            indexes = [
-                Index(f'ix_{schema_name}_rooms_room_name', RoomsTable.room_name),
-            ]
-            
-            # Create each index
-            for index in indexes:
-                try:
-                    index.create(engine, checkfirst=True)
-                except Exception as e:
-                    logger.warning(f"Could not create index {index.name}: {e}")
-            
-            conn.commit()
+        # Note: No additional indexes needed for 'room_name' column since it has a unique constraint
+        # Both Oracle and SQL Server automatically create indexes for unique constraints
+        logger.info(f"Index for 'room_name' column automatically created by unique constraint")
         
         logger.info(f"Rooms table created successfully in schema '{schema_name}' with indexes.")
         print(f"Rooms table created successfully in schema '{schema_name}' with indexes.")

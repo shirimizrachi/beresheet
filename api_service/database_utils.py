@@ -9,30 +9,6 @@ from sqlalchemy import create_engine, event
 from typing import Dict, Optional
 from tenant_config import get_tenant_connection_string_by_home_id, get_schema_name_by_home_id, get_tenant_connection_string, load_tenant_config_from_db
 
-# SQL Debug flag - set to True to enable SQL logging
-SQL_DEBUG = False  # Change this to False to disable SQL debugging
-
-def setup_sql_logging():
-    """Setup SQL logging if debug is enabled"""
-    if SQL_DEBUG:
-        # Configure SQLAlchemy logging
-        logging.basicConfig()
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-        print("🔍 SQL Debug Mode: ENABLED - All SQL queries will be logged")
-        return True
-    else:
-        print("🔍 SQL Debug Mode: DISABLED")
-        return False
-
-def log_sql_before_execute(conn, clauseelement, multiparams, params, execution_options, executemany):
-    """Log SQL before execution"""
-    if SQL_DEBUG:
-        print(f"🚀 EXECUTING SQL: {clauseelement}")
-        if params:
-            print(f"📝 PARAMETERS: {params}")
-
-# Initialize SQL logging
-_sql_logging_enabled = setup_sql_logging()
 
 class SchemaEngineManager:
     """Manages database engines for different schemas"""
@@ -68,17 +44,21 @@ class SchemaEngineManager:
         # Get schema-specific connection string
         schema_connection_string = get_tenant_connection_string(tenant_config)
         
+        # Log the tenant connection being used (without password for security)
+        safe_connection_string = schema_connection_string
+        if ":" in safe_connection_string and "@" in safe_connection_string:
+            # Find password part and replace it with ***
+            parts = safe_connection_string.split("://")[1]
+            if "@" in parts:
+                user_pass, rest = parts.split("@", 1)
+                if ":" in user_pass:
+                    user, password = user_pass.split(":", 1)
+                    safe_connection_string = schema_connection_string.replace(f":{password}@", ":***@")
+        
         # Create and cache schema-specific engine
         try:
             schema_engine = create_engine(schema_connection_string)
-            
-            # Add SQL logging event listener if debug is enabled
-            if SQL_DEBUG:
-                event.listen(schema_engine, "before_cursor_execute", log_sql_before_execute)
-                print(f"🔧 Added SQL logging to engine for schema: {schema_name}")
-            
             self._schema_engines[schema_name] = schema_engine
-            print(f"Created new engine for schema: {schema_name}")
             return schema_engine
         except Exception as e:
             print(f"Error creating engine for schema {schema_name}: {e}")
@@ -158,15 +138,15 @@ def get_tenant_engine(connection_string: str, tenant_name: str):
         try:
             engine = create_engine(connection_string)
             
-            # Add SQL logging event listener if debug is enabled
-            if SQL_DEBUG:
-                event.listen(engine, "before_cursor_execute", log_sql_before_execute)
-                print(f"🔧 Added SQL logging to engine for tenant: {tenant_name}")
+            # Test the connection immediately to catch errors early
+            with engine.connect() as test_conn:
+                from sqlalchemy import text
+                test_conn.execute(text('SELECT 1 FROM DUAL'))
             
             schema_engine_manager._tenant_engines[tenant_name] = engine
-            print(f"Created new tenant engine for: {tenant_name}")
+            
         except Exception as e:
-            print(f"Error creating tenant engine for {tenant_name}: {e}")
+            logging.error(f"Error creating tenant engine for {tenant_name}: {e}")
             return None
     
     return schema_engine_manager._tenant_engines[tenant_name]
@@ -192,9 +172,8 @@ def get_tenant_connection(connection_string: str, tenant_name: str, schema_name:
             from sqlalchemy import text
             # Use the schema in queries by default
             conn.execute(text(f"-- Using schema: {schema_name}"))
-            print(f"Set schema context to '{schema_name}' for tenant '{tenant_name}'")
         except Exception as e:
-            print(f"Warning: Could not set schema context for {tenant_name}: {e}")
+            logging.warning(f"Could not set schema context for {tenant_name}: {e}")
         
         return conn
     return None

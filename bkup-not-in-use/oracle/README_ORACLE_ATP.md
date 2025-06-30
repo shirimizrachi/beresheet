@@ -215,7 +215,7 @@ ORACLE_POOL_SETTINGS = {
 | `ORACLE_USERNAME` | `ADMIN` | Oracle ATP username |
 | `ORACLE_PASSWORD` | - | Oracle ATP password |
 | `ORACLE_SERVICE_LEVEL` | `residents_medium` | Service level to use |
-| `ORACLE_SCHEMA_NAME` | `RESIDENTS_SCHEMA` | Schema name for operations |
+| `ORACLE_SCHEMA_NAME` | `home` | Schema name for operations |
 | `ORACLE_ECHO_SQL` | `false` | Enable SQL query logging |
 
 ## Troubleshooting

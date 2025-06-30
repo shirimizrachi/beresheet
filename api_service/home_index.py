@@ -9,14 +9,14 @@ from typing import Optional, Dict
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from residents_config import get_home_index_connection_string, HOME_INDEX_SCHEMA_NAME
+from residents_config import get_home_index_connection_string, home_index_NAME
 
 class HomeIndexDatabase:
     def __init__(self):
         # Use dedicated home_index connection
         self._engine = None
         self.metadata = MetaData()
-        self.schema_name = HOME_INDEX_SCHEMA_NAME
+        self.schema_name = home_index_NAME
 
     @property
     def engine(self):

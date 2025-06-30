@@ -3,6 +3,7 @@ Oracle ATP (Autonomous Transaction Processing) database service implementation
 """
 
 import os
+import logging
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
@@ -21,8 +22,15 @@ class OracleDatabaseService:
         # Oracle ATP Configuration
         self.oracle_username = os.getenv("ORACLE_USER")
         self.oracle_password = os.getenv("ORACLE_ATP_PASSWORD")
-        self.oracle_database_name = os.getenv("ORACLE_DATABASE_NAME", "residents")
-        self.oracle_service_level = os.getenv("ORACLE_SERVICE_LEVEL", "residents_medium")
+        self.oracle_database_name = os.getenv("ORACLE_DATABASE_NAME")
+        self.oracle_service_level = os.getenv("ORACLE_SERVICE_LEVEL")
+        
+        # Oracle ATP Connection Configuration
+        self.oracle_host = os.getenv("ORACLE_HOST")
+        self.oracle_port = 1521  # Static port
+        self.oracle_service_name = os.getenv("ORACLE_SERVICE_NAME_MEDIUM")
+        self.oracle_retry_count = 20  # Static retry count
+        self.oracle_retry_delay = 3   # Static retry delay
         
         # Validate required credentials
         if not self.oracle_username:
@@ -30,12 +38,16 @@ class OracleDatabaseService:
         if not self.oracle_password:
             raise ValueError("ORACLE_ATP_PASSWORD environment variable is required")
         
-        # Oracle ATP Connection String (only residents_medium)
-        self.oracle_atp_connection = "(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1521)(host=adb.il-jerusalem-1.oraclecloud.com))(connect_data=(service_name=gb3f9204cbd02e0_residents_medium.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))"
+        # Build Oracle ATP Connection String dynamically
+        self.oracle_atp_connection = (
+            f"(description= "
+            f"(retry_count={self.oracle_retry_count})"
+            f"(retry_delay={self.oracle_retry_delay})"
+            f"(address=(protocol=tcps)(port={self.oracle_port})(host={self.oracle_host}))"
+            f"(connect_data=(service_name={self.oracle_service_name}))"
+            f"(security=(ssl_server_dn_match=yes)))"
+        )
         
-        # Schema configuration
-        self.oracle_schema_name = "RESIDENTS_SCHEMA"
-        self.oracle_home_index_schema = "HOME_INDEX_SCHEMA"
         
         # Build connection strings
         self._build_connection_strings()
@@ -95,7 +107,6 @@ class OracleDatabaseService:
             "host": "adb.il-jerusalem-1.oraclecloud.com",
             "port": 1521,
             "protocol": "tcps",
-            "schema": self.oracle_home_index_schema,
             "connection_string": self.get_home_index_connection_string(),
             "description": f"Oracle ATP Home Index - {self.oracle_service_level}"
         }
@@ -111,9 +122,14 @@ class OracleDatabaseService:
     def get_tenant_connection_string(self, tenant_name: str):
         """Get connection string for a tenant using tenant-specific credentials"""
         from urllib.parse import quote_plus
-        tenant_password = "TenantApp2025!@#"
+        
+        tenant_password = os.getenv("TENANT_DEFAULT_PASSWORD")
         oracle_tns = self.oracle_atp_connection
-        return f"oracle+oracledb://{tenant_name}:{quote_plus(tenant_password)}@{oracle_tns}"
+        
+        # Build connection string with tenant-specific user
+        connection_string = f"oracle+oracledb://{tenant_name}:{quote_plus(tenant_password)}@{oracle_tns}"
+        
+        return connection_string
 
 def get_oracle_database_service():
     """Get Oracle database service instance"""

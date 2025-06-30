@@ -185,8 +185,7 @@ class SqlServerDatabaseSetup(DatabaseSetupBase):
                 
                 # Grant database-level permissions
                 db_permissions = [
-                    "CREATE TABLE", "CREATE VIEW", "CREATE PROCEDURE",
-                    "CREATE FUNCTION", "CREATE TYPE"
+                    "CREATE TABLE", "CREATE VIEW", "CREATE TYPE"
                 ]
                 
                 for permission in db_permissions:

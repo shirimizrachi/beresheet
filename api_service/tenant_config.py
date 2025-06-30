@@ -321,12 +321,13 @@ def get_tenant_connection_string(tenant_config: TenantConfig) -> str:
         # Use the tenant name as the username (schema name)
         tenant_connection = db_service.get_tenant_connection_string(tenant_config.database_schema)
         
-        logger.info(f"Generated tenant connection string for schema '{tenant_config.database_schema}'")
         return tenant_connection
         
     except Exception as e:
-        logger.error(f"Error creating tenant connection string: {e}")
+        logger.error(f"Error creating tenant connection string for '{tenant_config.name}': {e}")
+        
         # Fallback to admin connection if there's an issue
+        logger.warning(f"Falling back to admin connection for tenant '{tenant_config.name}'")
         return ADMIN_CONNECTION_STRING
 
 def get_tenant_connection_string_by_home_id(home_id: int) -> Optional[str]:

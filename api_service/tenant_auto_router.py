@@ -57,7 +57,10 @@ async def validate_tenant_and_header(
             detail=f"HomeID header ({home_id}) doesn't match tenant '{tenant_name}' (expected {tenant_config.id})"
         )
     
-    logger.info(f"Validated tenant '{tenant_name}' (ID: {tenant_config.id}) for request")
+    # Log tenant validation
+    logger.info(f"✅ TENANT VALIDATED - Tenant '{tenant_name}' (ID: {tenant_config.id}) for request")
+    print(f"✅ TENANT VALIDATED - Tenant '{tenant_name}' (ID: {tenant_config.id}, Schema: {tenant_config.database_schema})")
+    
     return tenant_config
 
 async def validate_tenant_only(tenant_name: str = Path(..., description="Tenant name from URL")):
@@ -82,7 +85,10 @@ async def validate_tenant_only(tenant_name: str = Path(..., description="Tenant 
             detail=f"Tenant '{tenant_name}' not found"
         )
     
-    logger.info(f"Validated tenant '{tenant_name}' (ID: {tenant_config.id}) for auth request")
+    # Log tenant validation for auth requests
+    logger.info(f"✅ TENANT VALIDATED (AUTH) - Tenant '{tenant_name}' (ID: {tenant_config.id}) for auth request")
+    print(f"✅ TENANT VALIDATED (AUTH) - Tenant '{tenant_name}' (ID: {tenant_config.id}, Schema: {tenant_config.database_schema})")
+    
     return tenant_config
 
 async def validate_tenant_and_header_or_redirect(

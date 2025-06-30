@@ -11,7 +11,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "residents")
 SCHEMA_NAME = os.getenv("SCHEMA_NAME", "home")
 USER_NAME = os.getenv("USER_NAME")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
-HOME_INDEX_SCHEMA_NAME = os.getenv("HOME_INDEX_SCHEMA_NAME", "home_index")
+home_index_NAME = os.getenv("home_index_NAME", "home_index")
 HOME_INDEX_USER_NAME = os.getenv("HOME_INDEX_USER_NAME")
 HOME_INDEX_USER_PASSWORD = os.getenv("HOME_INDEX_USER_PASSWORD")
 
