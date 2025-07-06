@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../../utils/display_name_utils.dart';
 
 class EventsRegistrationManagementWeb extends StatefulWidget {
   const EventsRegistrationManagementWeb({Key? key}) : super(key: key);
@@ -22,6 +23,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
   bool isLoading = true;
   String? errorMessage;
   Map<String, String> eventNames = {}; // Cache event names
+  Map<String, String> eventTypes = {}; // Cache event types
 
   @override
   void initState() {
@@ -94,11 +96,14 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final Map<String, String> names = {};
+        final Map<String, String> types = {};
         for (final eventData in data) {
           names[eventData['id']] = eventData['name'];
+          types[eventData['id']] = eventData['type'];
         }
         setState(() {
           eventNames = names;
+          eventTypes = types;
         });
       }
     } catch (e) {
@@ -279,6 +284,7 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                 ],
                                 rows: registrations.map((registration) {
                                   final eventName = eventNames[registration['event_id']] ?? AppLocalizations.of(context)!.unknownEvent;
+                                  final eventType = eventTypes[registration['event_id']];
                                   final userName = registration['user_name'] ?? AppLocalizations.of(context)!.unknownUser;
                                   final userPhone = registration['user_phone'] ?? AppLocalizations.of(context)!.notAvailable;
                                   final registrationDate = _formatDateTime(registration['registration_date']);
@@ -304,9 +310,25 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
                                       DataCell(
                                         Container(
                                           constraints: const BoxConstraints(maxWidth: 200),
-                                          child: Text(
-                                            eventName,
-                                            overflow: TextOverflow.ellipsis,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                eventName,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                              if (eventType != null)
+                                                Text(
+                                                  DisplayNameUtils.getEventTypeDisplayName(eventType, context),
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
                                       ),

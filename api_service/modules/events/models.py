@@ -23,13 +23,15 @@ class EventBase(BaseModel):
     maxParticipants: int
     image_url: Optional[str] = ""  # Allow None and default to empty string
     currentParticipants: int = 0
-    status: str = "pending-approval"  # "pending-approval", "approved", "rejected", "cancelled"
+    status: str = "pending-approval"  # "pending-approval", "approved", "rejected", "cancelled", "done"
     recurring: str = "none"  # "none", "weekly", "bi-weekly", "monthly"
     recurring_end_date: Optional[datetime] = None
     recurring_pattern: Optional[str] = None  # JSON string with RecurrencePatternData
     instructor_name: Optional[str] = None
     instructor_desc: Optional[str] = None
     instructor_photo: Optional[str] = None
+    reviews: Optional[list] = []  # Event reviews for completed events
+    galleryPhotos: Optional[list] = []  # Gallery photos for completed events
 
 class EventCreate(EventBase):
     pass

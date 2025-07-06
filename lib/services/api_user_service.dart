@@ -9,6 +9,7 @@ import '../model/user.dart';
 import 'user_session_service.dart';
 import '../config/app_config.dart';
 import 'firebase_messaging_service.dart';
+import '../utils/display_name_utils.dart';
 
 class ApiUserService {
   // Use tenant-aware API URL from AppConfig
@@ -510,16 +511,16 @@ class ApiUserService {
 
   /// Get available marital statuses
   static List<String> getAvailableMaritalStatuses() {
-    return ['single', 'married', 'divorced', 'widowed'];
+    return DisplayNameUtils.maritalStatusOptions;
   }
 
   /// Get available genders
   static List<String> getAvailableGenders() {
-    return ['male', 'female', 'other'];
+    return DisplayNameUtils.genderOptions;
   }
 
   /// Get available languages
   static List<String> getAvailableLanguages() {
-    return ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish', 'other'];
+    return DisplayNameUtils.languageOptions;
   }
 }

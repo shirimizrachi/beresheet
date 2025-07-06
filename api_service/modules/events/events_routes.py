@@ -56,6 +56,9 @@ async def get_events(
     type: Optional[str] = Query(None, description="Filter by event type"),
     upcoming: Optional[bool] = Query(False, description="Get only upcoming events"),
     approved_only: Optional[bool] = Query(False, description="Get only approved events"),
+    status: Optional[str] = Query(None, description="Filter by event status"),
+    include_reviews: Optional[bool] = Query(False, description="Include reviews for completed events"),
+    include_gallery: Optional[bool] = Query(False, description="Include gallery photos for completed events"),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken"),
     user_id: Optional[str] = Depends(get_user_id)
@@ -71,6 +74,15 @@ async def get_events(
         events = event_db.get_upcoming_events(home_id)
     elif type:
         events = event_db.get_events_by_type(type, home_id)
+    elif status:
+        # Filter by specific status (e.g., "done" for completed events)
+        events = event_db.get_events_by_status(status, home_id)
+        
+        # Add reviews or gallery data if requested
+        if include_reviews and status == "done":
+            events = event_db.get_completed_events_with_reviews(home_id)
+        elif include_gallery and status == "done":
+            events = event_db.get_completed_events_with_gallery(home_id)
     else:
         # Show all events for everyone
         events = event_db.get_all_events_ordered(home_id)

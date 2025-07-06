@@ -10,6 +10,8 @@ import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:beresheet_app/config/app_config.dart';
 
 class NewProfilePage extends StatefulWidget {
   const NewProfilePage({super.key, this.userCredential});
@@ -82,11 +84,11 @@ class _NewProfilePageState extends State<NewProfilePage> {
           _phoneController.text = userData.phoneNumber ?? '';
           _apartmentController.text = userData.apartmentNumber ?? '';
           // Ensure the loaded values are in the valid options list
-          _selectedRole = _validateDropdownValue(userData.role, ['resident', 'staff', 'instructor', 'service', 'caregiver'], 'resident');
-          _selectedMaritalStatus = _validateDropdownValue(userData.maritalStatus, ['single', 'married', 'divorced', 'widowed'], 'single');
-          _selectedGender = _validateDropdownValue(userData.gender, ['male', 'female', 'other'], 'male');
-          _selectedReligious = _validateDropdownValue(userData.religious, ['secular', 'orthodox', 'traditional'], 'secular');
-          _selectedLanguage = _validateDropdownValue(userData.nativeLanguage, ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'], 'hebrew');
+          _selectedRole = _validateDropdownValue(userData.role, AppConfig.userRoles, 'resident');
+          _selectedMaritalStatus = _validateDropdownValue(userData.maritalStatus, DisplayNameUtils.maritalStatusOptions, 'single');
+          _selectedGender = _validateDropdownValue(userData.gender, DisplayNameUtils.genderOptions, 'male');
+          _selectedReligious = _validateDropdownValue(userData.religious, DisplayNameUtils.religiousOptions, 'secular');
+          _selectedLanguage = _validateDropdownValue(userData.nativeLanguage, DisplayNameUtils.languageOptions, 'hebrew');
           _selectedBirthday = userData.birthday;
           _photoUrl = userData.photo;
         });
@@ -624,28 +626,28 @@ class _NewProfilePageState extends State<NewProfilePage> {
                     _buildDropdownField(
                       l10n.maritalStatus,
                       _selectedMaritalStatus,
-                      ['single', 'married', 'divorced', 'widowed'],
+                      DisplayNameUtils.maritalStatusOptions,
                       (value) => setState(() => _selectedMaritalStatus = value!),
                     ),
                     
                     _buildDropdownField(
                       l10n.gender,
                       _selectedGender,
-                      ['male', 'female', 'other'],
+                      DisplayNameUtils.genderOptions,
                       (value) => setState(() => _selectedGender = value!),
                     ),
                     
                     _buildDropdownField(
                       l10n.religious,
                       _selectedReligious,
-                      ['secular', 'orthodox', 'traditional'],
+                      DisplayNameUtils.religiousOptions,
                       (value) => setState(() => _selectedReligious = value!),
                     ),
                     
                     _buildDropdownField(
                       l10n.nativeLanguage,
                       _selectedLanguage,
-                      ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'],
+                      DisplayNameUtils.languageOptions,
                       (value) => setState(() => _selectedLanguage = value!),
                     ),
                   ],

@@ -34,7 +34,7 @@ def create_users_table(engine, schema_name: str, drop_if_exists: bool = True):
             display_name = Column(Unicode(100))
             full_name = Column(Unicode(100))
             email = Column(String(255))
-            phone_number = Column(String(20))
+            phone_number = Column(String(20), unique=True, nullable=False)
             birth_date = Column(Date)
             birthday = Column(Date)
             gender = Column(Unicode(10))

@@ -343,68 +343,138 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
+                    
+                    // Main content row with photo preview and form fields
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: AppLocalizations.of(context)!.instructorName,
-                              hintText: AppLocalizations.of(context)!.enterInstructorName,
-                              border: const OutlineInputBorder(),
+                        // Photo preview section
+                        Column(
+                          children: [
+                            // Photo preview container
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!, width: 2),
+                                color: Colors.grey[50],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: _selectedPhotoBytes != null
+                                    ? Image.memory(
+                                        _selectedPhotoBytes!,
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                      )
+                                    : (_editingInstructor != null &&
+                                       _editingInstructor!['photo'] != null &&
+                                       _editingInstructor!['photo'].toString().isNotEmpty)
+                                        ? Image.network(
+                                            _editingInstructor!['photo'],
+                                            fit: BoxFit.cover,
+                                            width: 120,
+                                            height: 120,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return const Icon(Icons.school, size: 60, color: Colors.grey);
+                                            },
+                                          )
+                                        : const Icon(Icons.school, size: 60, color: Colors.grey),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            // Photo selection button
+                            ElevatedButton.icon(
+                              onPressed: _pickPhoto,
+                              icon: const Icon(Icons.photo_camera, size: 16),
+                              label: Text(
+                                _selectedPhotoBytes != null
+                                    ? AppLocalizations.of(context)!.changePhoto
+                                    : AppLocalizations.of(context)!.selectPhoto,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                backgroundColor: Colors.blue[50],
+                                foregroundColor: Colors.blue[700],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
+                        
+                        const SizedBox(width: 24),
+                        
+                        // Form fields section
                         Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: _descriptionController,
-                            decoration: InputDecoration(
-                              labelText: AppLocalizations.of(context)!.instructorDescription,
-                              hintText: AppLocalizations.of(context)!.enterDescription,
-                              border: const OutlineInputBorder(),
-                            ),
-                            maxLines: 2,
+                          child: Column(
+                            children: [
+                              // Name field
+                              TextField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.instructorName,
+                                  hintText: AppLocalizations.of(context)!.enterInstructorName,
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.person),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Description field
+                              TextField(
+                                controller: _descriptionController,
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.instructorDescription,
+                                  hintText: AppLocalizations.of(context)!.enterDescription,
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.description),
+                                ),
+                                maxLines: 3,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Action buttons
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: _pickPhoto,
-                          icon: const Icon(Icons.photo),
-                          label: Text(_selectedPhotoBytes != null ? AppLocalizations.of(context)!.photoSelected : AppLocalizations.of(context)!.selectPhoto),
-                        ),
-                        if (_selectedPhotoBytes != null) ...[
-                          const SizedBox(width: 16),
-                          Text(AppLocalizations.of(context)!.selectedPhoto(_selectedPhotoName ?? 'photo')),
-                        ],
-                        const Spacer(),
                         if (_editingInstructor != null) ...[
-                          TextButton(
+                          TextButton.icon(
                             onPressed: _cancelEditing,
-                            child: Text(AppLocalizations.of(context)!.cancel),
+                            icon: const Icon(Icons.cancel),
+                            label: Text(AppLocalizations.of(context)!.cancel),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(width: 8),
                         ],
                         ElevatedButton.icon(
-                          onPressed: (_isCreating || _isUpdating) ? null : 
+                          onPressed: (_isCreating || _isUpdating) ? null :
                             (_editingInstructor == null ? _createInstructor : _updateInstructor),
-                          icon: (_isCreating || _isUpdating) 
+                          icon: (_isCreating || _isUpdating)
                               ? const SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
                               : Icon(_editingInstructor == null ? Icons.add : Icons.save),
                           label: Text(
                             (_isCreating || _isUpdating)
                               ? (_editingInstructor == null ? AppLocalizations.of(context)!.creatingInstructor : AppLocalizations.of(context)!.updatingInstructor)
                               : (_editingInstructor == null ? AppLocalizations.of(context)!.createInstructor : AppLocalizations.of(context)!.updateInstructor)
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _editingInstructor == null ? Colors.green : Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           ),
                         ),
                       ],

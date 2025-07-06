@@ -65,6 +65,8 @@ class Event {
     this.instructorDesc,
     this.instructorPhoto,
     this.isRegistered = false,
+    this.reviews = const [],
+    this.galleryPhotos = const [],
   });
 
   final String id;
@@ -76,7 +78,7 @@ class Event {
   final int maxParticipants;
   final String imageUrl;
   int currentParticipants;
-  final String status; // "pending-approval", "approved", "rejected", "cancelled"
+  final String status; // "pending-approval", "approved", "rejected", "cancelled", "done"
   final String recurring; // "none", "weekly", "monthly", "bi-weekly"
   final DateTime? recurringEndDate;
   final String? recurringPattern; // JSON string with pattern details
@@ -84,6 +86,8 @@ class Event {
   final String? instructorDesc;
   final String? instructorPhoto;
   final bool isRegistered; // Whether the current user is registered for this event
+  final List<Map<String, dynamic>> reviews; // Event reviews for completed events
+  final List<Map<String, dynamic>> galleryPhotos; // Gallery photos for completed events
 
   bool get isAvailable => currentParticipants < maxParticipants;
   
@@ -135,6 +139,12 @@ class Event {
       instructorDesc: json['instructor_desc'],
       instructorPhoto: json['instructor_photo'],
       isRegistered: json['is_registered'] ?? false,
+      reviews: json['reviews'] != null
+          ? List<Map<String, dynamic>>.from(json['reviews'])
+          : const [],
+      galleryPhotos: json['gallery_photos'] != null
+          ? List<Map<String, dynamic>>.from(json['gallery_photos'])
+          : const [],
     );
   }
 
@@ -157,6 +167,8 @@ class Event {
       'instructor_desc': instructorDesc,
       'instructor_photo': instructorPhoto,
       'is_registered': isRegistered,
+      'reviews': reviews,
+      'gallery_photos': galleryPhotos,
     };
   }
 
@@ -178,6 +190,8 @@ class Event {
     String? instructorDesc,
     String? instructorPhoto,
     bool? isRegistered,
+    List<Map<String, dynamic>>? reviews,
+    List<Map<String, dynamic>>? galleryPhotos,
   }) {
     return Event(
       id: id ?? this.id,
@@ -197,6 +211,8 @@ class Event {
       instructorDesc: instructorDesc ?? this.instructorDesc,
       instructorPhoto: instructorPhoto ?? this.instructorPhoto,
       isRegistered: isRegistered ?? this.isRegistered,
+      reviews: reviews ?? this.reviews,
+      galleryPhotos: galleryPhotos ?? this.galleryPhotos,
     );
   }
 }

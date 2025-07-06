@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EventRegistrationsWeb extends StatefulWidget {
@@ -183,17 +184,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
   }
 
   String _formatEventType(String type) {
-    switch (type) {
-      case 'activity': return 'Activity';
-      case 'course': return 'Course';
-      case 'workshop': return 'Workshop';
-      case 'seminar': return 'Seminar';
-      case 'social': return 'Social';
-      case 'sports': return 'Sports';
-      case 'cultural': return 'Cultural';
-      case 'educational': return 'Educational';
-      default: return type.toUpperCase();
-    }
+    return DisplayNameUtils.getEventTypeDisplayName(type, context);
   }
 
   Color _getEventTypeColor(String type) {

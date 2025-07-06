@@ -535,10 +535,6 @@
   "@genderFemale": {
     "description": "Female gender"
   },
-  "genderOther": "Other",
-  "@genderOther": {
-    "description": "Other gender"
-  },
   
   "religiousSecular": "Secular",
   "@religiousSecular": {
@@ -746,6 +742,26 @@
   "refreshEvents": "Refresh Events",
   "@refreshEvents": {
     "description": "Refresh events button"
+  },
+  "carouselView": "Carousel",
+  "@carouselView": {
+    "description": "Carousel view mode"
+  },
+  "bannerView": "Banner",
+  "@bannerView": {
+    "description": "Banner view mode"
+  },
+  "reviewsView": "Reviews",
+  "@reviewsView": {
+    "description": "Reviews view mode"
+  },
+  "galleryView": "Gallery",
+  "@galleryView": {
+    "description": "Gallery view mode"
+  },
+  "eventDisplayMode": "Event Display Mode",
+  "@eventDisplayMode": {
+    "description": "Event display mode label"
   },
   "managementPanelTitle": "Management Panel - Beresheet Community",
   "@managementPanelTitle": {
@@ -1028,6 +1044,79 @@
   "webSearchUnsplash": "Search on Photobank",
   "@webSearchUnsplash": {
     "description": "Web search Photobank placeholder"
+  },
+  "searchImages": "Search images...",
+  "@searchImages": {
+    "description": "Search images label"
+  },
+  "enterKeywordsToSearchImages": "Enter keywords to search images",
+  "@enterKeywordsToSearchImages": {
+    "description": "Enter keywords to search images hint"
+  },
+  "deletePhoto": "Delete Photo",
+  "@deletePhoto": {
+    "description": "Delete photo dialog title"
+  },
+  "areYouSureDeletePhoto": "Are you sure you want to delete this photo?",
+  "@areYouSureDeletePhoto": {
+    "description": "Delete photo confirmation message"
+  },
+  "photoDeletedSuccessfully": "Photo deleted successfully!",
+  "@photoDeletedSuccessfully": {
+    "description": "Photo deleted success message"
+  },
+  "failedToDeletePhoto": "Failed to delete photo",
+  "@failedToDeletePhoto": {
+    "description": "Failed to delete photo error message"
+  },
+  "errorDeletingPhoto": "Error deleting photo",
+  "@errorDeletingPhoto": {
+    "description": "Error deleting photo message"
+  },
+  "errorSelectingFiles": "Error selecting files",
+  "@errorSelectingFiles": {
+    "description": "Error selecting files message"
+  },
+  "failedToLoadGalleryPhotos": "Failed to load gallery photos",
+  "@failedToLoadGalleryPhotos": {
+    "description": "Failed to load gallery photos error"
+  },
+  "errorLoadingGalleryPhotos": "Error loading gallery photos",
+  "@errorLoadingGalleryPhotos": {
+    "description": "Error loading gallery photos message"
+  },
+  "noPhotosYet": "No Photos Yet",
+  "@noPhotosYet": {
+    "description": "No photos yet message"
+  },
+  "uploadSomePhotos": "Upload some photos to create a gallery for this event",
+  "@uploadSomePhotos": {
+    "description": "Upload photos instruction"
+  },
+  "uploadImages": "Upload Images",
+  "@uploadImages": {
+    "description": "Upload images button"
+  },
+  "photoCount": "{count} {count, plural, =1{Photo} other{Photos}}",
+  "@photoCount": {
+    "description": "Photo count display",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLoadImage": "Failed to load image",
+  "@failedToLoadImage": {
+    "description": "Failed to load image error"
+  },
+  "failedToUploadImages": "Failed to upload images",
+  "@failedToUploadImages": {
+    "description": "Failed to upload images error"
+  },
+  "errorUploadingImages": "Error uploading images",
+  "@errorUploadingImages": {
+    "description": "Error uploading images message"
   },
   "webUploadImage": "Upload Image",
   "@webUploadImage": {
@@ -1961,6 +2050,10 @@
   "@selectPhoto": {
     "description": "Select photo button"
   },
+  "changePhoto": "Change Photo",
+  "@changePhoto": {
+    "description": "Change photo button"
+  },
   "photoSelected": "Photo Selected",
   "@photoSelected": {
     "description": "Photo selected status"
@@ -2221,7 +2314,7 @@
   "@uploadImages": {
     "description": "Upload images button"
   },
-  "uploadImagesMax3": "Upload Images (Max 3)",
+  "uploadImagesMax3": "Upload Images (Max 3 at a time)",
   "@uploadImagesMax3": {
     "description": "Upload images with max 3 limit"
   },
@@ -2829,5 +2922,159 @@
   "readAt": "Read At",
   "@readAt": {
     "description": "Read at time label"
+  },
+  
+  "editUserTitle": "Edit User: {userName}",
+  "@editUserTitle": {
+    "description": "Edit user page title with user name",
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "userInformation": "User Information",
+  "@userInformation": {
+    "description": "User information section title"
+  },
+  "editDetails": "Edit Details",
+  "@editDetails": {
+    "description": "Edit details section title"
+  },
+  "clickToSelectFromGallery": "Click to select from gallery",
+  "@clickToSelectFromGallery": {
+    "description": "Click to select from gallery instruction for web"
+  },
+  "pleaseEnterFullName": "Please enter full name",
+  "@pleaseEnterFullName": {
+    "description": "Please enter full name validation"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number field label"
+  },
+  "pleaseEnterPhoneNumber": "Please enter phone number",
+  "@pleaseEnterPhoneNumber": {
+    "description": "Please enter phone number validation"
+  },
+  "serviceProviderType": "Service Provider Type",
+  "@serviceProviderType": {
+    "description": "Service provider type field label"
+  },
+  "selectServiceProviderType": "Select service provider type",
+  "@selectServiceProviderType": {
+    "description": "Select service provider type hint"
+  },
+  "pleaseSelectServiceProviderType": "Please select a service provider type",
+  "@pleaseSelectServiceProviderType": {
+    "description": "Please select service provider type validation"
+  },
+  "selectBirthday": "Select birthday",
+  "@selectBirthday": {
+    "description": "Select birthday hint"
+  },
+  "pleaseSelectBirthday": "Please select a birthday",
+  "@pleaseSelectBirthday": {
+    "description": "Please select birthday validation"
+  },
+  "apartmentNumber": "Apartment Number",
+  "@apartmentNumber": {
+    "description": "Apartment number field label"
+  },
+  "pleaseEnterApartmentNumber": "Please enter apartment number",
+  "@pleaseEnterApartmentNumber": {
+    "description": "Please enter apartment number validation"
+  },
+  "maritalStatus": "Marital Status",
+  "@maritalStatus": {
+    "description": "Marital status field label"
+  },
+  "gender": "Gender",
+  "@gender": {
+    "description": "Gender field label"
+  },
+  "religious": "Religious",
+  "@religious": {
+    "description": "Religious field label"
+  },
+  "nativeLanguage": "Native Language",
+  "@nativeLanguage": {
+    "description": "Native language field label"
+  },
+  "updateUser": "Update User",
+  "@updateUser": {
+    "description": "Update user button"
+  },
+  "userUpdatedSuccessfully": "User updated successfully!",
+  "@userUpdatedSuccessfully": {
+    "description": "User updated successfully message"
+  },
+  "failedToUpdateUser": "Failed to update user: {statusCode}",
+  "@failedToUpdateUser": {
+    "description": "Failed to update user message",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingUser": "Error updating user: {error}",
+  "@errorUpdatingUser": {
+    "description": "Error updating user message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPickingImage": "Error picking image: {error}",
+  "@errorPickingImage": {
+    "description": "Error picking image message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "accessDeniedManagerRoleRequired": "Access denied: Manager role required to edit users",
+  "@accessDeniedManagerRoleRequired": {
+    "description": "Access denied message for editing users"
+  },
+  "userIdLabel": "User ID: {userId}",
+  "@userIdLabel": {
+    "description": "User ID label with ID",
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "everyWeek": "Every week on",
+  "@everyWeek": {
+    "description": "Every week on label for recurring events"
+  },
+  "everyTwoWeeks": "Every two weeks on",
+  "@everyTwoWeeks": {
+    "description": "Every two weeks on label for recurring events"
+  },
+  "everyMonth": "Every month",
+  "@everyMonth": {
+    "description": "Every month label for recurring events"
+  },
+  "at": "at",
+  "@at": {
+    "description": "At time preposition"
+  },
+  "until": "until",
+  "@until": {
+    "description": "Until date preposition"
+  },
+  "onDay": "on day",
+  "@onDay": {
+    "description": "On day preposition for monthly events"
+  },
+  "phoneNumberAlreadyExists": "A user with this phone number already exists",
+  "@phoneNumberAlreadyExists": {
+    "description": "Error message when trying to create user with duplicate phone number"
   }
 }

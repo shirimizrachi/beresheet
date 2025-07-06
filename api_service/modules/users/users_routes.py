@@ -84,37 +84,65 @@ async def get_user_profile_by_phone(
 @router.post("/users", response_model=UserProfile, status_code=201)
 async def create_user_profile(
     user: UserProfileCreate,
-    firebase_id: str,
     home_id: int = Depends(get_home_id)
 ):
     """Create a new user profile"""
     try:
+        print(f"Creating user with data: {user.model_dump()}")
+        
         # Set home_id from the authenticated request
         user.home_id = home_id
-        new_user = user_db.create_user_profile(firebase_id, user, home_id)
+        
+        # Generate a temporary Firebase ID for web-created users
+        import uuid
+        temp_firebase_id = f"web_{uuid.uuid4()}"
+        
+        print(f"Generated Firebase ID: {temp_firebase_id}")
+        
+        new_user = user_db.create_user_profile(temp_firebase_id, user, home_id)
+        if not new_user:
+            print("create_user_profile returned None")
+            raise HTTPException(status_code=422, detail="Failed to create user - database operation returned None")
+        
+        print(f"User created successfully with ID: {new_user.id}")
         return new_user
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=422, detail=f"Failed to create user: {str(e)}")
 
 @router.put("/users/{user_id}", response_model=UserProfile)
 async def update_user_profile(
     user_id: str,
-    full_name: Optional[str] = None,
-    phone_number: Optional[str] = None,
-    role: Optional[str] = None,
-    birthday: Optional[str] = None,
-    apartment_number: Optional[str] = None,
-    marital_status: Optional[str] = None,
-    gender: Optional[str] = None,
-    religious: Optional[str] = None,
-    native_language: Optional[str] = None,
-    service_provider_type_id: Optional[str] = None,
+    full_name: Optional[str] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    role: Optional[str] = Form(None),
+    birthday: Optional[str] = Form(None),
+    apartment_number: Optional[str] = Form(None),
+    marital_status: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    religious: Optional[str] = Form(None),
+    native_language: Optional[str] = Form(None),
+    service_provider_type_id: Optional[str] = Form(None),
     photo: Optional[UploadFile] = File(None),
     home_id: int = Depends(get_home_id)
 ):
-    """Update user profile with optional photo upload"""
+    """Update user profile with form data"""
     try:
+        print(f"Update request for user {user_id}:")
+        print(f"  full_name: {full_name}")
+        print(f"  phone_number: {phone_number}")
+        print(f"  role: {role}")
+        print(f"  birthday: {birthday}")
+        print(f"  apartment_number: {apartment_number}")
+        print(f"  marital_status: {marital_status}")
+        print(f"  gender: {gender}")
+        print(f"  religious: {religious}")
+        print(f"  native_language: {native_language}")
+        
         # Handle photo upload if provided
         photo_url = None
         if photo and photo.filename:
@@ -132,9 +160,17 @@ async def update_user_profile(
         if birthday:
             from datetime import datetime
             try:
-                birthday_date = datetime.strptime(birthday, '%Y-%m-%d').date()
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid birthday format. Use YYYY-MM-DD")
+                # Handle ISO datetime format (e.g., "1920-01-12T00:00:00.000")
+                if 'T' in birthday:
+                    # Remove microseconds if present and parse
+                    birthday_clean = birthday.split('.')[0] if '.' in birthday else birthday
+                    birthday_date = datetime.fromisoformat(birthday_clean).date()
+                else:
+                    # Handle simple date format (e.g., "1920-01-12")
+                    birthday_date = datetime.strptime(birthday, '%Y-%m-%d').date()
+            except ValueError as e:
+                print(f"Birthday parsing error: {e}")
+                raise HTTPException(status_code=400, detail=f"Invalid birthday format: {birthday}. Use YYYY-MM-DD or ISO format")
         
         # Create update data
         update_data = UserProfileUpdate(
@@ -150,6 +186,8 @@ async def update_user_profile(
             service_provider_type_id=service_provider_type_id,
             photo=photo_url
         )
+        
+        print(f"UserProfileUpdate object: {update_data.model_dump()}")
         
         updated_user = user_db.update_user_profile(user_id, update_data, home_id)
         if not updated_user:

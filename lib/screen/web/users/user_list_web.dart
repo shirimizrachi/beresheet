@@ -91,6 +91,10 @@ class _UserListWebState extends State<UserListWeb> {
     return DisplayNameUtils.getUserRoleDisplayName(role, context);
   }
 
+  String _formatGender(String gender) {
+    return DisplayNameUtils.getGenderDisplayName(gender, context);
+  }
+
   String _formatDate(String? dateString) {
     if (dateString == null) return AppLocalizations.of(context)?.notAvailable ?? 'N/A';
     try {
@@ -255,7 +259,7 @@ class _UserListWebState extends State<UserListWeb> {
               DataCell(Text(_formatDate(user.birthday.toIso8601String()))),
               DataCell(
                 Text(
-                  user.gender.isNotEmpty ? user.gender : (AppLocalizations.of(context)?.notAvailable ?? 'N/A'),
+                  user.gender.isNotEmpty ? _formatGender(user.gender) : (AppLocalizations.of(context)?.notAvailable ?? 'N/A'),
                   style: TextStyle(
                     color: user.gender.isNotEmpty ? Colors.black : Colors.grey,
                   ),

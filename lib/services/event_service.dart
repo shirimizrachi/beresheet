@@ -591,4 +591,66 @@ class EventService {
       return [];
     }
   }
+
+  // Load completed events with reviews for display mode 3
+  static Future<List<Event>> loadCompletedEventsWithReviews() async {
+    try {
+      print('EventService: Attempting to load completed events with reviews from $baseUrl/events');
+      final headers = await UserSessionService.getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events?status=done&include_reviews=true'),
+        headers: headers,
+      );
+
+      print('EventService: Response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('EventService: Parsed ${data.length} completed events with reviews from API');
+        
+        final List<Event> events = data.map((eventJson) {
+          return Event.fromJson(eventJson);
+        }).toList();
+        
+        print('EventService: Successfully loaded ${events.length} completed events with reviews');
+        return events;
+      } else {
+        throw Exception('Failed to load completed events with reviews: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('EventService: Error loading completed events with reviews from API: $e');
+      return [];
+    }
+  }
+
+  // Load completed events with gallery photos for display mode 4
+  static Future<List<Event>> loadCompletedEventsWithGallery() async {
+    try {
+      print('EventService: Attempting to load completed events with gallery from $baseUrl/events');
+      final headers = await UserSessionService.getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/events?status=done&include_gallery=true'),
+        headers: headers,
+      );
+
+      print('EventService: Response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('EventService: Parsed ${data.length} completed events with gallery from API');
+        
+        final List<Event> events = data.map((eventJson) {
+          return Event.fromJson(eventJson);
+        }).toList();
+        
+        print('EventService: Successfully loaded ${events.length} completed events with gallery');
+        return events;
+      } else {
+        throw Exception('Failed to load completed events with gallery: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('EventService: Error loading completed events with gallery from API: $e');
+      return [];
+    }
+  }
 }

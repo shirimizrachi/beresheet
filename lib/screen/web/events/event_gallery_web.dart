@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
-import '../../../services/web/web_jwt_session_service.dart';
+import '../../../services/web/web_jwt_auth_service.dart';
 import '../../../model/event.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
@@ -70,7 +70,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery'),
-        headers: await WebJwtSessionService.getAuthHeaders(),
+        headers: await WebJwtAuthService.getAuthHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -81,13 +81,13 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load gallery photos: ${response.statusCode}';
+          _errorMessage = '${AppLocalizations.of(context)!.failedToLoadGalleryPhotos}: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading gallery photos: $e';
+        _errorMessage = '${AppLocalizations.of(context)!.errorLoadingGalleryPhotos}: $e';
         _isLoading = false;
       });
     }
@@ -119,7 +119,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error selecting files: $e'),
+          content: Text('${AppLocalizations.of(context)!.errorSelectingFiles}: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -138,7 +138,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
       );
 
       // Add headers
-      final authHeaders = await WebJwtSessionService.getAuthHeaders();
+      final authHeaders = await WebJwtAuthService.getAuthHeaders();
       request.headers.addAll(authHeaders);
 
       // Add files
@@ -146,12 +146,20 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
         final file = files[i];
         
         if (file.bytes != null) {
+          // Determine content type based on file extension
+          String mimeType = 'image/jpeg';
+          if (file.name.toLowerCase().endsWith('.png')) {
+            mimeType = 'image/png';
+          } else if (file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')) {
+            mimeType = 'image/jpeg';
+          }
+          
           request.files.add(
             http.MultipartFile.fromBytes(
               'images',
               file.bytes!,
               filename: file.name,
-              contentType: MediaType('image', 'jpeg'),
+              contentType: MediaType.parse(mimeType),
             ),
           );
         }
@@ -169,7 +177,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
         await _loadGalleryPhotos(); // Refresh the gallery
       } else {
         final responseBody = await response.stream.bytesToString();
-        String errorMessage = 'Failed to upload images';
+        String errorMessage = AppLocalizations.of(context)!.failedToUploadImages;
         try {
           final errorData = json.decode(responseBody);
           errorMessage = errorData['detail'] ?? errorMessage;
@@ -186,7 +194,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error uploading images: $e'),
+          content: Text('${AppLocalizations.of(context)!.errorUploadingImages}: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -202,17 +210,17 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Photo'),
-          content: Text('Are you sure you want to delete this photo?'),
+          title: Text(AppLocalizations.of(context)!.deletePhoto),
+          content: Text(AppLocalizations.of(context)!.areYouSureDeletePhoto),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text('Delete', style: TextStyle(color: Colors.white)),
+              child: Text(AppLocalizations.of(context)!.delete, style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -223,13 +231,13 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
       try {
         final response = await http.delete(
           Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery/${photo.photoId}'),
-          headers: await WebJwtSessionService.getAuthHeaders(),
+          headers: await WebJwtAuthService.getAuthHeaders(),
         );
 
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Photo deleted successfully!'),
+              content: Text(AppLocalizations.of(context)!.photoDeletedSuccessfully),
               backgroundColor: Colors.green,
             ),
           );
@@ -237,7 +245,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to delete photo: ${response.statusCode}'),
+              content: Text('${AppLocalizations.of(context)!.failedToDeletePhoto}: ${response.statusCode}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -245,7 +253,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting photo: $e'),
+            content: Text('${AppLocalizations.of(context)!.errorDeletingPhoto}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -329,7 +337,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
                       ),
                     ),
                     Text(
-                      '${_galleryPhotos.length} ${_galleryPhotos.length == 1 ? 'Photo' : 'Photos'}',
+                      AppLocalizations.of(context)!.photoCount(_galleryPhotos.length),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -365,7 +373,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
             Icon(Icons.error_outline, size: 64, color: Colors.red),
             SizedBox(height: 16),
             Text(
-              'Error',
+              AppLocalizations.of(context)!.error,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
@@ -373,7 +381,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadGalleryPhotos,
-              child: Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),
@@ -388,16 +396,16 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
             Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'No Photos Yet',
+              AppLocalizations.of(context)!.noPhotosYet,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text('Upload some photos to create a gallery for this event'),
+            Text(AppLocalizations.of(context)!.uploadSomePhotos),
             SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _uploadImages,
               icon: Icon(Icons.add_photo_alternate),
-              label: Text('Upload Images'),
+              label: Text(AppLocalizations.of(context)!.uploadImages),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -434,67 +442,78 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => _showFullSizeImage(index),
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            // Image
-            ClipRRect(
+      child: Stack(
+        children: [
+          // Main clickable area (excludes delete button area)
+          Positioned.fill(
+            child: InkWell(
+              onTap: () => _showFullSizeImage(index),
               borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                child: Image.network(
-                  photo.thumbnailUrl ?? photo.photo,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey[100],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                              : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: Image.network(
+                    photo.thumbnailUrl ?? photo.photo,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.grey[100],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[100],
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[100],
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                          size: 40,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-            
-            // Delete button overlay
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.white, size: 20),
-                  onPressed: () => _deletePhoto(photo),
-                  padding: EdgeInsets.all(4),
-                  constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+          
+          // Delete button overlay - separate from InkWell
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _deletePhoto(photo),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.white,
+                    size: 20
+                  ),
                 ),
               ),
             ),
-            
-            // View icon overlay
-            Positioned.fill(
+          ),
+          
+          // View icon overlay
+          Positioned.fill(
+            child: IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
@@ -524,8 +543,8 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -606,7 +625,7 @@ class _FullSizeImageViewerState extends State<_FullSizeImageViewer> {
                             Icon(Icons.error, color: Colors.white, size: 64),
                             SizedBox(height: 16),
                             Text(
-                              'Failed to load image',
+                              AppLocalizations.of(context)!.failedToLoadImage,
                               style: TextStyle(color: Colors.white),
                             ),
                           ],

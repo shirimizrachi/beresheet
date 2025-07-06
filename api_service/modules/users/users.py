@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict
 from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, Date, DateTime, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from .models import UserProfile, UserProfileCreate, UserProfileUpdate
 from tenant_config import get_schema_name_by_home_id, get_all_homes
 from database_utils import get_schema_engine, get_engine_for_home, get_connection_for_home
@@ -107,8 +107,17 @@ class UserDatabase:
             # Insert user data using schema-specific engine
             schema_engine = get_schema_engine(schema_name)
             with schema_engine.connect() as conn:
-                result = conn.execute(users_table.insert().values(**user_data_dict))
-                conn.commit()
+                try:
+                    result = conn.execute(users_table.insert().values(**user_data_dict))
+                    conn.commit()
+                except IntegrityError as e:
+                    # Check if it's a unique constraint violation for phone number
+                    error_message = str(e).lower()
+                    if 'unique' in error_message and ('phone' in error_message or 'phone_number' in error_message):
+                        raise ValueError(f"A user with phone number {user_data.phone_number} already exists")
+                    else:
+                        # Re-raise other integrity errors
+                        raise
 
             # Create matching entry in home_index table
             try:
@@ -261,6 +270,8 @@ class UserDatabase:
     def update_user_profile(self, user_id: str, user_data: UserProfileUpdate, home_id: int) -> Optional[UserProfile]:
         """Update an existing user profile"""
         try:
+            print(f"Updating user {user_id} with data: {user_data.model_dump()}")
+            
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
@@ -277,6 +288,8 @@ class UserDatabase:
                 if value is not None:
                     update_data[field] = value
             
+            print(f"Update data prepared: {update_data}")
+            
             # Add updated timestamp (use datetime object like events module)
             update_data['updated_at'] = datetime.now()
 
@@ -289,6 +302,8 @@ class UserDatabase:
                     .values(**update_data)
                 )
                 conn.commit()
+                
+                print(f"Update result: {result.rowcount} rows affected")
 
                 if result.rowcount > 0:
                     # Fetch and return updated user
@@ -297,6 +312,7 @@ class UserDatabase:
                     ).fetchone()
 
                     if updated_result:
+                        print(f"Updated user from DB: full_name={updated_result.full_name}, apartment_number={updated_result.apartment_number}")
                         return UserProfile(
                             id=updated_result.id,
                             firebase_id=updated_result.firebase_id,
@@ -321,6 +337,8 @@ class UserDatabase:
 
         except Exception as e:
             print(f"Error updating user profile {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def delete_user_profile(self, user_id: str, home_id: int) -> bool:
@@ -400,7 +418,7 @@ class UserDatabase:
             # Use schema-specific engine
             schema_engine = get_schema_engine(schema_name)
             with schema_engine.connect() as conn:
-                results = conn.execute(users_table.select()).fetchall()
+                results = conn.execute(users_table.select().order_by(users_table.c.updated_at.desc())).fetchall()
                 
                 for result in results:
                     users.append(UserProfile(

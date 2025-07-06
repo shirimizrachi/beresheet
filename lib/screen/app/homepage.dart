@@ -7,6 +7,7 @@ import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/screen/app/service_request_screen.dart';
 import 'package:beresheet_app/screen/app/notifications/notifications_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
@@ -33,6 +34,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _cardAnimationController;
   late Animation<double> _animation;
   Set<String> selectedEventTypeFilters = {}; // Multiple filters for event types
+  bool canEditEvents = false; // Role-based access for event editing
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
     loadEvents();
+    _checkEventEditPermission();
   }
 
   @override
@@ -140,6 +143,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> _refreshEvents() async {
     await loadEvents(forceRefresh: true);
+  }
+
+  Future<void> _checkEventEditPermission() async {
+    final hasPermission = await RoleAccessService.canEditEvents();
+    setState(() {
+      canEditEvents = hasPermission;
+    });
   }
 
 
@@ -472,19 +482,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisteredEventsScreen()));
                     },
                   ),
-                  ListTile(
-                    title: Text(context.l10n.manageEvents, style: AppTextStyles.bodyMedium),
-                    leading: const Icon(Icons.event_note, color: AppColors.primary),
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const EventsManagementScreen(),
-                      )).then((result) {
-                        if (result == true) {
-                          _refreshEvents();
-                        }
-                      });
-                    },
-                  ),
+                  // Only show Manage Events for managers and staff
+                  if (canEditEvents)
+                    ListTile(
+                      title: Text(context.l10n.manageEvents, style: AppTextStyles.bodyMedium),
+                      leading: const Icon(Icons.event_note, color: AppColors.primary),
+                      onTap: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => const EventsManagementScreen(),
+                        )).then((result) {
+                          if (result == true) {
+                            _refreshEvents();
+                          }
+                        });
+                      },
+                    ),
                   // Logout option removed - users need to delete app to logout
                 ],
               ),

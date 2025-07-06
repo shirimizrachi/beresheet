@@ -162,7 +162,7 @@ class ActivityChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activityColor = ActivityTypeHelper.getColor(activity);
-    final displayName = ActivityTypeHelper.getDisplayName(activity);
+    final displayName = ActivityTypeHelper.getDisplayName(activity, context);
 
     return InkWell(
       onTap: onTap,

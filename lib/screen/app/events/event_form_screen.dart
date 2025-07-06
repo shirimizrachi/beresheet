@@ -1,6 +1,7 @@
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
+import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
@@ -48,6 +49,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   
   // User role for determining edit permissions
   String? _userRole;
+  bool hasPermission = false;
   
   // Image handling
   String _imageSource = 'upload'; // 'upload' or 'unsplash'
@@ -75,11 +77,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
-    _loadRooms();
-    _loadInstructors();
-    if (widget.event != null) {
-      _populateFields();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final canEdit = await RoleAccessService.canEditEvents();
+    setState(() {
+      hasPermission = canEdit;
+    });
+    
+    if (hasPermission) {
+      _loadUserRole();
+      _loadRooms();
+      _loadInstructors();
+      if (widget.event != null) {
+        _populateFields();
+      }
     }
   }
 
@@ -380,25 +393,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
     }
   }
 
-  bool get _isEditable {
-    // Events are always editable (matching web behavior)
-    return true;
-  }
-
+  // Simplified field editability - only check if event is "done" (business rule, not role-based)
   bool get _isFieldEditable {
-    // For new events, all fields except status and currentParticipants are editable
-    if (widget.event == null) return true;
-    
-    // If event status is "done", no fields should be editable (view-only mode)
-    if (_selectedStatus == AppConfig.eventStatusDone) return false;
-    
-    // Fields are always editable for managers and staff (except when status is done)
-    return true;
-  }
-
-  bool get _canUserEditAllFields {
-    // Users with manager or staff roles can edit all fields
-    return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
+    return _selectedStatus != AppConfig.eventStatusDone;
   }
 
 
@@ -646,25 +643,56 @@ class _EventFormScreenState extends State<EventFormScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          TextButton(
-            onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
-            child: Text(
-              l10n.save.toUpperCase(),
-              style: AppTextStyles.buttonText.copyWith(
-                color: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : Colors.white,
-                fontWeight: FontWeight.bold,
+          if (hasPermission)
+            TextButton(
+              onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
+              child: Text(
+                l10n.save.toUpperCase(),
+                style: AppTextStyles.buttonText.copyWith(
+                  color: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
-            children: [
+      body: !hasPermission
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.block,
+                    size: 64,
+                    color: Colors.red[300],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Access Denied',
+                    style: AppTextStyles.heading4.copyWith(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Only managers and staff can create or edit events.',
+                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Go Back'),
+                  ),
+                ],
+              ),
+            )
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                  children: [
               // Event Name
               Card(
                 child: Padding(
@@ -702,13 +730,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         child: Text(_getEventTypeDisplayName(type)),
                       );
                     }).toList(),
-                    onChanged: widget.event != null ? null : (value) {
+                    onChanged: _isFieldEditable ? (value) {
                       if (value != null) {
                         setState(() {
                           _selectedType = value;
                         });
                       }
-                    },
+                    } : null,
                   ),
                 ),
               ),
@@ -741,13 +769,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             child: Text(_getStatusDisplayName(status)),
                           );
                         }).toList(),
-                        onChanged: (value) {
+                        onChanged: _isFieldEditable ? (value) {
                           if (value != null) {
                             setState(() {
                               _selectedStatus = value;
                             });
                           }
-                        },
+                        } : null,
                       ),
                 ),
               ),
@@ -1409,33 +1437,33 @@ class _EventFormScreenState extends State<EventFormScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          widget.event == null
-                              ? l10n.createEventButton
-                              : l10n.updateEventButton,
-                          style: AppTextStyles.buttonText,
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: (_isSaving || _selectedStatus == AppConfig.eventStatusDone) ? null : _saveEvent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (_selectedStatus == AppConfig.eventStatusDone) ? Colors.grey : AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.sm),
+                          ),
                         ),
+                        child: _isSaving
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                widget.event == null
+                                    ? l10n.createEventButton
+                                    : l10n.updateEventButton,
+                                style: AppTextStyles.buttonText,
+                              ),
+                      ),
+                    ),
+                    
+                  ],
                 ),
               ),
-              
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

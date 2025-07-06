@@ -210,3 +210,6 @@ networkPolicy:
   enabled: false
   ingress: []
   egress: []
+
+
+#helm upgrade --install residents-api ./helmchart   --set image.repository=il-jerusalem-1.ocir.io/axsfrwfafaxr/residents   --set image.tag=latest   -f production-values.yaml   --namespace residents   --create-namespace

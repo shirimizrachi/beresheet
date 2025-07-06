@@ -2,27 +2,42 @@
 User-related Pydantic models
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, date
 from typing import Optional, Dict, Any
 
 # User Profile Models
 class UserProfileBase(BaseModel):
-    full_name: str
+    full_name: str = ""
     phone_number: str
-    role: str  # "resident", "staff", "instructor", "service", "caregiver", "manager"
-    birthday: date
-    apartment_number: str
-    marital_status: str
-    gender: str
-    religious: str
-    native_language: str
+    role: str = "resident"  # "resident", "staff", "instructor", "service", "caregiver", "manager"
+    birthday: date = date(1900, 1, 1)
+    apartment_number: str = ""
+    marital_status: str = ""
+    gender: str = ""
+    religious: str = ""
+    native_language: str = ""
     home_id: int  # Not displayed in profile page, used for internal operations
     id: str  # Unique user identifier (primary key)
     photo: Optional[str] = None
     service_provider_type_name: Optional[str] = None
     service_provider_type_id: Optional[str] = None
     firebase_fcm_token: Optional[str] = None
+
+    @field_validator('full_name', 'apartment_number', 'marital_status', 'gender', 'religious', 'native_language', mode='before')
+    @classmethod
+    def handle_none_strings(cls, v):
+        return v if v is not None else ""
+
+    @field_validator('role', mode='before')
+    @classmethod
+    def handle_none_role(cls, v):
+        return v if v is not None else "resident"
+
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def handle_none_birthday(cls, v):
+        return v if v is not None else date(1900, 1, 1)
 
 class UserProfileCreate(BaseModel):
     home_id: int

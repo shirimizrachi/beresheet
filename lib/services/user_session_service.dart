@@ -185,6 +185,12 @@ class UserSessionService {
     final role = await getRole();
     return role == AppConfig.userRoleManager;
   }
+  
+  /// Check if user has staff role (manager or staff)
+  static Future<bool> isStaff() async {
+    final role = await getRole();
+    return role == AppConfig.userRoleManager || role == AppConfig.userRoleStaff;
+  }
 
   /// Get headers with homeID, Firebase token, and userId for API requests
   static Future<Map<String, String>> getApiHeaders() async {

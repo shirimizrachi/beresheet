@@ -112,6 +112,19 @@ class DisplayNameUtils {
     }
   }
   
+  /// Get display name for gender using localization
+  static String getGenderDisplayName(String gender, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (gender.toLowerCase()) {
+      case 'male':
+        return localizations.genderMale;
+      case 'female':
+        return localizations.genderFemale;
+      default:
+        return gender;
+    }
+  }
+  
   /// Get display name for notification status using localization
   static String getNotificationStatusDisplayName(String status, BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
@@ -126,6 +139,71 @@ class DisplayNameUtils {
         return localizations.sent;
       default:
         return status;
+    }
+  }
+  
+  /// Available gender options
+  static const List<String> genderOptions = ['male', 'female'];
+  
+  /// Available marital status options
+  static const List<String> maritalStatusOptions = ['single', 'married', 'divorced', 'widowed'];
+  
+  /// Available religious options
+  static const List<String> religiousOptions = ['secular', 'orthodox', 'traditional'];
+  
+  /// Available language options
+  static const List<String> languageOptions = ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'];
+  
+  /// Get display name for marital status using localization
+  static String getMaritalStatusDisplayName(String status, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (status.toLowerCase()) {
+      case 'single':
+        return localizations.maritalStatusSingle;
+      case 'married':
+        return localizations.maritalStatusMarried;
+      case 'divorced':
+        return localizations.maritalStatusDivorced;
+      case 'widowed':
+        return localizations.maritalStatusWidowed;
+      default:
+        return status;
+    }
+  }
+  
+  /// Get display name for religious status using localization
+  static String getReligiousDisplayName(String religious, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (religious.toLowerCase()) {
+      case 'secular':
+        return localizations.religiousSecular;
+      case 'orthodox':
+        return localizations.religiousOrthodox;
+      case 'traditional':
+        return localizations.religiousTraditional;
+      default:
+        return religious;
+    }
+  }
+  
+  /// Get display name for language using localization
+  static String getLanguageDisplayName(String language, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (language.toLowerCase()) {
+      case 'hebrew':
+        return localizations.languageHebrew;
+      case 'english':
+        return localizations.languageEnglish;
+      case 'arabic':
+        return localizations.languageArabic;
+      case 'russian':
+        return localizations.languageRussian;
+      case 'french':
+        return localizations.languageFrench;
+      case 'spanish':
+        return localizations.languageSpanish;
+      default:
+        return language;
     }
   }
 }

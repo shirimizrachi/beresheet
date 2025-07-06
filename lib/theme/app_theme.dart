@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 
 class AppTheme {
   // Color scheme based on the provided design
@@ -195,14 +196,18 @@ class AppShadows {
 class ActivityTypeHelper {
   static Color getColor(String type) {
     switch (type.toLowerCase()) {
-      case 'class':
-        return AppColors.classActivity;
-      case 'performance':
-        return AppColors.performanceActivity;
+      case 'event':
+        return Colors.blue;
+      case 'sport':
+        return Colors.green;
       case 'cultural':
         return AppColors.culturalActivity;
-      case 'leisure':
-        return AppColors.leisureActivity;
+      case 'art':
+        return Colors.purple;
+      case 'english':
+        return Colors.orange;
+      case 'religion':
+        return Colors.brown;
       default:
         return Colors.grey;
     }
@@ -210,29 +215,41 @@ class ActivityTypeHelper {
   
   static IconData getIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'class':
-        return Icons.school;
-      case 'performance':
-        return Icons.theater_comedy;
+      case 'event':
+        return Icons.event;
+      case 'sport':
+        return Icons.sports;
       case 'cultural':
         return Icons.palette;
-      case 'leisure':
-        return Icons.nature_people;
+      case 'art':
+        return Icons.brush;
+      case 'english':
+        return Icons.language;
+      case 'religion':
+        return Icons.church;
       default:
         return Icons.event;
     }
   }
   
-  static String getDisplayName(String type) {
+  static String getDisplayName(String type, [BuildContext? context]) {
+    if (context != null) {
+      return DisplayNameUtils.getEventTypeDisplayName(type, context);
+    }
+    // Fallback for when context is not available
     switch (type.toLowerCase()) {
-      case 'class':
-        return 'Classes';
-      case 'performance':
-        return 'Performances';
+      case 'event':
+        return 'Event';
+      case 'sport':
+        return 'Sport';
       case 'cultural':
         return 'Cultural';
-      case 'leisure':
-        return 'Leisure';
+      case 'art':
+        return 'Art';
+      case 'english':
+        return 'English';
+      case 'religion':
+        return 'Religion';
       default:
         return type.toUpperCase();
     }

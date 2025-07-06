@@ -318,12 +318,10 @@ class WebJwtAuthService {
         
         // Notify server about logout (best effort, don't fail if it doesn't work)
         try {
+          final headers = await WebJwtSessionService.getAuthHeaders();
           await http.post(
             Uri.parse('$_baseUrl/api/web-auth/logout'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
+            headers: headers,
           ).timeout(const Duration(seconds: 30));
           print('Web JWT logout notification sent to server');
         } catch (e) {

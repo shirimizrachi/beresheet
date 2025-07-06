@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .models import EventGallery, EventGalleryCreate, EventGalleryUpdate
 from tenant_config import get_schema_name_by_home_id
 from database_utils import get_schema_engine, get_engine_for_home
-from storage.storage_service import azure_storage_service
+from storage.storage_service import StorageServiceProxy
 from PIL import Image
 import io
 
@@ -65,7 +65,7 @@ class EventGalleryDatabase:
             print(f"Error creating thumbnail: {e}")
             return image_data  # Return original if thumbnail creation fails
 
-    def upload_gallery_images(self, event_id: str, home_id: int, image_files: List[dict], 
+    def upload_gallery_images(self, event_id: str, home_id: int, image_files: List[dict],
                              created_by: str = None) -> List[EventGallery]:
         """
         Upload multiple images to event gallery with thumbnails
@@ -80,20 +80,35 @@ class EventGalleryDatabase:
             List of created EventGallery objects
         """
         try:
+            print(f"Starting gallery upload for event {event_id}, home {home_id}")
+            print(f"Number of files to upload: {len(image_files)}")
+            
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
                 raise ValueError(f"No schema found for home ID {home_id}")
+            print(f"Using schema: {schema_name}")
 
             # Get the event_gallery table
             gallery_table = self.get_event_gallery_table(schema_name)
             if gallery_table is None:
                 raise ValueError(f"Event gallery table not found in schema {schema_name}")
+            print(f"Gallery table found: {gallery_table}")
 
+            # Initialize storage service
+            storage_service = StorageServiceProxy()
+            print(f"Storage service initialized: {type(storage_service.service)}")
+            # Use schema_name as tenant_name for storage operations
+            tenant_name = schema_name
+            print(f"Using tenant_name: {tenant_name}")
             created_galleries = []
             
-            for image_file in image_files:
+            for i, image_file in enumerate(image_files):
                 try:
+                    print(f"Processing image {i+1}/{len(image_files)}: {image_file.get('filename', 'unknown')}")
+                    print(f"Content type: {image_file.get('content_type')}")
+                    print(f"Content size: {len(image_file.get('content', b''))}")
+                    
                     # Generate unique photo_id
                     photo_id = str(uuid.uuid4())
                     current_time = datetime.now()
@@ -102,32 +117,44 @@ class EventGalleryDatabase:
                     file_extension = os.path.splitext(image_file['filename'])[1].lower()
                     if not file_extension:
                         file_extension = '.jpg'
+                    print(f"File extension: {file_extension}")
                     
-                    # Upload main image to Azure Storage
+                    # Upload main image to Storage
                     main_image_name = f"{photo_id}{file_extension}"
-                    success, main_url = azure_storage_service.upload_image(
+                    file_path = f"gallery/{event_id}/"
+                    print(f"Uploading main image: {main_image_name} to path: {file_path}")
+                    
+                    success, main_url = storage_service.upload_image(
                         home_id=home_id,
                         file_name=main_image_name,
-                        file_path=f"gallery/{event_id}/",
+                        file_path=file_path,
                         image_data=image_file['content'],
-                        content_type=image_file.get('content_type')
+                        content_type=image_file.get('content_type'),
+                        tenant_name=tenant_name
                     )
                     
+                    print(f"Main image upload result: success={success}, url={main_url}")
                     if not success:
                         print(f"Failed to upload main image {main_image_name}: {main_url}")
                         continue
                     
                     # Create and upload thumbnail
+                    print(f"Creating thumbnail for {main_image_name}")
                     thumbnail_data = self.create_thumbnail(image_file['content'])
                     thumbnail_name = f"{photo_id}{file_extension}"
-                    success_thumb, thumbnail_url = azure_storage_service.upload_image(
+                    thumbnail_path = f"gallery/{event_id}/thumbnails/"
+                    print(f"Uploading thumbnail: {thumbnail_name} to path: {thumbnail_path}")
+                    
+                    success_thumb, thumbnail_url = storage_service.upload_image(
                         home_id=home_id,
                         file_name=thumbnail_name,
-                        file_path=f"gallery/{event_id}/thumbnails/",
+                        file_path=thumbnail_path,
                         image_data=thumbnail_data,
-                        content_type='image/jpeg'
+                        content_type='image/jpeg',
+                        tenant_name=tenant_name
                     )
                     
+                    print(f"Thumbnail upload result: success={success_thumb}, url={thumbnail_url}")
                     if not success_thumb:
                         print(f"Failed to upload thumbnail {thumbnail_name}: {thumbnail_url}")
                         thumbnail_url = main_url  # Use main image as fallback
@@ -279,18 +306,16 @@ class EventGalleryDatabase:
                 conn.commit()
                 
                 if result.rowcount > 0:
-                    # Try to delete from Azure Storage (optional cleanup)
+                    # Try to delete from Storage (optional cleanup)
                     try:
-                        # Extract blob path from URL
-                        main_blob_path = self._extract_blob_path_from_url(photo.photo)
-                        thumbnail_blob_path = self._extract_blob_path_from_url(photo.thumbnail_url)
+                        storage_service = StorageServiceProxy()
                         
-                        if main_blob_path:
-                            azure_storage_service.delete_image(main_blob_path)
-                        if thumbnail_blob_path:
-                            azure_storage_service.delete_image(thumbnail_blob_path)
+                        if photo.photo:
+                            storage_service.delete_image(photo.photo)
+                        if photo.thumbnail_url:
+                            storage_service.delete_image(photo.thumbnail_url)
                     except Exception as e:
-                        print(f"Warning: Failed to delete Azure Storage files: {e}")
+                        print(f"Warning: Failed to delete storage files: {e}")
                     
                     return True
                 return False

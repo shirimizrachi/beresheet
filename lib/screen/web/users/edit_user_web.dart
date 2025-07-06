@@ -51,12 +51,12 @@ class _EditUserWebState extends State<EditUserWeb> {
   String? _selectedImageName;
   String? _currentPhotoUrl;
 
-  // Dropdown options
-  final List<String> _roleOptions = ['resident', 'staff', 'instructor', 'service', 'caregiver', 'manager'];
-  final List<String> _maritalStatusOptions = ['single', 'married', 'divorced', 'widowed'];
-  final List<String> _genderOptions = ['male', 'female', 'other'];
-  final List<String> _religiousOptions = ['secular', 'orthodox', 'traditional'];
-  final List<String> _languageOptions = ['hebrew', 'english', 'arabic', 'russian', 'french', 'spanish'];
+  // Dropdown options from DisplayNameUtils and AppConfig
+  final List<String> _roleOptions = AppConfig.userRoles;
+  final List<String> _maritalStatusOptions = DisplayNameUtils.maritalStatusOptions;
+  final List<String> _genderOptions = DisplayNameUtils.genderOptions;
+  final List<String> _religiousOptions = DisplayNameUtils.religiousOptions;
+  final List<String> _languageOptions = DisplayNameUtils.languageOptions;
 
   @override
   void initState() {
@@ -69,7 +69,7 @@ class _EditUserWebState extends State<EditUserWeb> {
     final userRole = user?.role ?? '';
     if (userRole != 'manager') {
       setState(() {
-        _errorMessage = 'Access denied: Manager role required to edit users';
+        _errorMessage = AppLocalizations.of(context)!.accessDeniedManagerRoleRequired;
         _isLoading = false;
       });
       return;
@@ -86,17 +86,36 @@ class _EditUserWebState extends State<EditUserWeb> {
   }
 
   void _initializeForm() {
-    _fullNameController.text = widget.user.fullName;
-    _phoneController.text = widget.user.phoneNumber;
-    _apartmentController.text = widget.user.apartmentNumber;
-    _selectedRole = widget.user.role;
-    _selectedMaritalStatus = widget.user.maritalStatus;
-    _selectedGender = widget.user.gender.isNotEmpty ? widget.user.gender : 'male';
-    _selectedReligious = widget.user.religious.isNotEmpty ? widget.user.religious : 'secular';
-    _selectedLanguage = widget.user.nativeLanguage;
-    _selectedBirthday = widget.user.birthday;
-    _selectedServiceProviderTypeId = widget.user.serviceProviderTypeId;
-    _currentPhotoUrl = widget.user.photo;
+    setState(() {
+      _fullNameController.text = widget.user.fullName;
+      _phoneController.text = widget.user.phoneNumber;
+      _apartmentController.text = widget.user.apartmentNumber;
+      
+      // Initialize dropdowns with validation that the value exists in options
+      _selectedRole = _roleOptions.contains(widget.user.role) ? widget.user.role : 'resident';
+      _selectedMaritalStatus = _maritalStatusOptions.contains(widget.user.maritalStatus) ? widget.user.maritalStatus : 'single';
+      _selectedGender = _genderOptions.contains(widget.user.gender) ? widget.user.gender : 'male';
+      _selectedReligious = _religiousOptions.contains(widget.user.religious) ? widget.user.religious : 'secular';
+      _selectedLanguage = _languageOptions.contains(widget.user.nativeLanguage) ? widget.user.nativeLanguage : 'hebrew';
+      
+      _selectedBirthday = widget.user.birthday;
+      _selectedServiceProviderTypeId = widget.user.serviceProviderTypeId;
+      _currentPhotoUrl = widget.user.photo;
+    });
+    
+    // Debug print to see what values we're working with
+    print('Initializing form with user data:');
+    print('  role: "${widget.user.role}" -> selected: "$_selectedRole"');
+    print('  maritalStatus: "${widget.user.maritalStatus}" -> selected: "$_selectedMaritalStatus"');
+    print('  gender: "${widget.user.gender}" -> selected: "$_selectedGender"');
+    print('  religious: "${widget.user.religious}" -> selected: "$_selectedReligious"');
+    print('  nativeLanguage: "${widget.user.nativeLanguage}" -> selected: "$_selectedLanguage"');
+    print('Available options:');
+    print('  roleOptions: $_roleOptions');
+    print('  maritalStatusOptions: $_maritalStatusOptions');
+    print('  genderOptions: $_genderOptions');
+    print('  religiousOptions: $_religiousOptions');
+    print('  languageOptions: $_languageOptions');
     
     // Load service provider types if role is service
     if (_selectedRole == 'service') {
@@ -119,7 +138,7 @@ class _EditUserWebState extends State<EditUserWeb> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error picking image: $e';
+        _errorMessage = AppLocalizations.of(context)!.errorPickingImage(e.toString());
       });
     }
   }
@@ -131,7 +150,7 @@ class _EditUserWebState extends State<EditUserWeb> {
 
     if (_selectedBirthday == null) {
       setState(() {
-        _errorMessage = 'Please select a birthday';
+        _errorMessage = AppLocalizations.of(context)!.pleaseSelectBirthday;
       });
       return;
     }
@@ -254,7 +273,7 @@ class _EditUserWebState extends State<EditUserWeb> {
 
       if (response.statusCode == 200) {
         setState(() {
-          _successMessage = 'User updated successfully!';
+          _successMessage = AppLocalizations.of(context)!.userUpdatedSuccessfully;
           _isLoading = false;
           // Clear selected image after successful upload
           _selectedImageBytes = null;
@@ -278,13 +297,13 @@ class _EditUserWebState extends State<EditUserWeb> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to update user: ${response.statusCode}';
+          _errorMessage = AppLocalizations.of(context)!.failedToUpdateUser(response.statusCode.toString());
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error updating user: $e';
+        _errorMessage = AppLocalizations.of(context)!.errorUpdatingUser(e.toString());
         _isLoading = false;
       });
     }
@@ -310,43 +329,19 @@ class _EditUserWebState extends State<EditUserWeb> {
   }
 
   String _formatMaritalStatus(String status) {
-    switch (status) {
-      case 'single': return 'Single';
-      case 'married': return 'Married';
-      case 'divorced': return 'Divorced';
-      case 'widowed': return 'Widowed';
-      default: return status.toUpperCase();
-    }
+    return DisplayNameUtils.getMaritalStatusDisplayName(status, context);
   }
 
   String _formatGender(String gender) {
-    switch (gender) {
-      case 'male': return 'Male';
-      case 'female': return 'Female';
-      case 'other': return 'Other';
-      default: return gender.toUpperCase();
-    }
+    return DisplayNameUtils.getGenderDisplayName(gender, context);
   }
 
   String _formatReligious(String religious) {
-    switch (religious) {
-      case 'secular': return 'Secular';
-      case 'orthodox': return 'Orthodox';
-      case 'traditional': return 'Traditional';
-      default: return religious.toUpperCase();
-    }
+    return DisplayNameUtils.getReligiousDisplayName(religious, context);
   }
 
   String _formatLanguage(String language) {
-    switch (language) {
-      case 'hebrew': return 'Hebrew';
-      case 'english': return 'English';
-      case 'arabic': return 'Arabic';
-      case 'russian': return 'Russian';
-      case 'french': return 'French';
-      case 'spanish': return 'Spanish';
-      default: return language.toUpperCase();
-    }
+    return DisplayNameUtils.getLanguageDisplayName(language, context);
   }
 
   Future<void> _loadServiceProviderTypes() async {
@@ -362,7 +357,7 @@ class _EditUserWebState extends State<EditUserWeb> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load service provider types: $e';
+        _errorMessage = '${AppLocalizations.of(context)!.failedToLoadServiceProviderTypes}: $e';
         _loadingServiceProviderTypes = false;
       });
     }
@@ -373,7 +368,7 @@ class _EditUserWebState extends State<EditUserWeb> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Edit User: ${widget.user.fullName.isNotEmpty ? widget.user.fullName : widget.user.phoneNumber}',
+          AppLocalizations.of(context)!.editUserTitle(widget.user.fullName.isNotEmpty ? widget.user.fullName : widget.user.phoneNumber),
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -399,9 +394,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                         children: [
                           const Icon(Icons.person, color: Colors.blue),
                           const SizedBox(width: 8),
-                          const Text(
-                            'User Information',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.userInformation,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -410,7 +405,7 @@ class _EditUserWebState extends State<EditUserWeb> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'User ID: ${widget.user.id}',
+                        AppLocalizations.of(context)!.userIdLabel(widget.user.id),
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
@@ -434,9 +429,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                         children: [
                           const Icon(Icons.photo_camera, color: Colors.blue),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Profile Photo',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.profilePhoto,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -484,9 +479,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                             const SizedBox(height: 8),
                             GestureDetector(
                               onTap: _pickImage,
-                              child: const Text(
-                                'Click to select from gallery',
-                                style: TextStyle(
+                              child: Text(
+                                AppLocalizations.of(context)!.clickToSelectFromGallery,
+                                style: const TextStyle(
                                   color: Colors.blue,
                                   fontSize: 12,
                                   decoration: TextDecoration.underline,
@@ -510,9 +505,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Edit Details',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.editDetails,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -522,13 +517,13 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Full Name
                       TextFormField(
                         controller: _fullNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.fullName,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter full name';
+                            return AppLocalizations.of(context)!.pleaseEnterFullName;
                           }
                           return null;
                         },
@@ -538,13 +533,13 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Phone Number
                       TextFormField(
                         controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone Number',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.phoneNumber,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter phone number';
+                            return AppLocalizations.of(context)!.pleaseEnterPhoneNumber;
                           }
                           return null;
                         },
@@ -554,9 +549,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Role
                       DropdownButtonFormField<String>(
                         value: _selectedRole,
-                        decoration: const InputDecoration(
-                          labelText: 'Role',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.role,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _roleOptions.map((String role) {
                           return DropdownMenuItem<String>(
@@ -590,11 +585,11 @@ class _EditUserWebState extends State<EditUserWeb> {
                               )
                             : DropdownButtonFormField<String>(
                                 value: _selectedServiceProviderTypeId,
-                                decoration: const InputDecoration(
-                                  labelText: 'Service Provider Type',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.serviceProviderType,
+                                  border: const OutlineInputBorder(),
                                 ),
-                                hint: const Text('Select service provider type'),
+                                hint: Text(AppLocalizations.of(context)!.selectServiceProviderType),
                                 items: _serviceProviderTypes.map((ServiceProviderType type) {
                                   return DropdownMenuItem<String>(
                                     value: type.id,
@@ -609,7 +604,7 @@ class _EditUserWebState extends State<EditUserWeb> {
                                 validator: _selectedRole == 'service'
                                     ? (value) {
                                         if (value == null) {
-                                          return 'Please select a service provider type';
+                                          return AppLocalizations.of(context)!.pleaseSelectServiceProviderType;
                                         }
                                         return null;
                                       }
@@ -622,15 +617,15 @@ class _EditUserWebState extends State<EditUserWeb> {
                       InkWell(
                         onTap: _selectBirthday,
                         child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Birthday',
-                            border: OutlineInputBorder(),
-                            suffixIcon: Icon(Icons.calendar_today),
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.birthday,
+                            border: const OutlineInputBorder(),
+                            suffixIcon: const Icon(Icons.calendar_today),
                           ),
                           child: Text(
                             _selectedBirthday != null
                                 ? '${_selectedBirthday!.day}/${_selectedBirthday!.month}/${_selectedBirthday!.year}'
-                                : 'Select birthday',
+                                : AppLocalizations.of(context)!.selectBirthday,
                           ),
                         ),
                       ),
@@ -639,13 +634,13 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Apartment Number
                       TextFormField(
                         controller: _apartmentController,
-                        decoration: const InputDecoration(
-                          labelText: 'Apartment Number',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.apartmentNumber,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter apartment number';
+                            return AppLocalizations.of(context)!.pleaseEnterApartmentNumber;
                           }
                           return null;
                         },
@@ -655,9 +650,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Marital Status
                       DropdownButtonFormField<String>(
                         value: _selectedMaritalStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'Marital Status',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.maritalStatus,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _maritalStatusOptions.map((String status) {
                           return DropdownMenuItem<String>(
@@ -676,9 +671,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Gender
                       DropdownButtonFormField<String>(
                         value: _selectedGender,
-                        decoration: const InputDecoration(
-                          labelText: 'Gender',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.gender,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _genderOptions.map((String gender) {
                           return DropdownMenuItem<String>(
@@ -697,9 +692,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Religious
                       DropdownButtonFormField<String>(
                         value: _selectedReligious,
-                        decoration: const InputDecoration(
-                          labelText: 'Religious',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.religious,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _religiousOptions.map((String religious) {
                           return DropdownMenuItem<String>(
@@ -718,9 +713,9 @@ class _EditUserWebState extends State<EditUserWeb> {
                       // Native Language
                       DropdownButtonFormField<String>(
                         value: _selectedLanguage,
-                        decoration: const InputDecoration(
-                          labelText: 'Native Language',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.nativeLanguage,
+                          border: const OutlineInputBorder(),
                         ),
                         items: _languageOptions.map((String language) {
                           return DropdownMenuItem<String>(
@@ -787,7 +782,7 @@ class _EditUserWebState extends State<EditUserWeb> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -808,7 +803,7 @@ class _EditUserWebState extends State<EditUserWeb> {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text('Update User'),
+                          : Text(AppLocalizations.of(context)!.updateUser),
                     ),
                   ),
                 ],

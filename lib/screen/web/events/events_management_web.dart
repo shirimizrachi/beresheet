@@ -107,7 +107,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.eventStatusUpdatedTo(newStatus))),
+          SnackBar(content: Text(AppLocalizations.of(context)!.eventStatusUpdatedTo(DisplayNameUtils.getEventStatusDisplayName(newStatus, context)))),
         );
         await _loadEvents(); // Refresh the list
       } else {
@@ -147,6 +147,61 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatEventDateTime(Event event) {
+    if (event.recurring == 'none' || event.recurring == null) {
+      // One-time event - show dateTime as is
+      return _formatDateTime(event.dateTime);
+    } else {
+      // Recurring event - show explanation of the recurrence
+      return _formatRecurringEventDescription(event);
+    }
+  }
+
+  String _formatRecurringEventDescription(Event event) {
+    try {
+      final pattern = event.parsedRecurrencePattern;
+      if (pattern == null) {
+        return _formatDateTime(event.dateTime); // Fallback to regular format
+      }
+
+      final time = pattern.time ?? '${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}';
+      final startDate = '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year}';
+      final endDate = '${event.recurringEndDate!.day}/${event.recurringEndDate!.month}/${event.recurringEndDate!.year}';
+
+      switch (event.recurring) {
+        case 'weekly':
+          final dayName = _getDayName(pattern.dayOfWeek ?? 0);
+          return '${AppLocalizations.of(context)!.everyWeek} $dayName ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+        
+        case 'bi-weekly':
+          final dayName = _getDayName(pattern.dayOfWeek ?? 0);
+          return '${AppLocalizations.of(context)!.everyTwoWeeks} $dayName ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+        
+        case 'monthly':
+          final dayOfMonth = pattern.dayOfMonth ?? 1;
+          return '${AppLocalizations.of(context)!.everyMonth} ${AppLocalizations.of(context)!.onDay} $dayOfMonth ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+        
+        default:
+          return _formatDateTime(event.dateTime); // Fallback
+      }
+    } catch (e) {
+      return _formatDateTime(event.dateTime); // Fallback on error
+    }
+  }
+
+  String _getDayName(int dayOfWeek) {
+    switch (dayOfWeek) {
+      case 0: return AppLocalizations.of(context)!.sunday;
+      case 1: return AppLocalizations.of(context)!.monday;
+      case 2: return AppLocalizations.of(context)!.tuesday;
+      case 3: return AppLocalizations.of(context)!.wednesday;
+      case 4: return AppLocalizations.of(context)!.thursday;
+      case 5: return AppLocalizations.of(context)!.friday;
+      case 6: return AppLocalizations.of(context)!.saturday;
+      default: return AppLocalizations.of(context)!.sunday;
+    }
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
@@ -209,10 +264,11 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                   style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
+                IconButton(
                   onPressed: _loadEvents,
                   icon: const Icon(Icons.refresh),
-                  label: Text(AppLocalizations.of(context)!.refresh),
+                  tooltip: AppLocalizations.of(context)!.refresh,
+                  iconSize: 28,
                 ),
               ],
             ),
@@ -348,7 +404,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                 Container(
                   width: 100,
                   height: 100,
-                  margin: const EdgeInsets.only(right: 20),
+                  margin: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300),
@@ -409,7 +465,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildDetailRow(Icons.calendar_today, AppLocalizations.of(context)!.webDate, _formatDateTime(event.dateTime)),
+                                _buildDetailRow(Icons.calendar_today, '', _formatEventDateTime(event)),
                                 const SizedBox(height: 4),
                                 _buildDetailRow(Icons.category, AppLocalizations.of(context)!.webType, DisplayNameUtils.getEventTypeDisplayName(event.type, context)),
                               ],
@@ -484,9 +540,9 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                         ElevatedButton.icon(
                           onPressed: () => _openGallery(event),
                           icon: Icon(Icons.photo_library, size: 18),
-                          label: Text('Gallery'),
+                          label: Text(AppLocalizations.of(context)!.gallery),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
+                            backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             shape: RoundedRectangleBorder(

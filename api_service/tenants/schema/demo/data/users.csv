@@ -1,10 +1,10 @@
 id,firebase_id,home_id,password,phone_number,full_name,role,birthday,apartment_number,marital_status,gender,religious,native_language,service_provider_type,firebase_fcm_token,photo
-default-manager-user,default-manager-firebase,1,541111111,541111111,יוסי כהן - מנהל,manager,1980-01-01,A1,Single,Male,חילוני,hebrew,NULL,NULL,default-manager-user.jpg
-test-staff-user,test-staff-firebase,1,541111222,541111222,רחל לוי - צוות,staff,1985-05-15,B2,Married,Female,מסורתי,hebrew,NULL,NULL,test-staff-user.jpg
-test-service-maintenance,test-service-maintenance-firebase,1,541111333,541111333,דוד אברהם - תחזוקה,service,1982-03-20,C3,Single,Male,חילוני,english,תחזוקה,NULL,test-service-maintenance.jpg
-test-service-manager,test-service-manager-firebase,1,541111444,541111444,מרים גולדברג - מנהלת,service,1978-12-10,D4,Married,Female,דתי,hebrew,מנהל,NULL,test-service-manager.jpg
-test-service-nursing,test-service-nursing-firebase,1,541111555,541111555,שרה רוזן - אחות,service,1990-08-25,E5,Single,Female,חילוני,hebrew,אחות,NULL,test-service-nursing.jpg
-test-resident-user1,test-resident-firebase1,1,541111666,541111666,אברהם ישראלי - דייר,resident,1975-11-30,F6,Married,Male,מסורתי,hebrew,NULL,NULL,test-resident-user1.jpg
-test-resident-user2,test-resident-firebase2,1,541111777,541111777,שושנה כהן - דיירת,resident,1945-06-15,G7,Widowed,Female,דתי,hebrew,NULL,NULL,test-resident-user2.jpg
-test-service-social,test-service-social-firebase,1,541111888,541111888,נעמי שפירא - עו"ס,service,1988-09-12,H8,Single,Female,חילוני,hebrew,עובדת סוציאלית,NULL,test-service-social.jpg
-test-service-culture,test-service-culture-firebase,1,541111999,541111999,אלי ברק - תרבות,service,1992-04-18,I9,Married,Male,מסורתי,hebrew,תרבות,NULL,test-service-culture.jpg
+default-manager-user,default-manager-firebase,1,541111111,541111111,יוסי כהן - מנהל,manager,1980-01-01,A1,Single,Male,secular,hebrew,NULL,NULL,default-manager-user.jpg
+test-staff-user,test-staff-firebase,1,541111222,541111222,רחל לוי - צוות,staff,1985-05-15,B2,Married,Female,orthodox,hebrew,NULL,NULL,test-staff-user.jpg
+test-service-maintenance,test-service-maintenance-firebase,1,541111333,541111333,דוד אברהם - תחזוקה,service,1982-03-20,C3,Single,Male,secular,english,תחזוקה,NULL,test-service-maintenance.jpg
+test-service-manager,test-service-manager-firebase,1,541111444,541111444,מרים גולדברג - מנהלת,service,1978-12-10,D4,Married,Female,traditional,hebrew,מנהל,NULL,test-service-manager.jpg
+test-service-nursing,test-service-nursing-firebase,1,541111555,541111555,שרה רוזן - אחות,service,1990-08-25,E5,Single,Female,secular,hebrew,אחות,NULL,test-service-nursing.jpg
+test-resident-user1,test-resident-firebase1,1,541111666,541111666,אברהם ישראלי - דייר,resident,1975-11-30,F6,Married,Male,orthodox,hebrew,NULL,NULL,test-resident-user1.jpg
+test-resident-user2,test-resident-firebase2,1,541111777,541111777,שושנה כהן - דיירת,resident,1945-06-15,G7,Widowed,Female,traditional,hebrew,NULL,NULL,test-resident-user2.jpg
+test-service-social,test-service-social-firebase,1,541111888,541111888,נעמי שפירא - עו"ס,service,1988-09-12,H8,Single,Female,secular,hebrew,עובדת סוציאלית,NULL,test-service-social.jpg
+test-service-culture,test-service-culture-firebase,1,541111999,541111999,אלי ברק - תרבות,service,1992-04-18,I9,Married,Male,orthodox,hebrew,תרבות,NULL,test-service-culture.jpg

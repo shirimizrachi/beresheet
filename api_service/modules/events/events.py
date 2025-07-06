@@ -235,7 +235,7 @@ class EventDatabase:
 
 
     def get_all_events_ordered(self, home_id: int) -> List[Event]:
-        """Get all events ordered by date desc (for staff/manager)"""
+        """Get all events ordered by updated_at desc (for staff/manager)"""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
@@ -252,7 +252,7 @@ class EventDatabase:
             with schema_engine.connect() as conn:
                 results = conn.execute(
                     events_table.select()
-                    .order_by(events_table.c.dateTime.desc())
+                    .order_by(events_table.c.updated_at.desc())
                 ).fetchall()
                 
                 for result in results:
@@ -564,6 +564,241 @@ class EventDatabase:
 
         except Exception as e:
             print(f"Error getting upcoming events for home {home_id}: {e}")
+            return []
+
+    def get_events_by_status(self, status: str, home_id: int) -> List[Event]:
+        """Get events by status"""
+        try:
+            schema_name = get_schema_name_by_home_id(home_id)
+            if not schema_name:
+                return []
+
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            events = []
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+            with schema_engine.connect() as conn:
+                results = conn.execute(
+                    events_table.select()
+                    .where(events_table.c.status == status)
+                    .order_by(events_table.c.dateTime.desc())
+                ).fetchall()
+                
+                for result in results:
+                    events.append(Event(
+                        id=result.id,
+                        name=result.name,
+                        type=result.type,
+                        description=result.description,
+                        dateTime=result.dateTime,
+                        location=result.location,
+                        maxParticipants=result.maxParticipants,
+                        currentParticipants=result.currentParticipants,
+                        image_url=result.image_url or "",
+                        status=result.status if hasattr(result, 'status') else "pending-approval",
+                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                    ))
+            return events
+
+        except Exception as e:
+            print(f"Error getting events by status {status} for home {home_id}: {e}")
+            return []
+
+    def get_completed_events_with_reviews(self, home_id: int) -> List[Event]:
+        """Get completed events with their reviews"""
+        try:
+            schema_name = get_schema_name_by_home_id(home_id)
+            if not schema_name:
+                return []
+
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+                
+            # Get registration table for reviews
+            metadata = MetaData(schema=schema_name)
+            metadata.reflect(bind=schema_engine, only=['events_registration'])
+            registration_table = metadata.tables[f'{schema_name}.events_registration']
+
+            events = []
+            with schema_engine.connect() as conn:
+                # Query completed events with their reviews
+                results = conn.execute(
+                    text(f"""
+                        SELECT
+                            e.id,
+                            e.name,
+                            e.type,
+                            e.description,
+                            e.dateTime,
+                            e.location,
+                            e.maxParticipants,
+                            e.currentParticipants,
+                            e.image_url,
+                            e.status,
+                            e.recurring,
+                            e.recurring_end_date,
+                            e.recurring_pattern,
+                            COALESCE(
+                                '[' + STRING_AGG(
+                                    '{{' +
+                                    '"user_name":"' + COALESCE(er.user_name, 'Anonymous') + '",' +
+                                    '"rating":' + COALESCE(CAST(er.vote AS VARCHAR), 'null') + ',' +
+                                    '"comment":"' + COALESCE(REPLACE(er.reviews, '"', '\\"'), '') + '",' +
+                                    '"registration_date":"' + COALESCE(FORMAT(er.registration_date, 'yyyy-MM-ddTHH:mm:ss'), '') + '"' +
+                                    '}}', ','
+                                ) + ']',
+                                '[]'
+                            ) as reviews_data
+                        FROM [{schema_name}].[events] e
+                        LEFT JOIN [{schema_name}].[events_registration] er
+                            ON e.id = er.event_id
+                            AND er.status = 'registered'
+                            AND (er.vote IS NOT NULL OR (er.reviews IS NOT NULL AND er.reviews != ''))
+                        WHERE e.status = 'done'
+                        GROUP BY e.id, e.name, e.type, e.description, e.dateTime, e.location,
+                                e.maxParticipants, e.currentParticipants, e.image_url, e.status,
+                                e.recurring, e.recurring_end_date, e.recurring_pattern
+                        ORDER BY e.dateTime DESC
+                    """)
+                ).fetchall()
+                
+                for result in results:
+                    # Parse reviews data
+                    reviews_data = []
+                    try:
+                        if result.reviews_data and result.reviews_data != '[]':
+                            reviews_data = json.loads(result.reviews_data)
+                    except (json.JSONDecodeError, Exception) as e:
+                        print(f"Error parsing reviews data for event {result.id}: {e}")
+                        reviews_data = []
+                    
+                    event = Event(
+                        id=result.id,
+                        name=result.name,
+                        type=result.type,
+                        description=result.description,
+                        dateTime=result.dateTime,
+                        location=result.location,
+                        maxParticipants=result.maxParticipants,
+                        currentParticipants=result.currentParticipants,
+                        image_url=result.image_url or "",
+                        status=result.status,
+                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        reviews=reviews_data
+                    )
+                    events.append(event)
+            
+            return events
+
+        except Exception as e:
+            print(f"Error getting completed events with reviews for home {home_id}: {e}")
+            return []
+
+    def get_completed_events_with_gallery(self, home_id: int) -> List[Event]:
+        """Get completed events with their gallery photos"""
+        try:
+            schema_name = get_schema_name_by_home_id(home_id)
+            if not schema_name:
+                return []
+
+            events_table = self.get_events_table(schema_name)
+            if events_table is None:
+                return []
+
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return []
+                
+            # Get gallery table for photos
+            metadata = MetaData(schema=schema_name)
+            metadata.reflect(bind=schema_engine, only=['event_gallery'])
+            gallery_table = metadata.tables[f'{schema_name}.event_gallery']
+
+            events = []
+            with schema_engine.connect() as conn:
+                # Query completed events with their gallery photos
+                results = conn.execute(
+                    text(f"""
+                        SELECT
+                            e.id,
+                            e.name,
+                            e.type,
+                            e.description,
+                            e.dateTime,
+                            e.location,
+                            e.maxParticipants,
+                            e.currentParticipants,
+                            e.image_url,
+                            e.status,
+                            e.recurring,
+                            e.recurring_end_date,
+                            e.recurring_pattern,
+                            COALESCE(
+                                '[' + STRING_AGG(
+                                    '{{' +
+                                    '"id":"' + COALESCE(eg.id, '') + '",' +
+                                    '"image_url":"' + COALESCE(eg.image_url, '') + '",' +
+                                    '"created_at":"' + COALESCE(FORMAT(eg.created_at, 'yyyy-MM-ddTHH:mm:ss'), '') + '"' +
+                                    '}}', ','
+                                ) + ']',
+                                '[]'
+                            ) as gallery_data
+                        FROM [{schema_name}].[events] e
+                        LEFT JOIN [{schema_name}].[event_gallery] eg
+                            ON e.id = eg.event_id
+                        WHERE e.status = 'done'
+                        GROUP BY e.id, e.name, e.type, e.description, e.dateTime, e.location,
+                                e.maxParticipants, e.currentParticipants, e.image_url, e.status,
+                                e.recurring, e.recurring_end_date, e.recurring_pattern
+                        ORDER BY e.dateTime DESC
+                    """)
+                ).fetchall()
+                
+                for result in results:
+                    # Parse gallery data
+                    gallery_data = []
+                    try:
+                        if result.gallery_data and result.gallery_data != '[]':
+                            gallery_data = json.loads(result.gallery_data)
+                    except (json.JSONDecodeError, Exception) as e:
+                        print(f"Error parsing gallery data for event {result.id}: {e}")
+                        gallery_data = []
+                    
+                    event = Event(
+                        id=result.id,
+                        name=result.name,
+                        type=result.type,
+                        description=result.description,
+                        dateTime=result.dateTime,
+                        location=result.location,
+                        maxParticipants=result.maxParticipants,
+                        currentParticipants=result.currentParticipants,
+                        image_url=result.image_url or "",
+                        status=result.status,
+                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        galleryPhotos=gallery_data
+                    )
+                    events.append(event)
+            
+            return events
+
+        except Exception as e:
+            print(f"Error getting completed events with gallery for home {home_id}: {e}")
             return []
 
 

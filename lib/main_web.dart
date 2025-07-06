@@ -140,7 +140,7 @@ class _TenantRouterDelegate extends RouterDelegate<String> with ChangeNotifier, 
       case 'login':
         return const WebJwtLoginScreen();
       
-      // Management routes - require staff role (manager, staff, or instructor)
+      // Tenant Management routes - require staff role (manager or staff ONLY)
       case 'manage':
       case 'manage/':
         return const WebJwtStaffPage(
@@ -151,15 +151,15 @@ class _TenantRouterDelegate extends RouterDelegate<String> with ChangeNotifier, 
           child: WebManagementPanel(initialTab: 'events'),
         );
       case 'manage/users':
-        return const WebJwtManagerPage(
+        return const WebJwtStaffPage(
           child: WebManagementPanel(initialTab: 'user_list'),
         );
       
-      // Public homepage with events carousel - require authentication but accessible to all roles
+      // Public homepage with events carousel - require manager/staff authentication for web access
       case 'home':
       case '':
       default:
-        return const WebJwtAuthenticatedPage(
+        return const WebJwtStaffPage(
           child: WebHomePage(),
         );
     }

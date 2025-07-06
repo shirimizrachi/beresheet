@@ -31,6 +31,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   final TextEditingController _maxParticipantsController = TextEditingController();
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
+  final TextEditingController _imageSearchController = TextEditingController();
   
   // Form variables
   String _selectedType = AppConfig.eventTypeEvent;
@@ -49,6 +50,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   String _imageSource = 'upload'; // 'upload', 'gallery', or 'unsplash'
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
+  String _imageSearchQuery = '';
   
   bool _isLoading = false;
   String? _errorMessage;
@@ -460,6 +462,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     _maxParticipantsController.clear();
     _currentParticipantsController.clear();
     _imageUrlController.clear();
+    _imageSearchController.clear();
     setState(() {
       _selectedType = AppConfig.eventTypeEvent;
       _selectedStatus = AppConfig.eventStatusPendingApproval;
@@ -473,6 +476,7 @@ class _EventFormWebState extends State<EventFormWeb> {
       _imageSource = 'upload';
       _selectedImageBytes = null;
       _selectedImageName = null;
+      _imageSearchQuery = '';
       _selectedInstructor = null;
       _instructorName = null;
       _instructorDesc = null;
@@ -713,11 +717,11 @@ class _EventFormWebState extends State<EventFormWeb> {
                             child: Text(_formatEventType(type)),
                           );
                         }).toList(),
-                        onChanged: widget.event != null ? null : (String? newValue) {
+                        onChanged: _isFieldEditable ? (String? newValue) {
                           setState(() {
                             _selectedType = newValue!;
                           });
-                        },
+                        } : null,
                       ),
                       const SizedBox(height: 16),
 
@@ -1087,25 +1091,27 @@ class _EventFormWebState extends State<EventFormWeb> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
                           
-                          // Time Picker
-                          Expanded(
-                            child: InkWell(
-                              onTap: _isFieldEditable ? _selectTime : null,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: '${AppLocalizations.of(context)!.eventTime} *',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: const Icon(Icons.access_time),
-                                ),
-                                child: Text(
-                                  '${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
-                                  style: const TextStyle(),
+                          // Time Picker - only show for non-recurring events
+                          if (_selectedRecurring == 'none') ...[
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: InkWell(
+                                onTap: _isFieldEditable ? _selectTime : null,
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: '${AppLocalizations.of(context)!.eventTime} *',
+                                    border: const OutlineInputBorder(),
+                                    suffixIcon: const Icon(Icons.access_time),
+                                  ),
+                                  child: Text(
+                                    '${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                                    style: const TextStyle(),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       
@@ -1328,40 +1334,85 @@ class _EventFormWebState extends State<EventFormWeb> {
                       const SizedBox(height: 16),
 
                       // Image source selection
-                      Wrap(
-                        spacing: 8,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 160,
-                            child: RadioListTile<String>(
-                              title: Text(AppLocalizations.of(context)!.upload),
-                              value: 'upload',
-                              groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
-                                setState(() {
-                                  _imageSource = value!;
-                                  _selectedImageBytes = null;
-                                  _selectedImageName = null;
-                                });
-                              } : null,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              SizedBox(
+                                width: 160,
+                                child: RadioListTile<String>(
+                                  title: Text(AppLocalizations.of(context)!.upload),
+                                  value: 'upload',
+                                  groupValue: _imageSource,
+                                  onChanged: _isFieldEditable ? (value) {
+                                    setState(() {
+                                      _imageSource = value!;
+                                      _selectedImageBytes = null;
+                                      _selectedImageName = null;
+                                      _imageSearchController.clear();
+                                      _imageSearchQuery = '';
+                                    });
+                                  } : null,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 160,
+                                child: RadioListTile<String>(
+                                  title: Text(AppLocalizations.of(context)!.unsplash),
+                                  value: 'unsplash',
+                                  groupValue: _imageSource,
+                                  onChanged: _isFieldEditable ? (value) {
+                                    setState(() {
+                                      _imageSource = value!;
+                                      _imageUrlController.clear();
+                                      _selectedImageBytes = null;
+                                      _selectedImageName = null;
+                                    });
+                                  } : null,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(
-                            width: 160,
-                            child: RadioListTile<String>(
-                              title: Text(AppLocalizations.of(context)!.unsplash),
-                              value: 'unsplash',
-                              groupValue: _imageSource,
-                              onChanged: _isFieldEditable ? (value) {
-                                setState(() {
-                                  _imageSource = value!;
-                                  _imageUrlController.clear();
-                                  _selectedImageBytes = null;
-                                  _selectedImageName = null;
-                                });
-                              } : null,
+                          
+                          // Search field for image bank - only visible when unsplash is selected
+                          if (_imageSource == 'unsplash') ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: 300,
+                              child: TextField(
+                                controller: _imageSearchController,
+                                enabled: _isFieldEditable,
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.searchImages,
+                                  hintText: AppLocalizations.of(context)!.enterKeywordsToSearchImages,
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.search),
+                                  suffixIcon: _imageSearchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            setState(() {
+                                              _imageSearchController.clear();
+                                              _imageSearchQuery = '';
+                                            });
+                                          },
+                                        )
+                                      : null,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value.length >= 2) {
+                                      _imageSearchQuery = value;
+                                    } else {
+                                      _imageSearchQuery = '';
+                                    }
+                                  });
+                                },
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -1370,7 +1421,8 @@ class _EventFormWebState extends State<EventFormWeb> {
                         SizedBox(
                           height: 400,
                           child: UnsplashImagePicker(
-                            eventType: _selectedType,
+                            eventType: _imageSearchQuery.isNotEmpty ? null : _selectedType,
+                            searchQuery: _imageSearchQuery.isNotEmpty ? _imageSearchQuery : null,
                             crossAxisCount: 6,
                             onImageSelected: (imageUrl) {
                               setState(() {

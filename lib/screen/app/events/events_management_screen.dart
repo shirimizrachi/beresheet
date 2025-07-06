@@ -2,6 +2,7 @@ import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/screen/app/events/event_form_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
+import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -17,11 +18,28 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
   List<Event> events = [];
   bool isLoading = true;
   String? errorMessage;
+  bool hasPermission = false;
 
   @override
   void initState() {
     super.initState();
-    loadEvents();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final canEdit = await RoleAccessService.canEditEvents();
+    setState(() {
+      hasPermission = canEdit;
+    });
+    
+    if (hasPermission) {
+      loadEvents();
+    } else {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Access denied. Only managers and staff can manage events.';
+      });
+    }
   }
 
   Future<void> loadEvents() async {
@@ -119,37 +137,68 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: hasPermission ? FloatingActionButton(
         onPressed: () => navigateToEventForm(),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
-      ),
+      ) : null,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : errorMessage != null
+          : !hasPermission
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.error_outline,
+                        Icons.block,
                         size: 64,
                         color: Colors.red[300],
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        '${context.l10n.failedToLoadEvents}: $errorMessage',
+                        'Access Denied',
+                        style: AppTextStyles.heading4.copyWith(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Only managers and staff can manage events.',
                         style: AppTextStyles.bodyMedium.copyWith(color: Colors.red),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       ElevatedButton(
-                        onPressed: loadEvents,
-                        child: Text(context.l10n.retry),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Go Back'),
                       ),
                     ],
                   ),
                 )
+              : errorMessage != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red[300],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            errorMessage!,
+                            style: AppTextStyles.bodyMedium.copyWith(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          if (hasPermission)
+                            ElevatedButton(
+                              onPressed: loadEvents,
+                              child: Text(context.l10n.retry),
+                            ),
+                        ],
+                      ),
+                    )
               : events.isEmpty
                   ? Center(
                       child: Column(
@@ -224,7 +273,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                   ),
                                 ],
                               ),
-                              trailing: PopupMenuButton<String>(
+                              trailing: hasPermission ? PopupMenuButton<String>(
                                 onSelected: (value) {
                                   switch (value) {
                                     case 'edit':
@@ -253,8 +302,8 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                     ),
                                   ),
                                 ],
-                              ),
-                              onTap: () => navigateToEventForm(event: event),
+                              ) : null,
+                              onTap: hasPermission ? () => navigateToEventForm(event: event) : null,
                             ),
                           );
                         },

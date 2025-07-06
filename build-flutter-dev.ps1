@@ -24,15 +24,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Build web-admin application directly to api_service directory
-Write-Host "[INFO] Building web-admin application..." -ForegroundColor Green
-flutter build web --target lib/main_admin.dart --dart-define=ENVIRONMENT=development --output api_service/web-admin
+# Write-Host "[INFO] Building web-admin application..." -ForegroundColor Green
+# flutter build web --target lib/main_admin.dart --dart-define=ENVIRONMENT=development --output api_service/web-admin
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] web-admin build failed!" -ForegroundColor Red
-    exit 1
-} else {
-    Write-Host "[INFO] web-admin build completed successfully!" -ForegroundColor Green
-}
+# if ($LASTEXITCODE -ne 0) {
+#     Write-Host "[ERROR] web-admin build failed!" -ForegroundColor Red
+#     exit 1
+# } else {
+#     Write-Host "[INFO] web-admin build completed successfully!" -ForegroundColor Green
+# }
 
 Write-Host "[INFO] All Flutter web applications built successfully for development!" -ForegroundColor Green
 Write-Host "[INFO] Output locations:" -ForegroundColor Green

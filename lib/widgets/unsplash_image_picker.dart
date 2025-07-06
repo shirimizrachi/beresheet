@@ -7,13 +7,15 @@ import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/config/app_config.dart';
 
 class UnsplashImagePicker extends StatefulWidget {
-  final String eventType;
+  final String? eventType;
+  final String? searchQuery;
   final Function(String) onImageSelected;
   final int? crossAxisCount;
 
   const UnsplashImagePicker({
     Key? key,
-    required this.eventType,
+    this.eventType,
+    this.searchQuery,
     required this.onImageSelected,
     this.crossAxisCount,
   }) : super(key: key);
@@ -34,11 +36,30 @@ class _UnsplashImagePickerState extends State<UnsplashImagePicker> {
     fetchImages();
   }
 
+  @override
+  void didUpdateWidget(UnsplashImagePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refetch images if search query or event type changed
+    if (oldWidget.searchQuery != widget.searchQuery ||
+        oldWidget.eventType != widget.eventType) {
+      fetchImages();
+    }
+  }
+
   Future<void> fetchImages() async {
     try {
       setState(() => isLoading = true);
       
-      final query = widget.eventType.replaceAll('-', ' ');
+      // Use searchQuery if provided, otherwise use eventType
+      String query;
+      if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+        query = widget.searchQuery!;
+      } else if (widget.eventType != null) {
+        query = widget.eventType!.replaceAll('-', ' ');
+      } else {
+        query = 'event'; // Default fallback
+      }
+      
       final url = Uri.parse(
         'https://api.unsplash.com/search/photos?query=$query&per_page=20&client_id=$unsplashAccessKey'
       );

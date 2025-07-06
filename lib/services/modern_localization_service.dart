@@ -199,7 +199,6 @@ class ModernAppStrings {
   // Gender
   String get genderMale => _l10n.genderMale;
   String get genderFemale => _l10n.genderFemale;
-  String get genderOther => _l10n.genderOther;
 
   // Religious
   String get religiousSecular => _l10n.religiousSecular;
@@ -222,7 +221,7 @@ class ModernAppStrings {
   String get noUserLoggedIn => _l10n.noUserLoggedIn;
   String get errorLoadingOrderDetails => _l10n.errorLoadingOrderDetails;
   String get noOrderFound => _l10n.noOrderFound;
-  String get errorPickingImage => _l10n.errorPickingImage;
+  String errorPickingImage(String error) => _l10n.errorPickingImage(error);
   String get unregisterConfirmation => _l10n.unregisterConfirmation;
   String get noRegisteredEvents => _l10n.noRegisteredEvents;
   String get registerFromHome => _l10n.registerFromHome;
@@ -270,4 +269,5 @@ class ModernAppStrings {
   String get userId => _l10n.userId;
   String get failedToCreateUserProfile => _l10n.failedToCreateUserProfile;
   String get anErrorOccurred => _l10n.anErrorOccurred;
+  String get phoneNumberAlreadyExists => _l10n.phoneNumberAlreadyExists;
 }

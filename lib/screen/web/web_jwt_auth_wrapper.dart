@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
+import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
+import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/screen/web/web_jwt_login_screen.dart';
+import 'package:beresheet_app/config/app_config.dart';
+import 'dart:html' as html;
 
 class WebJwtAuthWrapper extends StatefulWidget {
   final Widget child;
@@ -61,18 +65,33 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
     await _checkAuthentication();
   }
 
+  Future<void> _redirectToLogin() async {
+    // Get the tenant from the stored home name
+    final homeName = await WebJwtSessionService.getHomeName();
+    final tenant = homeName ?? 'demo'; // default to demo if not found
+    
+    // Get the current URL origin
+    final currentUrl = html.window.location.href;
+    final uri = Uri.parse(currentUrl);
+    
+    // Navigate to the login page with the tenant prefix
+    final loginUrl = '${uri.origin}/$tenant/login';
+    html.window.location.href = loginUrl;
+  }
+
   bool _hasRequiredRole() {
     if (widget.requiredRole == null) return true;
     if (_userRole == null) return false;
     
     // Check role hierarchy: manager > staff > service > resident
+    // For tenant management and web features, only manager and staff are allowed
     switch (widget.requiredRole) {
       case 'manager':
-        return _userRole == 'manager';
+        return _userRole == AppConfig.userRoleManager;
       case 'staff':
-        return _userRole == 'manager' || _userRole == 'staff';
+        return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff;
       case 'service':
-        return _userRole == 'manager' || _userRole == 'staff' || _userRole == 'service';
+        return _userRole == AppConfig.userRoleManager || _userRole == AppConfig.userRoleStaff || _userRole == AppConfig.userRoleService;
       case 'resident':
         return true; // All authenticated users can access resident-level content
       default:
@@ -105,7 +124,7 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
               icon: const Icon(Icons.logout),
               onPressed: () async {
                 await WebJwtAuthService.logout();
-                await _checkAuthentication();
+                await _redirectToLogin();
               },
             ),
           ],
@@ -126,7 +145,7 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
               ),
               const SizedBox(height: 8),
               Text(
-                'You do not have permission to access this page.\nRequired role: ${widget.requiredRole ?? 'authenticated'}',
+                'You do not have permission to access this page.\nOnly managers and staff can access tenant management features.\nYour role: ${_userRole ?? 'unknown'}',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -134,7 +153,7 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
               ElevatedButton(
                 onPressed: () async {
                   await WebJwtAuthService.logout();
-                  await _checkAuthentication();
+                  await _redirectToLogin();
                 },
                 child: const Text('Logout'),
               ),
