@@ -333,7 +333,7 @@ class WebJwtSessionService {
     
     if (user != null) {
       headers['homeID'] = user.homeId.toString();
-      headers['currentUserId'] = user.id;
+      headers['userId'] = user.id;
     }
     
     return headers;

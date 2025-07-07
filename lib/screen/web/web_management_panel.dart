@@ -60,118 +60,189 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
 
   Widget _buildNavigationRail() {
     final userRole = _userRole ?? '';
-    List<NavigationRailDestination> destinations = [];
-    List<String> availableTabs = [];
     
-    // Home tab - available for all authenticated users
-    destinations.add(NavigationRailDestination(
-      icon: const Icon(Icons.home),
-      selectedIcon: const Icon(Icons.home),
-      label: Text(AppLocalizations.of(context)!.home),
-    ));
-    availableTabs.add('home');
-    
-    // EVENTS SECTION - available for manager, staff, and instructor
-    if (userRole == AppConfig.userRoleManager ||
-        userRole == AppConfig.userRoleStaff ||
-        userRole == AppConfig.userRoleInstructor) {
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.event_note),
-        selectedIcon: const Icon(Icons.event_note),
-        label: Text(AppLocalizations.of(context)!.webCreateEvent),
-      ));
-      availableTabs.add('create_event');
-      
-      // Events List (renamed from Events Management)
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.event),
-        selectedIcon: const Icon(Icons.event),
-        label: Text(AppLocalizations.of(context)!.webEventsList),
-      ));
-      availableTabs.add('events');
-      
-      // Events Summary
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.analytics),
-        selectedIcon: const Icon(Icons.analytics),
-        label: const Text('Events Summary'),
-      ));
-      availableTabs.add('events_summary');
-      
-      // Notifications Management
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.notifications),
-        selectedIcon: const Icon(Icons.notifications),
-        label: const Text('Notifications'),
-      ));
-      availableTabs.add('notifications');
-      
-      // Event Registrations (only for manager and staff)
-      if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff) {
-        destinations.add(NavigationRailDestination(
-          icon: const Icon(Icons.event_available),
-          selectedIcon: const Icon(Icons.event_available),
-          label: Text(AppLocalizations.of(context)!.webEventRegistrations),
-        ));
-        availableTabs.add('event_registrations');
-      }
-    }
-    
-    // USERS SECTION - only for managers
-    if (userRole == AppConfig.userRoleManager) {
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.person_add),
-        selectedIcon: const Icon(Icons.person_add),
-        label: Text(AppLocalizations.of(context)!.webCreateUser),
-      ));
-      availableTabs.add('create_user');
-      
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.people),
-        selectedIcon: const Icon(Icons.people),
-        label: Text(AppLocalizations.of(context)!.webUserList),
-      ));
-      availableTabs.add('user_list');
-      
-      // SETTINGS SECTION
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.meeting_room),
-        selectedIcon: const Icon(Icons.meeting_room),
-        label: Text(AppLocalizations.of(context)!.webRooms),
-      ));
-      availableTabs.add('rooms_management');
-      
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.school),
-        selectedIcon: const Icon(Icons.school),
-        label: Text(AppLocalizations.of(context)!.eventInstructors),
-      ));
-      availableTabs.add('event_instructors');
-      
-      destinations.add(NavigationRailDestination(
-        icon: const Icon(Icons.work),
-        selectedIcon: const Icon(Icons.work),
-        label: Text(AppLocalizations.of(context)!.serviceProviderTypes),
-      ));
-      availableTabs.add('service_provider_types');
-    }
-    
-    // Find current selected index
-    int selectedIndex = availableTabs.indexOf(_selectedTab);
-    if (selectedIndex == -1) {
-      selectedIndex = 0;
-      _selectedTab = availableTabs[0];
-    }
-    
-    return NavigationRail(
-      selectedIndex: selectedIndex,
-      onDestinationSelected: (int index) {
+    return Container(
+      width: 250,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+          // Home section
+          _buildSectionHeader(AppLocalizations.of(context)!.home, Icons.home),
+          _buildNavigationItem(
+            icon: Icons.home,
+            label: AppLocalizations.of(context)!.home,
+            tabKey: 'home',
+            isSelected: _selectedTab == 'home',
+          ),
+          
+          // Events section
+          if (userRole == AppConfig.userRoleManager ||
+              userRole == AppConfig.userRoleStaff ||
+              userRole == AppConfig.userRoleInstructor) ...[
+            const SizedBox(height: 16),
+            _buildSectionHeader(AppLocalizations.of(context)!.events, Icons.event),
+            _buildNavigationItem(
+              icon: Icons.event_note,
+              label: AppLocalizations.of(context)!.webCreateEvent,
+              tabKey: 'create_event',
+              isSelected: _selectedTab == 'create_event',
+            ),
+            _buildNavigationItem(
+              icon: Icons.event,
+              label: AppLocalizations.of(context)!.webEventsList,
+              tabKey: 'events',
+              isSelected: _selectedTab == 'events',
+            ),
+            if (userRole == AppConfig.userRoleManager || userRole == AppConfig.userRoleStaff)
+              _buildNavigationItem(
+                icon: Icons.event_available,
+                label: AppLocalizations.of(context)!.webEventRegistrations,
+                tabKey: 'event_registrations',
+                isSelected: _selectedTab == 'event_registrations',
+              ),
+            _buildNavigationItem(
+              icon: Icons.school,
+              label: AppLocalizations.of(context)!.eventInstructors,
+              tabKey: 'event_instructors',
+              isSelected: _selectedTab == 'event_instructors',
+            ),
+            _buildNavigationItem(
+              icon: Icons.analytics,
+              label: AppLocalizations.of(context)!.eventsSummary,
+              tabKey: 'events_summary',
+              isSelected: _selectedTab == 'events_summary',
+            ),
+            _buildNavigationItem(
+              icon: Icons.meeting_room,
+              label: AppLocalizations.of(context)!.webRooms,
+              tabKey: 'rooms_management',
+              isSelected: _selectedTab == 'rooms_management',
+            ),
+          ],
+          
+          // Users section
+          if (userRole == AppConfig.userRoleManager) ...[
+            const SizedBox(height: 16),
+            _buildSectionHeader(AppLocalizations.of(context)!.users, Icons.people),
+            _buildNavigationItem(
+              icon: Icons.person_add,
+              label: AppLocalizations.of(context)!.webCreateUser,
+              tabKey: 'create_user',
+              isSelected: _selectedTab == 'create_user',
+            ),
+            _buildNavigationItem(
+              icon: Icons.people,
+              label: AppLocalizations.of(context)!.webUserList,
+              tabKey: 'user_list',
+              isSelected: _selectedTab == 'user_list',
+            ),
+          ],
+          
+          // Service Providers section
+          if (userRole == AppConfig.userRoleManager) ...[
+            const SizedBox(height: 16),
+            _buildSectionHeader(AppLocalizations.of(context)!.serviceProviders, Icons.work),
+            _buildNavigationItem(
+              icon: Icons.work,
+              label: AppLocalizations.of(context)!.serviceProviderTypes,
+              tabKey: 'service_provider_types',
+              isSelected: _selectedTab == 'service_provider_types',
+            ),
+          ],
+          
+          // Notifications section
+          if (userRole == AppConfig.userRoleManager ||
+              userRole == AppConfig.userRoleStaff ||
+              userRole == AppConfig.userRoleInstructor) ...[
+            const SizedBox(height: 16),
+            _buildSectionHeader(AppLocalizations.of(context)!.notifications, Icons.notifications),
+            _buildNavigationItem(
+              icon: Icons.notifications,
+              label: AppLocalizations.of(context)!.notifications,
+              tabKey: 'notifications',
+              isSelected: _selectedTab == 'notifications',
+            ),
+          ],
+        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        border: Border(
+          top: BorderSide(color: Colors.grey[300]!),
+          bottom: BorderSide(color: Colors.grey[300]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[700]),
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavigationItem({
+    required IconData icon,
+    required String label,
+    required String tabKey,
+    required bool isSelected,
+  }) {
+    return InkWell(
+      onTap: () {
         setState(() {
-          _selectedTab = availableTabs[index];
+          _selectedTab = tabKey;
         });
       },
-      labelType: NavigationRailLabelType.all,
-      destinations: destinations,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue[50] : null,
+          border: Border(
+            left: BorderSide(
+              color: isSelected ? Colors.blue : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? Colors.blue : Colors.grey[600],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? Colors.blue : Colors.grey[800],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -375,7 +446,7 @@ class _WebManagementPanelState extends State<WebManagementPanel> {
       cards.add(
         _buildFeatureCard(
           icon: Icons.analytics,
-          title: 'Events Summary',
+          title: AppLocalizations.of(context)!.eventsSummary,
           description: 'View comprehensive events analysis and load_events_for_home results',
           onTap: () => setState(() => _selectedTab = 'events_summary'),
           color: Colors.deepOrange,

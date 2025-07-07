@@ -1118,6 +1118,22 @@
   "@errorUploadingImages": {
     "description": "Error uploading images message"
   },
+  "eventsSummary": "Events Summary",
+  "@eventsSummary": {
+    "description": "Events Summary page title"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications page title"
+  },
+  "serviceProviders": "Service Providers",
+  "@serviceProviders": {
+    "description": "Service Providers section title"
+  },
+  "users": "Users",
+  "@users": {
+    "description": "Users section title"
+  },
   "webUploadImage": "Upload Image",
   "@webUploadImage": {
     "description": "Web upload image button"
