@@ -288,8 +288,8 @@
   "@location": {
     "description": "Location label"
   },
-  "dateTime": "Date & Time",
-  "@dateTime": {
+  "date_time": "Date & Time",
+  "@date_time": {
     "description": "Date and time label"
   },
   "description": "Description",
@@ -316,12 +316,12 @@
   "@deleteEvent": {
     "description": "Delete event button"
   },
-  "maxParticipants": "Max Participants",
-  "@maxParticipants": {
+  "max_participants": "Max Participants",
+  "@max_participants": {
     "description": "Maximum participants label"
   },
-  "currentParticipants": "Current Participants",
-  "@currentParticipants": {
+  "current_participants": "Current Participants",
+  "@current_participants": {
     "description": "Current participants label"
   },
   "imageUrl": "Image URL",

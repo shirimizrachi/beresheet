@@ -137,10 +137,10 @@ Events now use GUID IDs and include:
 - `name`: Event name
 - `type`: Event category (class, performance, cultural, leisure)
 - `description`: Event description
-- `dateTime`: Event date and time
+- `date_time`: Event date and time
 - `location`: Event location
-- `maxParticipants`: Maximum attendees
-- `currentParticipants`: Current attendees
+- `max_participants`: Maximum attendees
+- `current_participants`: Current attendees
 - `image_url`: Event image URL
 - `isRegistered`: User registration status
 

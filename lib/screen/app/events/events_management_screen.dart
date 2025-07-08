@@ -268,7 +268,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                     style: AppTextStyles.bodySmall,
                                   ),
                                   Text(
-                                    '${event.currentParticipants}/${event.maxParticipants} ${context.l10n.participants}',
+                                    '${event.current_participants}/${event.max_participants} ${context.l10n.participants}',
                                     style: AppTextStyles.bodySmall,
                                   ),
                                 ],

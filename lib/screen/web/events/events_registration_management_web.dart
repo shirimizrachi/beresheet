@@ -174,8 +174,8 @@ class _EventsRegistrationManagementWebState extends State<EventsRegistrationMana
   String _formatDateTime(String? dateTimeString) {
     if (dateTimeString == null) return AppLocalizations.of(context)!.notAvailable;
     try {
-      final dateTime = DateTime.parse(dateTimeString);
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+      final date_time = DateTime.parse(dateTimeString);
+      return '${date_time.day}/${date_time.month}/${date_time.year} ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateTimeString;
     }

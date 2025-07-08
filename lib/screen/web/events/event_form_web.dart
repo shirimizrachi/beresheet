@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
+import 'package:beresheet_app/services/web_image_cache_service.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/widgets/unsplash_image_picker.dart';
@@ -90,12 +91,12 @@ class _EventFormWebState extends State<EventFormWeb> {
     _nameController.text = event.name;
     _descriptionController.text = event.description;
     _locationController.text = event.location;
-    _maxParticipantsController.text = event.maxParticipants.toString();
-    _currentParticipantsController.text = event.currentParticipants.toString();
+    _maxParticipantsController.text = event.max_participants.toString();
+    _currentParticipantsController.text = event.current_participants.toString();
     _imageUrlController.text = event.imageUrl;
     _selectedType = event.type;
     _selectedStatus = event.status;
-    _selectedDateTime = event.dateTime;
+    _selectedDateTime = event.date_time;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
     _selectedRoomName = event.location; // For existing events, set the room from location
@@ -213,7 +214,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   }
 
   bool get _isFieldEditable {
-    // For new events, all fields except status and currentParticipants are editable
+    // For new events, all fields except status and current_participants are editable
     if (widget.event == null) return true;
     
     // If event status is "done", no fields should be editable (view-only mode)
@@ -356,10 +357,10 @@ class _EventFormWebState extends State<EventFormWeb> {
         'name': _nameController.text.trim(),
         'type': _selectedType,
         'description': _descriptionController.text.trim(),
-        'dateTime': _selectedDateTime.toIso8601String(),
+        'date_time': _selectedDateTime.toIso8601String(),
         'location': _selectedRoomName ?? _locationController.text.trim(),
-        'maxParticipants': _maxParticipantsController.text.trim(),
-        'currentParticipants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
+        'max_participants': _maxParticipantsController.text.trim(),
+        'current_participants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
       });
@@ -892,15 +893,13 @@ class _EventFormWebState extends State<EventFormWeb> {
                                             border: Border.all(color: Colors.blue[300]!, width: 2),
                                           ),
                                           child: ClipOval(
-                                            child: Image.network(
-                                              photoUrl.toString(),
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Container(
-                                                  color: Colors.grey[300],
-                                                  child: const Icon(Icons.person, color: Colors.grey),
-                                                );
-                                              },
+                                            child: WebImageCacheService.buildCircularUserImage(
+                                              imageUrl: photoUrl.toString(),
+                                              radius: 30,
+                                              errorWidget: Container(
+                                                color: Colors.grey[300],
+                                                child: const Icon(Icons.person, color: Colors.grey),
+                                              ),
                                             ),
                                           ),
                                         );
@@ -998,7 +997,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                               controller: _maxParticipantsController,
                               enabled: _isFieldEditable,
                               decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.maxParticipants,
+                                labelText: AppLocalizations.of(context)!.max_participants,
                                 border: const OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.number,
@@ -1023,7 +1022,7 @@ class _EventFormWebState extends State<EventFormWeb> {
                                 controller: _currentParticipantsController,
                                 enabled: false, // Always read-only
                                 decoration: InputDecoration(
-                                  labelText: AppLocalizations.of(context)!.currentParticipants,
+                                  labelText: AppLocalizations.of(context)!.current_participants,
                                   border: const OutlineInputBorder(),
                                 ),
                                 keyboardType: TextInputType.number,
@@ -1506,26 +1505,22 @@ class _EventFormWebState extends State<EventFormWeb> {
                                     _selectedImageBytes!,
                                     fit: BoxFit.cover,
                                   )
-                                : Image.network(
-                                    _imageUrlController.text.isNotEmpty
+                                : WebImageCacheService.buildEventImage(
+                                    imageUrl: _imageUrlController.text.isNotEmpty
                                         ? _imageUrlController.text
                                         : (widget.event?.imageUrl ?? ''),
-                                    fit: BoxFit.contain, // Changed from cover to contain to show full image
-                                    errorBuilder: (context, error, stackTrace) {
-                                      print('Image loading error: $error');
-                                      return Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.error, color: Colors.red),
-                                          const SizedBox(height: 8),
-                                          Text(AppLocalizations.of(context)!.invalidImageUrl),
-                                        ],
-                                      );
-                                    },
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const Center(child: CircularProgressIndicator());
-                                    },
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.contain,
+                                    placeholder: const Center(child: CircularProgressIndicator()),
+                                    errorWidget: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.error, color: Colors.red),
+                                        const SizedBox(height: 8),
+                                        Text(AppLocalizations.of(context)!.invalidImageUrl),
+                                      ],
+                                    ),
                                   ),
                           ),
                         ),

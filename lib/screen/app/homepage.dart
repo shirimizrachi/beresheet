@@ -258,7 +258,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final now = DateTime.now();
     
     for (final event in eventsList) {
-      final eventDate = DateTime(event.dateTime.year, event.dateTime.month, event.dateTime.day);
+      final eventDate = DateTime(event.date_time.year, event.date_time.month, event.date_time.day);
       final today = DateTime(now.year, now.month, now.day);
       final tomorrow = today.add(Duration(days: 1));
       
@@ -282,7 +282,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     // Sort events within each date group by time
     groupedEvents.forEach((key, eventList) {
-      eventList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      eventList.sort((a, b) => a.date_time.compareTo(b.date_time));
     });
     
     return groupedEvents;
@@ -334,7 +334,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       final eventsB = groupedEvents[b]!;
       
       if (eventsA.isNotEmpty && eventsB.isNotEmpty) {
-        return eventsA.first.dateTime.compareTo(eventsB.first.dateTime);
+        return eventsA.first.date_time.compareTo(eventsB.first.date_time);
       }
       
       return a.compareTo(b);
@@ -548,21 +548,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ? isCardView
                         ? _buildCardView()
                         : _buildGridViewWithDateSeparators()
-                    : RefreshIndicator(
-                        onRefresh: _refreshEvents,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: SizedBox(
-                            height: 400,
-                            child: Center(
-                              child: Text(
-                                context.l10n.noEventsFound,
-                                style: const TextStyle(color: Colors.black),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                    : _buildNoEventsView(),
           ),
           
           // Expandable Bottom Menu
@@ -698,58 +684,73 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildCardView() {
-    return Column(
-      children: [
-        // Add top margin from header
-        SizedBox(height: 40),
-        
-        // Card Stack - centered vertically
-        Expanded(
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 25),
-            child: Center(
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.55, // Increased from 0.45 to 0.55
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Background cards - showing 3 cards with deck effect
-                    for (int offset = 2; offset >= 0; offset--)
-                      _buildEventCard((currentCardIndex + offset) % events.length, offset),
-                  ],
+    return RefreshIndicator(
+      onRefresh: _refreshEvents,
+      child: ListView(
+        physics: AlwaysScrollableScrollPhysics(),
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height -
+                    kToolbarHeight -
+                    MediaQuery.of(context).padding.top -
+                    160 -
+                    MediaQuery.of(context).padding.bottom,
+            child: Column(
+              children: [
+                // Add top margin from header
+                SizedBox(height: 40),
+                
+                // Card Stack - centered vertically
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 25),
+                    child: Center(
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.55, // Increased from 0.45 to 0.55
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Background cards - showing 3 cards with deck effect
+                            for (int offset = 2; offset >= 0; offset--)
+                              _buildEventCard((currentCardIndex + offset) % events.length, offset),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                
+                // Action Buttons
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildActionButton(
+                        icon: Icons.close,
+                        color: Colors.grey,
+                        onTap: () {
+                          // Simulate swipe left by setting drag offset and calling onPanEnd
+                          setState(() {
+                            _dragOffset = -100; // Set to left swipe threshold
+                          });
+                          _onPanEnd(DragEndDetails(velocity: Velocity(pixelsPerSecond: Offset(-600, 0))));
+                        },
+                      ),
+                      _buildActionButton(
+                        icon: Icons.star,
+                        color: Colors.blue,
+                        onTap: _superLikeEvent,
+                        size: 35,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        
-        // Action Buttons
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildActionButton(
-                icon: Icons.close,
-                color: Colors.grey,
-                onTap: () {
-                  // Simulate swipe left by setting drag offset and calling onPanEnd
-                  setState(() {
-                    _dragOffset = -100; // Set to left swipe threshold
-                  });
-                  _onPanEnd(DragEndDetails(velocity: Velocity(pixelsPerSecond: Offset(-600, 0))));
-                },
-              ),
-              _buildActionButton(
-                icon: Icons.star,
-                color: Colors.blue,
-                onTap: _superLikeEvent,
-                size: 35,
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1142,5 +1143,39 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  Widget _buildNoEventsView() {
+    return isCardView
+        ? Column(
+            children: [
+              SizedBox(height: 40),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    context.l10n.noEventsFound,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+              Container(height: 96), // Same height as action buttons area
+            ],
+          )
+        : RefreshIndicator(
+            onRefresh: _refreshEvents,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: Container(height: 40)), // Filter area space
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      context.l10n.noEventsFound,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
   }
 }

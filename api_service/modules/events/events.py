@@ -173,10 +173,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -208,7 +208,7 @@ class EventDatabase:
                 results = conn.execute(
                     events_table.select()
                     .where(events_table.c.status == 'approved')
-                    .order_by(events_table.c.dateTime.desc())
+                    .order_by(events_table.c.date_time.desc())
                 ).fetchall()
                 
                 for result in results:
@@ -217,10 +217,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -261,10 +261,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -305,10 +305,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -344,10 +344,10 @@ class EventDatabase:
                 'name': event_data.name,
                 'type': event_data.type,
                 'description': event_data.description,
-                'dateTime': event_data.dateTime,
+                'date_time': event_data.date_time,
                 'location': event_data.location,
-                'maxParticipants': event_data.maxParticipants,
-                'currentParticipants': event_data.currentParticipants if hasattr(event_data, 'currentParticipants') else 0,
+                'max_participants': event_data.max_participants,
+                'current_participants': event_data.current_participants if hasattr(event_data, 'current_participants') else 0,
                 'image_url': event_data.image_url if hasattr(event_data, 'image_url') else None,
                 'status': event_data.status if hasattr(event_data, 'status') else "pending-approval",
                 'recurring': event_data.recurring if hasattr(event_data, 'recurring') else "none",
@@ -372,10 +372,10 @@ class EventDatabase:
                 name=event_data.name,
                 type=event_data.type,
                 description=event_data.description,
-                dateTime=event_data.dateTime,
+                date_time=event_data.date_time,
                 location=event_data.location,
-                maxParticipants=event_data.maxParticipants,
-                currentParticipants=0,
+                max_participants=event_data.max_participants,
+                current_participants=0,
                 image_url=getattr(event_data, 'image_url', "") or "",
                 status=getattr(event_data, 'status', "pending-approval"),
                 recurring=getattr(event_data, 'recurring', "none"),
@@ -433,10 +433,10 @@ class EventDatabase:
                             name=updated_result.name,
                             type=updated_result.type,
                             description=updated_result.description,
-                            dateTime=updated_result.dateTime,
+                            date_time=updated_result.date_time,
                             location=updated_result.location,
-                            maxParticipants=updated_result.maxParticipants,
-                            currentParticipants=updated_result.currentParticipants,
+                            max_participants=updated_result.max_participants,
+                            current_participants=updated_result.current_participants,
                             image_url=updated_result.image_url or "",
                             status=updated_result.status if hasattr(updated_result, 'status') else "pending-approval",
                             recurring=updated_result.recurring if hasattr(updated_result, 'recurring') else "none",
@@ -505,10 +505,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -541,7 +541,7 @@ class EventDatabase:
             with schema_engine.connect() as conn:
                 now = datetime.now()
                 results = conn.execute(
-                    events_table.select().where(events_table.c.dateTime > now)
+                    events_table.select().where(events_table.c.date_time > now)
                 ).fetchall()
                 
                 for result in results:
@@ -550,10 +550,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -585,7 +585,7 @@ class EventDatabase:
                 results = conn.execute(
                     events_table.select()
                     .where(events_table.c.status == status)
-                    .order_by(events_table.c.dateTime.desc())
+                    .order_by(events_table.c.date_time.desc())
                 ).fetchall()
                 
                 for result in results:
@@ -594,10 +594,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -640,10 +640,10 @@ class EventDatabase:
                             e.name,
                             e.type,
                             e.description,
-                            e.dateTime,
+                            e.date_time,
                             e.location,
-                            e.maxParticipants,
-                            e.currentParticipants,
+                            e.max_participants,
+                            e.current_participants,
                             e.image_url,
                             e.status,
                             e.recurring,
@@ -666,10 +666,10 @@ class EventDatabase:
                             AND er.status = 'registered'
                             AND (er.vote IS NOT NULL OR (er.reviews IS NOT NULL AND er.reviews != ''))
                         WHERE e.status = 'done'
-                        GROUP BY e.id, e.name, e.type, e.description, e.dateTime, e.location,
-                                e.maxParticipants, e.currentParticipants, e.image_url, e.status,
+                        GROUP BY e.id, e.name, e.type, e.description, e.date_time, e.location,
+                                e.max_participants, e.current_participants, e.image_url, e.status,
                                 e.recurring, e.recurring_end_date, e.recurring_pattern
-                        ORDER BY e.dateTime DESC
+                        ORDER BY e.date_time DESC
                     """)
                 ).fetchall()
                 
@@ -688,10 +688,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status,
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -707,8 +707,8 @@ class EventDatabase:
             print(f"Error getting completed events with reviews for home {home_id}: {e}")
             return []
 
-    def get_completed_events_with_gallery(self, home_id: int) -> List[Event]:
-        """Get completed events with their gallery photos"""
+    def get_events_with_gallery(self, home_id: int) -> List[Event]:
+        """Get events with their gallery photos using SQLAlchemy (any status)"""
         try:
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
@@ -729,63 +729,55 @@ class EventDatabase:
 
             events = []
             with schema_engine.connect() as conn:
-                # Query completed events with their gallery photos
-                results = conn.execute(
-                    text(f"""
-                        SELECT
-                            e.id,
-                            e.name,
-                            e.type,
-                            e.description,
-                            e.dateTime,
-                            e.location,
-                            e.maxParticipants,
-                            e.currentParticipants,
-                            e.image_url,
-                            e.status,
-                            e.recurring,
-                            e.recurring_end_date,
-                            e.recurring_pattern,
-                            COALESCE(
-                                '[' + STRING_AGG(
-                                    '{{' +
-                                    '"id":"' + COALESCE(eg.id, '') + '",' +
-                                    '"image_url":"' + COALESCE(eg.image_url, '') + '",' +
-                                    '"created_at":"' + COALESCE(FORMAT(eg.created_at, 'yyyy-MM-ddTHH:mm:ss'), '') + '"' +
-                                    '}}', ','
-                                ) + ']',
-                                '[]'
-                            ) as gallery_data
-                        FROM [{schema_name}].[events] e
-                        LEFT JOIN [{schema_name}].[event_gallery] eg
-                            ON e.id = eg.event_id
-                        WHERE e.status = 'done'
-                        GROUP BY e.id, e.name, e.type, e.description, e.dateTime, e.location,
-                                e.maxParticipants, e.currentParticipants, e.image_url, e.status,
-                                e.recurring, e.recurring_end_date, e.recurring_pattern
-                        ORDER BY e.dateTime DESC
-                    """)
+                # First, get all completed events that have gallery photos
+                # Using SQLAlchemy for database-agnostic query
+                from sqlalchemy import select, distinct
+                
+                # Get unique event IDs that have gallery photos
+                events_with_gallery = conn.execute(
+                    select(distinct(gallery_table.c.event_id))
+                    .where(gallery_table.c.event_id.is_not(None))
                 ).fetchall()
                 
-                for result in results:
-                    # Parse gallery data
+                event_ids_with_gallery = [row[0] for row in events_with_gallery]
+                
+                if not event_ids_with_gallery:
+                    return []
+                
+                # Get all events that have gallery photos (any status)
+                events_results = conn.execute(
+                    events_table.select()
+                    .where(events_table.c.id.in_(event_ids_with_gallery))
+                    .order_by(events_table.c.date_time.desc())
+                ).fetchall()
+                
+                # For each event, get its gallery photos
+                for result in events_results:
+                    gallery_results = conn.execute(
+                        gallery_table.select()
+                        .where(gallery_table.c.event_id == result.id)
+                        .order_by(gallery_table.c.created_at)
+                    ).fetchall()
+                    
+                    # Build gallery data
                     gallery_data = []
-                    try:
-                        if result.gallery_data and result.gallery_data != '[]':
-                            gallery_data = json.loads(result.gallery_data)
-                    except (json.JSONDecodeError, Exception) as e:
-                        print(f"Error parsing gallery data for event {result.id}: {e}")
-                        gallery_data = []
+                    for gallery_item in gallery_results:
+                        gallery_data.append({
+                            "id": gallery_item.photo_id,
+                            "image_url": gallery_item.photo,
+                            "thumbnail_url": gallery_item.thumbnail_url,
+                            "created_at": gallery_item.created_at.isoformat() if gallery_item.created_at else ""
+                        })
                     
                     event = Event(
                         id=result.id,
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status,
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -828,14 +820,14 @@ class EventDatabase:
                     return False
                 
                 # Check if event is full
-                if result.currentParticipants >= result.maxParticipants:
+                if result.current_participants >= result.max_participants:
                     return False
                 
                 # Update participant count
                 update_result = conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=result.currentParticipants + 1)
+                    .values(current_participants=result.current_participants + 1)
                 )
                 conn.commit()
                 
@@ -871,11 +863,11 @@ class EventDatabase:
                     return False
                 
                 # Update participant count (don't go below 0)
-                new_count = max(0, result.currentParticipants - 1)
+                new_count = max(0, result.current_participants - 1)
                 update_result = conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=new_count)
+                    .values(current_participants=new_count)
                 )
                 conn.commit()
                 
@@ -890,89 +882,105 @@ class EventDatabase:
         Load events for home screen with specific filtering and next occurrence calculation.
         
         Database query conditions:
-        - All events that dateTime is newer than now and recurring is 'none'
+        - All events that date_time is newer than now and recurring is 'none'
         - All events that recurring_end_date is newer than now and recurring is not 'none'
         
         Response filtering:
         1. For recurring events: return only if recurring end date has not passed and next occurrence is within end date
         2. For one-time events: return all events which date is newer than now
         
-        Override dateTime with next occurrence for recurring events.
-        Order by dateTime (after override calculation).
+        Override date_time with next occurrence for recurring events.
+        Order by date_time (after override calculation).
         """
         try:
+            print(f"DEBUG: load_events_for_home - Starting for home_id: {home_id}, user_id: {user_id}")
+            
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
+            print(f"DEBUG: load_events_for_home - Schema name: {schema_name}")
             if not schema_name:
+                print("DEBUG: load_events_for_home - No schema name found")
                 return []
 
             # Get the events and events_registration tables
             events_table = self.get_events_table(schema_name)
             if events_table is None:
+                print("DEBUG: load_events_for_home - Events table not found")
                 return []
 
             # Get registration table
             metadata = MetaData(schema=schema_name)
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
+                print("DEBUG: load_events_for_home - No schema engine found")
                 return []
+            
+            print("DEBUG: load_events_for_home - Reflecting events_registration table")
             metadata.reflect(bind=schema_engine, only=['events_registration'])
             registration_table = metadata.tables[f'{schema_name}.events_registration']
 
             events_with_status = []
             now = datetime.now()
+            print(f"DEBUG: load_events_for_home - Current time: {now}")
             
             schema_engine = get_schema_engine(schema_name)
             if not schema_engine:
                 return []
             with schema_engine.connect() as conn:
+                print("DEBUG: load_events_for_home - Executing query...")
                 # Query database according to requirements:
-                # 1. All events that dateTime is newer than now and recurring is 'none'
+                # 1. All events that date_time is newer than now and recurring is 'none'
                 # 2. All events that recurring_end_date is newer than now and recurring is not 'none'
-                results = conn.execute(
-                    text(f"""
-                        SELECT
-                            e.id,
-                            e.name,
-                            e.type,
-                            e.description,
-                            e.dateTime,
-                            e.location,
-                            e.maxParticipants,
-                            e.currentParticipants,
-                            e.image_url,
-                            e.status,
-                            e.recurring,
-                            e.recurring_end_date,
-                            e.recurring_pattern,
-                            CASE
-                                WHEN er.status = 'registered' THEN 1
-                                ELSE 0
-                            END as is_registered
-                        FROM [{schema_name}].[events] e
-                        LEFT JOIN [{schema_name}].[events_registration] er
-                            ON e.id = er.event_id
-                            AND er.user_id = :user_id
-                            AND er.status = 'registered'
-                        WHERE e.status = 'approved'
-                            AND (
-                                (e.recurring = 'none' AND e.dateTime > :now)
-                                OR
-                                (e.recurring != 'none' AND e.recurring_end_date > :now)
-                            )
-                    """),
-                    {"user_id": user_id, "now": now}
-                ).fetchall()
+                try:
+                    results = conn.execute(
+                        text(f"""
+                            SELECT
+                                e.id,
+                                e.name,
+                                e.type,
+                                e.description,
+                                e.date_time,
+                                e.location,
+                                e.max_participants,
+                                e.current_participants,
+                                e.image_url,
+                                e.status,
+                                e.recurring,
+                                e.recurring_end_date,
+                                e.recurring_pattern,
+                                CASE
+                                    WHEN er.status = 'registered' THEN 1
+                                    ELSE 0
+                                END as is_registered
+                            FROM {schema_name}.events e
+                            LEFT JOIN {schema_name}.events_registration er
+                                ON e.id = er.event_id
+                                AND er.user_id = :user_id
+                                AND er.status = 'registered'
+                            WHERE e.status = 'approved'
+                                AND (
+                                    (e.recurring = 'none' AND e.date_time > :now)
+                                    OR
+                                    (e.recurring != 'none' AND e.recurring_end_date > :now)
+                                )
+                        """),
+                        {"user_id": user_id, "now": now}
+                    ).fetchall()
+                    print(f"DEBUG: load_events_for_home - Query executed successfully, got {len(results)} results")
+                except Exception as query_error:
+                    print(f"DEBUG: load_events_for_home - Query execution failed: {str(query_error)}")
+                    raise
                 
                 for result in results:
+                    print(f"DEBUG: load_events_for_home - Processing event: {result.id} - {result.name}")
                     # Determine the display datetime
-                    display_datetime = result.dateTime
+                    display_datetime = result.date_time
                     
                     # For recurring events, calculate next occurrence
                     if result.recurring and result.recurring != 'none':
                         if result.recurring_pattern and result.recurring_end_date:
                             next_occurrence = calculate_next_occurrence(
-                                result.dateTime,
+                                result.date_time,
                                 result.recurring_pattern,
                                 result.recurring_end_date
                             )
@@ -991,34 +999,44 @@ class EventDatabase:
                             continue
                     else:
                         # For one-time events, make sure the date is newer than now
-                        if result.dateTime <= now:
+                        if result.date_time <= now:
                             continue
                     
+                    # Use the EventWithRegistrationStatus model structure
                     event_dict = {
                         'id': result.id,
                         'name': result.name,
                         'type': result.type,
                         'description': result.description,
-                        'dateTime': display_datetime.isoformat() if display_datetime else None,
+                        'date_time': display_datetime.isoformat() if display_datetime else None,  # Note: using date_time to match model
                         'location': result.location,
-                        'maxParticipants': result.maxParticipants,
-                        'currentParticipants': result.currentParticipants,
+                        'max_participants': result.max_participants,  # Note: using max_participants to match model
+                        'current_participants': result.current_participants,  # Note: using current_participants to match model
                         'image_url': result.image_url or "",
                         'status': result.status if hasattr(result, 'status') else "pending-approval",
                         'recurring': result.recurring if hasattr(result, 'recurring') else "none",
                         'recurring_end_date': result.recurring_end_date.isoformat() if hasattr(result, 'recurring_end_date') and result.recurring_end_date else None,
                         'recurring_pattern': result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        'instructor_name': result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        'instructor_desc': result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        'instructor_photo': result.instructor_photo if hasattr(result, 'instructor_photo') else None,
                         'is_registered': bool(result.is_registered)
                     }
                     events_with_status.append(event_dict)
             
-            # Sort by dateTime (after override calculation for recurring events)
-            events_with_status.sort(key=lambda x: x['dateTime'] if x['dateTime'] else '9999-12-31T23:59:59')
+            # Sort by date_time (after override calculation for recurring events)
+            events_with_status.sort(key=lambda x: x['date_time'] if x['date_time'] else '9999-12-31T23:59:59')
             
+            print(f"DEBUG: load_events_for_home - Returning {len(events_with_status)} events")
+            # Debug: Print first event to see structure
+            if events_with_status:
+                print(f"DEBUG: load_events_for_home - First event structure: {events_with_status[0]}")
             return events_with_status
 
         except Exception as e:
-            print(f"Error loading events for home {home_id}, user {user_id}: {e}")
+            print(f"ERROR: load_events_for_home - Exception for home {home_id}, user {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     async def upload_event_instructor_photo(self, instructor_id: str, photo, home_id: int, tenant_name: str = None) -> str:

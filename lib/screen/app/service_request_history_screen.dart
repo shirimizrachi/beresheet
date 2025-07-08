@@ -109,16 +109,16 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
   String _formatDateTime(String? dateTimeString, BuildContext context) {
     if (dateTimeString == null) return context.l10n.unknownDate;
     try {
-      final dateTime = DateTime.parse(dateTimeString);
+      final date_time = DateTime.parse(dateTimeString);
       final now = DateTime.now();
-      final difference = now.difference(dateTime);
+      final difference = now.difference(date_time);
 
       if (difference.inDays == 0) {
-        return '${context.l10n.today} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+        return '${context.l10n.today} ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}';
       } else if (difference.inDays == 1) {
-        return '${context.l10n.yesterday} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+        return '${context.l10n.yesterday} ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}';
       } else {
-        return '${DisplayNameUtils.getLocalizedFormattedDate(dateTime, context)} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+        return '${DisplayNameUtils.getLocalizedFormattedDate(date_time, context)} ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}';
       }
     } catch (e) {
       return dateTimeString;

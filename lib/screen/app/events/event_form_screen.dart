@@ -112,12 +112,12 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _nameController.text = event.name;
     _descriptionController.text = event.description;
     _locationController.text = event.location;
-    _maxParticipantsController.text = event.maxParticipants.toString();
-    _currentParticipantsController.text = event.currentParticipants.toString();
+    _maxParticipantsController.text = event.max_participants.toString();
+    _currentParticipantsController.text = event.current_participants.toString();
     _imageUrlController.text = event.imageUrl;
     _selectedType = event.type;
     _selectedStatus = event.status;
-    _selectedDateTime = event.dateTime;
+    _selectedDateTime = event.date_time;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
     
@@ -501,10 +501,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
         'name': _nameController.text.trim(),
         'type': _selectedType,
         'description': _descriptionController.text.trim(),
-        'dateTime': _selectedDateTime.toIso8601String(),
+        'date_time': _selectedDateTime.toIso8601String(),
         'location': _selectedRoomName ?? _locationController.text.trim(),
-        'maxParticipants': _maxParticipantsController.text.trim(),
-        'currentParticipants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
+        'max_participants': _maxParticipantsController.text.trim(),
+        'current_participants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
       });
@@ -1000,7 +1000,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     keyboardType: TextInputType.number,
                     enabled: _isFieldEditable,
                     decoration: InputDecoration(
-                      labelText: l10n.maxParticipants,
+                      labelText: l10n.max_participants,
                       hintText: l10n.enterMaximumParticipants,
                     ),
                     validator: (value) {
@@ -1028,7 +1028,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       keyboardType: TextInputType.number,
                       enabled: false, // Always read-only
                       decoration: InputDecoration(
-                        labelText: l10n.currentParticipants,
+                        labelText: l10n.current_participants,
                         hintText: l10n.enterCurrentParticipants,
                       ),
                       validator: (value) {
@@ -1039,8 +1039,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         if (number == null || number < 0) {
                           return l10n.pleaseEnterValidNonNegativeNumber;
                         }
-                        final maxParticipants = int.tryParse(_maxParticipantsController.text) ?? 0;
-                        if (number > maxParticipants) {
+                        final max_participants = int.tryParse(_maxParticipantsController.text) ?? 0;
+                        if (number > max_participants) {
                           return l10n.currentParticipantsCannotExceed;
                         }
                         return null;

@@ -18,11 +18,16 @@ logger = logging.getLogger(__name__)
 
 async def get_home_id_header(home_id: str = Header(..., alias="homeID")):
     """Extract and validate homeID header"""
+    print(f"DEBUG: tenant_auto_router.get_home_id_header - Received homeID: {home_id}")
     if not home_id:
+        print("DEBUG: tenant_auto_router.get_home_id_header - homeID is empty")
         raise HTTPException(status_code=400, detail="homeID header is required")
     try:
-        return int(home_id)
+        result = int(home_id)
+        print(f"DEBUG: tenant_auto_router.get_home_id_header - Converted to int: {result}")
+        return result
     except ValueError:
+        print(f"DEBUG: tenant_auto_router.get_home_id_header - ValueError converting homeID: {home_id}")
         raise HTTPException(status_code=400, detail="homeID must be a valid integer")
 
 async def validate_tenant_and_header(
@@ -42,16 +47,22 @@ async def validate_tenant_and_header(
     Raises:
         HTTPException: If tenant not found or homeID doesn't match
     """
+    print(f"DEBUG: validate_tenant_and_header - Starting validation for tenant: {tenant_name}, home_id: {home_id}")
+    
     # Load tenant configuration by name
     tenant_config = load_tenant_config_from_db(tenant_name)
     if not tenant_config:
+        print(f"DEBUG: validate_tenant_and_header - Tenant '{tenant_name}' not found in database")
         raise HTTPException(
             status_code=404,
             detail=f"Tenant '{tenant_name}' not found"
         )
     
+    print(f"DEBUG: validate_tenant_and_header - Found tenant config: ID={tenant_config.id}, Schema={tenant_config.database_schema}")
+    
     # Verify homeID header matches tenant ID
     if tenant_config.id != home_id:
+        print(f"DEBUG: validate_tenant_and_header - HomeID mismatch: header={home_id}, expected={tenant_config.id}")
         raise HTTPException(
             status_code=400,
             detail=f"HomeID header ({home_id}) doesn't match tenant '{tenant_name}' (expected {tenant_config.id})"

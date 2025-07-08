@@ -205,8 +205,8 @@ async def get_stats(home_id: int = Depends(get_home_id)):
         "total_events": len(all_events),
         "upcoming_events": len(upcoming_events),
         "events_by_type": type_counts,
-        "total_participants": sum(event.currentParticipants for event in all_events),
-        "available_spots": sum(event.maxParticipants - event.currentParticipants for event in all_events)
+        "total_participants": sum(event.current_participants for event in all_events),
+        "available_spots": sum(event.max_participants - event.current_participants for event in all_events)
     }
 
 # Homes endpoint

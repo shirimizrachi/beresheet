@@ -332,7 +332,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.dateTime, context)} at ${event.formattedTime}',
+                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} at ${event.formattedTime}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey[600],

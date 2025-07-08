@@ -110,7 +110,7 @@ All implementations provide these methods:
 - `create_home_table()` - Create the home table
 - `test_user_connection()` - Test connection with created user
 - `display_connection_info()` - Display connection information
-- `create_home_index()` - Create the home_index schema
+- `create_home_index_schema()` - Create the home_index schema
 - `create_home_index_user_and_permissions()` - Create home_index user
 - `create_home_index_table()` - Create the home_index table
 - `test_home_index_connection()` - Test home_index connection

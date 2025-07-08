@@ -214,13 +214,13 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
     );
   }
 
-  String _formatDateTime(dynamic dateTime) {
-    if (dateTime == null) return '';
+  String _formatDateTime(dynamic date_time) {
+    if (date_time == null) return '';
     try {
-      DateTime dt = DateTime.parse(dateTime.toString());
+      DateTime dt = DateTime.parse(date_time.toString());
       return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      return dateTime.toString();
+      return date_time.toString();
     }
   }
 
@@ -243,7 +243,7 @@ class _NotificationsListWebState extends State<NotificationsListWeb> {
                 _buildDetailRow('Send Type', notification['send_type'] ?? ''),
                 _buildDetailRow('Send Floor',
                   notification['send_floor']?.toString() ?? 'All Residents'),
-                _buildDetailRow(context.l10n.dateTime, _formatDateTime(notification['send_datetime'])),
+                _buildDetailRow(context.l10n.date_time, _formatDateTime(notification['send_datetime'])),
                 _buildDetailRow('Created At', _formatDateTime(notification['created_at'])),
                 const SizedBox(height: 16),
                 Text(

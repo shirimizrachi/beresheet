@@ -103,14 +103,14 @@ def create_home_index_table(engine, schema_name: str = None):
     else:
         HomeIndexModel.metadata.create_all(engine)
 
-def create_all_tables(engine, home_schema_name: str = None, home_index_name: str = None):
+def create_all_tables(engine, home_schema_name: str = None, home_index_schema_name: str = None):
     """
     Create all tables using SQLAlchemy models
     
     Args:
         engine: SQLAlchemy engine
         home_schema_name: Schema name for home table (optional)
-        home_index_name: Schema name for home_index table (optional)
+        home_index_schema_name: Schema name for home_index table (optional)
     """
     create_home_table(engine, home_schema_name)
-    create_home_index_table(engine, home_index_name)
+    create_home_index_table(engine, home_index_schema_name)

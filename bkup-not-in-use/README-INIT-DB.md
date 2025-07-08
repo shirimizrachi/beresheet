@@ -117,10 +117,10 @@ Columns:
 - `name` (NVARCHAR(100), Not Null)
 - `type` (NVARCHAR(50), Not Null)
 - `description` (NVARCHAR(MAX))
-- `dateTime` (DATETIME2, Not Null)
+- `date_time` (DATETIME2, Not Null)
 - `location` (NVARCHAR(200))
-- `maxParticipants` (INT, Not Null, Default: 0)
-- `currentParticipants` (INT, Not Null, Default: 0)
+- `max_participants` (INT, Not Null, Default: 0)
+- `current_participants` (INT, Not Null, Default: 0)
 - `image_url` (NVARCHAR(500))
 - `is_registered` (BIT, Default: 0)
 - `created_at` (DATETIME2, Default: Current timestamp)
@@ -130,10 +130,10 @@ Columns:
 
 ### Indexes Created for Events:
 - Index on `type`
-- Index on `dateTime` (for upcoming events queries)
+- Index on `date_time` (for upcoming events queries)
 - Index on `status`
 - Index on `created_by`
-- Composite index on `type` and `dateTime`
+- Composite index on `type` and `date_time`
 
 ### Table: `beresheet.events_registration`
 

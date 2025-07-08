@@ -13,23 +13,28 @@ router = APIRouter(prefix="/api")
 
 
 # Helper function to get current user from session
-async def get_current_user_from_session(authorization: str = Header(None)) -> dict:
-    """Get current user from web session token"""
+async def get_current_user_from_session(
+    authorization: str = Header(None),
+    home_id: str = Header(None, alias="homeID"),
+    user_id: str = Header(None, alias="userId")
+) -> dict:
+    """Get current user from JWT headers"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization header missing or invalid")
     
-    session_token = authorization.split(" ")[1]
+    if not home_id:
+        raise HTTPException(status_code=400, detail="homeID header is required")
     
-    # For now, we'll extract home_id from a separate header or use a default
-    # In a real implementation, you'd decode the session token to get this info
-    home_id = 1  # This should be extracted from the session token
+    if not user_id:
+        raise HTTPException(status_code=400, detail="userId header is required")
     
-    session_info = user_db.validate_web_session(session_token, home_id)
-    if not session_info:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    try:
+        home_id_int = int(home_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="homeID must be a valid integer")
     
     # Get user details
-    user_profile = user_db.get_user_profile(session_info['user_id'], home_id)
+    user_profile = user_db.get_user_profile(user_id, home_id_int)
     if not user_profile:
         raise HTTPException(status_code=401, detail="User not found")
     
@@ -38,7 +43,7 @@ async def get_current_user_from_session(authorization: str = Header(None)) -> di
         'full_name': user_profile.full_name,
         'role': user_profile.role,
         'service_provider_type': getattr(user_profile, 'service_provider_type_name', None),
-        'home_id': home_id
+        'home_id': home_id_int
     }
 
 
@@ -46,11 +51,13 @@ async def get_current_user_from_session(authorization: str = Header(None)) -> di
 @router.post("/home-notifications")
 async def create_home_notification(
     notification: HomeNotificationCreate,
-    authorization: str = Header(None)
+    authorization: str = Header(None),
+    home_id: str = Header(None, alias="homeID"),
+    user_id: str = Header(None, alias="userId")
 ):
     """Create a new home notification (always as pending-approval)"""
     try:
-        current_user = await get_current_user_from_session(authorization)
+        current_user = await get_current_user_from_session(authorization, home_id, user_id)
         home_id = current_user['home_id']
         
         result = home_notification_db.create_home_notification(notification, home_id, current_user)
@@ -69,11 +76,13 @@ async def create_home_notification(
 async def update_home_notification_status(
     notification_id: str,
     notification_update: HomeNotificationUpdate,
-    authorization: str = Header(None)
+    authorization: str = Header(None),
+    home_id: str = Header(None, alias="homeID"),
+    user_id: str = Header(None, alias="userId")
 ):
     """Update home notification status and create user notifications when approved"""
     try:
-        current_user = await get_current_user_from_session(authorization)
+        current_user = await get_current_user_from_session(authorization, home_id, user_id)
         home_id = current_user['home_id']
         
         # Validate status
@@ -98,11 +107,13 @@ async def update_home_notification_status(
 
 @router.get("/home-notifications", response_model=List[HomeNotification])
 async def get_home_notifications(
-    authorization: str = Header(None)
+    authorization: str = Header(None),
+    home_id: str = Header(None, alias="homeID"),
+    user_id: str = Header(None, alias="userId")
 ):
     """Get all home notifications ordered by pending-approval first, then by date desc"""
     try:
-        current_user = await get_current_user_from_session(authorization)
+        current_user = await get_current_user_from_session(authorization, home_id, user_id)
         home_id = current_user['home_id']
         
         notifications = home_notification_db.get_all_notifications(home_id)
@@ -117,11 +128,13 @@ async def get_home_notifications(
 @router.get("/home-notifications/{notification_id}", response_model=HomeNotification)
 async def get_home_notification(
     notification_id: str,
-    authorization: str = Header(None)
+    authorization: str = Header(None),
+    home_id: str = Header(None, alias="homeID"),
+    user_id: str = Header(None, alias="userId")
 ):
     """Get a specific home notification by ID"""
     try:
-        current_user = await get_current_user_from_session(authorization)
+        current_user = await get_current_user_from_session(authorization, home_id, user_id)
         home_id = current_user['home_id']
         
         notification = home_notification_db.get_notification_by_id(notification_id, home_id)
@@ -157,8 +170,8 @@ async def mark_user_notification_as_read(
             except ValueError:
                 raise HTTPException(status_code=400, detail="homeID must be a valid integer")
         
-        # Fall back to web session authentication
-        current_user = await get_current_user_from_session(authorization)
+        # Fall back to web session authentication - this shouldn't happen for web calls since we now require headers
+        raise HTTPException(status_code=400, detail="homeID and userId headers are required")
         home_id_int = current_user['home_id']
         user_id = current_user['id']
         
@@ -191,8 +204,8 @@ async def get_user_notifications(
             except ValueError:
                 raise HTTPException(status_code=400, detail="homeID must be a valid integer")
         
-        # Fall back to web session authentication
-        current_user = await get_current_user_from_session(authorization)
+        # Fall back to web session authentication - this shouldn't happen for web calls since we now require headers
+        raise HTTPException(status_code=400, detail="homeID and userId headers are required")
         home_id_int = current_user['home_id']
         user_id = current_user['id']
         

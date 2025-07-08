@@ -827,9 +827,9 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
 
   String _formatTimestamp(String timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final date_time = DateTime.parse(timestamp);
       final now = DateTime.now();
-      final difference = now.difference(dateTime);
+      final difference = now.difference(date_time);
 
       if (difference.inDays > 0) {
         return context.l10n.daysAgo(difference.inDays);

@@ -21,13 +21,18 @@ router = APIRouter(prefix="/api")
 # Header dependencies
 async def get_home_id(home_id: str = Header(..., alias="homeID")):
     """Dependency to extract and validate homeID header"""
+    print(f"DEBUG: get_home_id - Received homeID: {home_id}")
     try:
-        return int(home_id)
+        result = int(home_id)
+        print(f"DEBUG: get_home_id - Converted to int: {result}")
+        return result
     except ValueError:
+        print(f"DEBUG: get_home_id - ValueError converting homeID: {home_id}")
         raise HTTPException(status_code=400, detail="Invalid homeID format")
 
 async def get_user_id(user_id: Optional[str] = Header(None, alias="userId")):
     """Dependency to extract user ID header"""
+    print(f"DEBUG: get_user_id - Received userId: {user_id}")
     return user_id
 
 async def get_user_role(user_id: str, home_id: int) -> str:
@@ -81,8 +86,8 @@ async def get_events(
         # Add reviews or gallery data if requested
         if include_reviews and status == "done":
             events = event_db.get_completed_events_with_reviews(home_id)
-        elif include_gallery and status == "done":
-            events = event_db.get_completed_events_with_gallery(home_id)
+        elif include_gallery:
+            events = event_db.get_events_with_gallery(home_id)
     else:
         # Show all events for everyone
         events = event_db.get_all_events_ordered(home_id)
@@ -96,13 +101,32 @@ async def get_events_for_home(
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
     """Get events for home screen with proper recurring event handling"""
-    if not user_id:
-        raise HTTPException(status_code=400, detail="User ID is required")
+    try:
+        print(f"DEBUG: /events/home - Received request with home_id: {home_id}, user_id: {user_id}")
+        
+        if not user_id:
+            print("DEBUG: /events/home - Missing user_id")
+            raise HTTPException(status_code=400, detail="User ID is required")
+        
+        print(f"DEBUG: /events/home - Getting events for home {home_id}, user {user_id}")
+        
+        events_with_status = event_db.load_events_for_home(home_id, user_id)
+        print(f"DEBUG: /events/home - Successfully loaded {len(events_with_status)} events")
+        
+        # Debug: Print first event structure if any
+        if events_with_status:
+            print(f"DEBUG: /events/home - First event structure: {events_with_status[0]}")
+        
+        return events_with_status
     
-    print(f"Getting events for home {home_id}, user {user_id}")
-    
-    events_with_status = event_db.load_events_for_home(home_id, user_id)
-    return events_with_status
+    except HTTPException as e:
+        print(f"DEBUG: /events/home - HTTPException: {e.detail}")
+        raise
+    except Exception as e:
+        print(f"DEBUG: /events/home - Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/events/{event_id}", response_model=Event)
 async def get_event(
@@ -122,10 +146,10 @@ async def create_event(
     name: str = Form(...),
     type: str = Form(...),
     description: str = Form(...),
-    dateTime: str = Form(...),
+    date_time: str = Form(...),
     location: str = Form(...),
-    maxParticipants: int = Form(...),
-    currentParticipants: int = Form(0),
+    max_participants: int = Form(...),
+    current_participants: int = Form(0),
     status: str = Form("pending-approval"),
     recurring: str = Form("none"),
     recurring_end_date: Optional[str] = Form(None),
@@ -140,11 +164,11 @@ async def create_event(
 ):
     """Create a new event with image upload"""
     try:
-        # Parse dateTime
+        # Parse date_time
         try:
-            event_datetime = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+            event_datetime = datetime.fromisoformat(date_time.replace('Z', '+00:00'))
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid dateTime format")
+            raise HTTPException(status_code=400, detail="Invalid date_time format")
         
         # Parse optional datetime fields
         parsed_recurring_end_date = None
@@ -159,11 +183,11 @@ async def create_event(
             name=name,
             type=type,
             description=description,
-            dateTime=event_datetime,
+            date_time=event_datetime,
             location=location,
-            maxParticipants=maxParticipants,
+            max_participants=max_participants,
             image_url="",  # Will be updated after image upload
-            currentParticipants=currentParticipants,
+            current_participants=current_participants,
             status=status,
             recurring=recurring,
             recurring_end_date=parsed_recurring_end_date,
@@ -207,10 +231,10 @@ async def update_event(
     name: Optional[str] = Form(None),
     type: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    dateTime: Optional[str] = Form(None),
+    date_time: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
-    maxParticipants: Optional[int] = Form(None),
-    currentParticipants: Optional[int] = Form(None),
+    max_participants: Optional[int] = Form(None),
+    current_participants: Optional[int] = Form(None),
     status: Optional[str] = Form(None),
     recurring: Optional[str] = Form(None),
     recurring_end_date: Optional[str] = Form(None),
@@ -236,10 +260,10 @@ async def update_event(
             update_data['description'] = description
         if location is not None:
             update_data['location'] = location
-        if maxParticipants is not None:
-            update_data['maxParticipants'] = maxParticipants
-        if currentParticipants is not None:
-            update_data['currentParticipants'] = currentParticipants
+        if max_participants is not None:
+            update_data['max_participants'] = max_participants
+        if current_participants is not None:
+            update_data['current_participants'] = current_participants
         if status is not None:
             update_data['status'] = status
         if recurring is not None:
@@ -254,11 +278,11 @@ async def update_event(
             update_data['instructor_photo'] = instructor_photo
         
         # Parse datetime fields
-        if dateTime is not None:
+        if date_time is not None:
             try:
-                update_data['dateTime'] = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+                update_data['date_time'] = datetime.fromisoformat(date_time.replace('Z', '+00:00'))
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid dateTime format")
+                raise HTTPException(status_code=400, detail="Invalid date_time format")
         
         if recurring_end_date is not None:
             try:

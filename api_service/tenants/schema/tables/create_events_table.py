@@ -31,10 +31,10 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             name = Column(Unicode(100), nullable=False)
             type = Column(Unicode(50), nullable=False)
             description = Column(UnicodeText)
-            dateTime = Column(DateTime, nullable=False)
+            date_time = Column(DateTime, nullable=False)
             location = Column(Unicode(200))
-            maxParticipants = Column(Integer, nullable=False, default=0)
-            currentParticipants = Column(Integer, nullable=False, default=0)
+            max_participants = Column(Integer, nullable=False, default=0)
+            current_participants = Column(Integer, nullable=False, default=0)
             image_url = Column(String(500))
             recurring = Column(String(50), default='none')
             recurring_end_date = Column(DateTime)
@@ -63,10 +63,10 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             # Define indexes
             indexes = [
                 Index(f'ix_{schema_name}_events_type', EventsTable.type),
-                Index(f'ix_{schema_name}_events_datetime', EventsTable.dateTime),
+                Index(f'ix_{schema_name}_events_datetime', EventsTable.date_time),
                 Index(f'ix_{schema_name}_events_status', EventsTable.status),
                 Index(f'ix_{schema_name}_events_created_by', EventsTable.created_by),
-                Index(f'ix_{schema_name}_events_type_datetime', EventsTable.type, EventsTable.dateTime),
+                Index(f'ix_{schema_name}_events_type_datetime', EventsTable.type, EventsTable.date_time),
             ]
             
             # Create each index

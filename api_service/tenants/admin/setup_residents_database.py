@@ -27,7 +27,7 @@ class DatabaseSetupBase(ABC):
         """Initialize with configuration from residents_config.py"""
         from residents_config import (
             DATABASE_NAME, SCHEMA_NAME, USER_NAME, USER_PASSWORD,
-            home_index_NAME, HOME_INDEX_USER_NAME, HOME_INDEX_USER_PASSWORD
+            HOME_INDEX_SCHEMA_NAME, HOME_INDEX_USER_NAME, HOME_INDEX_USER_PASSWORD
         )
         
         self.database_name = DATABASE_NAME
@@ -36,7 +36,7 @@ class DatabaseSetupBase(ABC):
         self.user_password = USER_PASSWORD
         
         # Home Index configuration
-        self.home_index_name = home_index_NAME
+        self.home_index_schema_name = HOME_INDEX_SCHEMA_NAME
         self.home_index_user_name = HOME_INDEX_USER_NAME
         self.home_index_user_password = HOME_INDEX_USER_PASSWORD
     
@@ -76,7 +76,7 @@ class DatabaseSetupBase(ABC):
         pass
     
     @abstractmethod
-    def create_home_index(self, config: Dict[str, Any]) -> bool:
+    def create_home_index_schema(self, config: Dict[str, Any]) -> bool:
         """Create the home_index schema"""
         pass
     
@@ -153,7 +153,7 @@ class DatabaseSetupBase(ABC):
             ("Creating schema", lambda: self.create_schema(config)),
             ("Creating user and permissions", lambda: self.create_user_and_permissions(config)),
             ("Creating home table", lambda: self.create_home_table(config)),
-            ("Creating home_index schema", lambda: self.create_home_index(config)),
+            ("Creating home_index schema", lambda: self.create_home_index_schema(config)),
             ("Creating home_index user and permissions", lambda: self.create_home_index_user_and_permissions(config)),
             ("Creating home_index table", lambda: self.create_home_index_table(config)),
             ("Creating shared storage bucket", lambda: self.create_shared_storage_bucket()),
@@ -185,9 +185,9 @@ class DatabaseSetupBase(ABC):
         print(f"   • Schema: {self.schema_name}")
         print(f"   • User: {self.user_name} (password: {self.user_password})")
         print(f"   • Table: {self.schema_name}.home")
-        print(f"   • Home Index Schema: {self.home_index_name}")
+        print(f"   • Home Index Schema: {self.home_index_schema_name}")
         print(f"   • Home Index User: {self.home_index_user_name} (password: {self.home_index_user_password})")
-        print(f"   • Table: {self.home_index_name}.home_index")
+        print(f"   • Table: {self.home_index_schema_name}.home_index")
         
         # Add storage bucket info if Cloudflare
         try:

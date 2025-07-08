@@ -105,12 +105,23 @@ class EventService {
       print('EventService: Response status code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
+        print('EventService: Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
         final List<dynamic> data = json.decode(response.body);
         print('EventService: Parsed ${data.length} events with registration status from API');
         
-        final List<Event> events = data.map((eventJson) {
-          return Event.fromJson(eventJson);
-        }).toList();
+        final List<Event> events = [];
+        for (int i = 0; i < data.length; i++) {
+          try {
+            final eventJson = data[i];
+            print('EventService: Processing event $i: ${eventJson['name']} (${eventJson['id']})');
+            final event = Event.fromJson(eventJson);
+            events.add(event);
+            print('EventService: Successfully parsed event: ${event.name}');
+          } catch (e) {
+            print('EventService: Error parsing event $i: $e');
+            print('EventService: Event data: ${data[i]}');
+          }
+        }
         
         // Cache the results
         _cachedEventsForHome = events;
@@ -353,9 +364,9 @@ class EventService {
     required String name,
     required String type,
     required String description,
-    required DateTime dateTime,
+    required DateTime date_time,
     required String location,
-    required int maxParticipants,
+    required int max_participants,
     required String imageUrl,
     String recurring = 'none',
     DateTime? recurringEndDate,
@@ -366,11 +377,11 @@ class EventService {
         'name': name,
         'type': type,
         'description': description,
-        'dateTime': dateTime.toIso8601String(),
+        'date_time': date_time.toIso8601String(),
         'location': location,
-        'maxParticipants': maxParticipants,
+        'max_participants': max_participants,
         'image_url': imageUrl,
-        'currentParticipants': 0,
+        'current_participants': 0,
         'recurring': recurring,
         'recurring_end_date': recurringEndDate?.toIso8601String(),
         'recurring_pattern': recurringPattern,
@@ -401,11 +412,11 @@ class EventService {
     String? name,
     String? type,
     String? description,
-    DateTime? dateTime,
+    DateTime? date_time,
     String? location,
-    int? maxParticipants,
+    int? max_participants,
     String? imageUrl,
-    int? currentParticipants,
+    int? current_participants,
     String? status,
     String? recurring,
     DateTime? recurringEndDate,
@@ -417,11 +428,11 @@ class EventService {
       if (name != null) updateData['name'] = name;
       if (type != null) updateData['type'] = type;
       if (description != null) updateData['description'] = description;
-      if (dateTime != null) updateData['dateTime'] = dateTime.toIso8601String();
+      if (date_time != null) updateData['date_time'] = date_time.toIso8601String();
       if (location != null) updateData['location'] = location;
-      if (maxParticipants != null) updateData['maxParticipants'] = maxParticipants;
+      if (max_participants != null) updateData['max_participants'] = max_participants;
       if (imageUrl != null) updateData['image_url'] = imageUrl;
-      if (currentParticipants != null) updateData['currentParticipants'] = currentParticipants;
+      if (current_participants != null) updateData['current_participants'] = current_participants;
       if (status != null) updateData['status'] = status;
       if (recurring != null) updateData['recurring'] = recurring;
       if (recurringEndDate != null) updateData['recurring_end_date'] = recurringEndDate.toIso8601String();

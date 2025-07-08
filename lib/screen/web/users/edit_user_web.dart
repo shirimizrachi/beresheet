@@ -4,6 +4,7 @@ import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
+import 'package:beresheet_app/services/web_image_cache_service.dart';
 import 'package:beresheet_app/model/user.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -462,16 +463,10 @@ class _EditUserWebState extends State<EditUserWeb> {
                                         ),
                                       )
                                     : (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty)
-                                        ? ClipOval(
-                                            child: Image.network(
-                                              _currentPhotoUrl!,
-                                              fit: BoxFit.cover,
-                                              width: 120,
-                                              height: 120,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return const Icon(Icons.person, size: 60, color: Colors.grey);
-                                              },
-                                            ),
+                                        ? WebImageCacheService.buildCircularUserImage(
+                                            imageUrl: _currentPhotoUrl!,
+                                            radius: 60,
+                                            errorWidget: const Icon(Icons.person, size: 60, color: Colors.grey),
                                           )
                                         : const Icon(Icons.person, size: 60, color: Colors.grey),
                               ),

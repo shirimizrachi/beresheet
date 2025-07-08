@@ -6,7 +6,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 
 ## Key Concepts
 
-### 1. Initial Event Date (`dateTime`)
+### 1. Initial Event Date (`date_time`)
 - This is the **creation/reference date** for the recurring event series
 - It serves as the starting point for the recurring series
 - For non-recurring events, this is the actual event date
@@ -15,7 +15,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 ### 2. Recurrence Pattern (`recurringPattern`)
 - JSON object containing the actual scheduling rules
 - Defines when the events actually occur
-- Takes precedence over the initial `dateTime` for recurring events
+- Takes precedence over the initial `date_time` for recurring events
 
 ### 3. End Date (`recurringEndDate`)
 - Defines when the recurring series stops
@@ -25,7 +25,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 
 ### 1. None (`none`)
 - Single occurrence event
-- Uses the `dateTime` as the actual event date
+- Uses the `date_time` as the actual event date
 - No `recurringPattern` needed
 
 ### 2. Weekly (`weekly`)
@@ -50,7 +50,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 {
   "id": "art-therapy-wed",
   "name": "טיפול באמנות",
-  "dateTime": "2025-06-20T20:00:25.400Z",
+  "date_time": "2025-06-20T20:00:25.400Z",
   "recurring": "weekly",
   "recurringEndDate": "2025-09-17T20:00:25.400Z",
   "recurringPattern": "{\"dayOfWeek\": 3, \"time\": \"14:00\"}"
@@ -68,7 +68,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 {
   "id": "birthday-party",
   "name": "חגיגת יום הולדת קבוצתית",
-  "dateTime": "2025-07-02T20:00:25.400Z",
+  "date_time": "2025-07-02T20:00:25.400Z",
   "recurring": "monthly",
   "recurringEndDate": "2025-12-17T20:00:25.400Z",
   "recurringPattern": "{\"dayOfMonth\": 15, \"time\": \"15:00\"}"
@@ -86,7 +86,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 {
   "id": "book-club-wed",
   "name": "מועדון קריאה",
-  "dateTime": "2025-06-27T20:00:25.400Z",
+  "date_time": "2025-06-27T20:00:25.400Z",
   "recurring": "bi-weekly",
   "recurringEndDate": "2025-09-17T20:00:25.400Z",
   "recurringPattern": "{\"dayOfWeek\": 3, \"time\": \"17:00\", \"interval\": 2}"
@@ -128,7 +128,7 @@ The Beresheet app now supports a sophisticated recurring events system that allo
 ## Database Schema
 
 The database should support these fields:
-- `dateTime`: DATETIME - Initial reference date
+- `date_time`: DATETIME - Initial reference date
 - `recurring`: VARCHAR - Type of recurrence
 - `recurring_end_date`: DATETIME - When series ends
 - `recurring_pattern`: TEXT - JSON pattern details
@@ -136,7 +136,7 @@ The database should support these fields:
 ## Usage Patterns
 
 ### Creating a Weekly Event
-1. Set initial `dateTime` (any date for reference)
+1. Set initial `date_time` (any date for reference)
 2. Select "Weekly" recurrence
 3. Choose day of week (0-6)
 4. Set recurring time
@@ -144,7 +144,7 @@ The database should support these fields:
 6. System generates pattern: `{"dayOfWeek": X, "time": "HH:MM"}`
 
 ### Creating a Monthly Event
-1. Set initial `dateTime` (any date for reference)
+1. Set initial `date_time` (any date for reference)
 2. Select "Monthly" recurrence
 3. Choose day of month (1-31)
 4. Set recurring time
@@ -152,7 +152,7 @@ The database should support these fields:
 6. System generates pattern: `{"dayOfMonth": X, "time": "HH:MM"}`
 
 ### Creating a One-Time Event
-1. Set `dateTime` to actual event date/time
+1. Set `date_time` to actual event date/time
 2. Select "None" recurrence
 3. No pattern or end date needed
 

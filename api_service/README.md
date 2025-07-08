@@ -89,10 +89,10 @@ The server will start on `http://localhost:8000`
   "name": "string",
   "type": "string",
   "description": "string", 
-  "dateTime": "2025-06-09T10:00:00",
+  "date_time": "2025-06-09T10:00:00",
   "location": "string",
-  "maxParticipants": 15,
-  "currentParticipants": 8,
+  "max_participants": 15,
+  "current_participants": 8,
   "image_url": "string",
   "isRegistered": false
 }
@@ -135,9 +135,9 @@ curl -X POST http://localhost:8000/beresheet/api/events \
     "name": "New Yoga Class",
     "type": "class",
     "description": "Relaxing yoga session",
-    "dateTime": "2025-06-15T10:00:00",
+    "date_time": "2025-06-15T10:00:00",
     "location": "Wellness Room",
-    "maxParticipants": 20,
+    "max_participants": 20,
     "image_url": "https://example.com/image.jpg"
   }'
 ```

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../../config/app_config.dart';
 import '../../services/web/web_jwt_session_service.dart';
+import '../../services/web_image_cache_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http_parser/http_parser.dart';
@@ -372,14 +373,13 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
                                     : (_editingInstructor != null &&
                                        _editingInstructor!['photo'] != null &&
                                        _editingInstructor!['photo'].toString().isNotEmpty)
-                                        ? Image.network(
-                                            _editingInstructor!['photo'],
-                                            fit: BoxFit.cover,
+                                        ? WebImageCacheService.buildUserProfileImage(
+                                            imageUrl: _editingInstructor!['photo'],
                                             width: 120,
                                             height: 120,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return const Icon(Icons.school, size: 60, color: Colors.grey);
-                                            },
+                                            fit: BoxFit.cover,
+                                            borderRadius: BorderRadius.circular(10),
+                                            errorWidget: const Icon(Icons.school, size: 60, color: Colors.grey),
                                           )
                                         : const Icon(Icons.school, size: 60, color: Colors.grey),
                               ),
@@ -565,14 +565,20 @@ class _EventInstructorManagementWebState extends State<EventInstructorManagement
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue,
-              backgroundImage: instructor['photo'] != null && instructor['photo'].isNotEmpty
-                  ? NetworkImage(instructor['photo'])
+            leading: WebImageCacheService.buildCircularUserImage(
+              imageUrl: instructor['photo'] != null && instructor['photo'].isNotEmpty 
+                  ? instructor['photo'] 
                   : null,
-              child: instructor['photo'] == null || instructor['photo'].isEmpty
-                  ? const Icon(Icons.school, color: Colors.white)
-                  : null,
+              radius: 20,
+              errorWidget: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 20),
+              ),
             ),
             title: Text(
               instructor['name'] ?? AppLocalizations.of(context)!.unknownInstructor,

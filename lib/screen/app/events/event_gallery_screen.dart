@@ -354,7 +354,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        '${widget.event.location} • ${_formatDateTime(widget.event.dateTime)}',
+                        '${widget.event.location} • ${_formatDateTime(widget.event.date_time)}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -549,8 +549,8 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  String _formatDateTime(DateTime date_time) {
+    return '${date_time.day}/${date_time.month}/${date_time.year}';
   }
 }
 

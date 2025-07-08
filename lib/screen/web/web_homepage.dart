@@ -1,7 +1,7 @@
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/model/event.dart';
 import 'package:beresheet_app/services/event_service.dart';
-import 'package:beresheet_app/services/image_cache_service.dart';
+import 'package:beresheet_app/services/web_image_cache_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
@@ -221,7 +221,7 @@ class _WebHomePageState extends State<WebHomePage> {
                   // Background Image
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppBorderRadius.large),
-                    child: ImageCacheService.buildEventImage(
+                    child: WebImageCacheService.buildEventImage(
                       imageUrl: event.imageUrl,
                       height: double.infinity,
                       width: double.infinity,
@@ -268,13 +268,9 @@ class _WebHomePageState extends State<WebHomePage> {
                             Row(
                               children: [
                                 if (event.instructorPhoto != null)
-                                  CircleAvatar(
+                                  WebImageCacheService.buildCircularUserImage(
+                                    imageUrl: event.instructorPhoto,
                                     radius: 20,
-                                    backgroundImage: NetworkImage(event.instructorPhoto!),
-                                    onBackgroundImageError: (_, __) {},
-                                    child: event.instructorPhoto == null
-                                        ? const Icon(Icons.person, size: 20)
-                                        : null,
                                   ),
                                 const SizedBox(width: AppSpacing.sm),
                                 Text(
@@ -507,21 +503,19 @@ class _WebHomePageState extends State<WebHomePage> {
                           return Container(
                             margin: const EdgeInsets.only(right: AppSpacing.sm),
                             width: 150,
-                            child: ClipRRect(
+                            child: WebImageCacheService.buildEventImage(
+                              imageUrl: photo['image_url'] ?? '',
+                              width: 150,
+                              height: 150,
+                              fit: BoxFit.cover,
                               borderRadius: BorderRadius.circular(AppBorderRadius.small),
-                              child: Image.network(
-                                photo['image_url'] ?? '',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      size: 32,
-                                      color: Colors.grey,
-                                    ),
-                                  );
-                                },
+                              errorWidget: Container(
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 32,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           );
@@ -571,7 +565,7 @@ class _WebHomePageState extends State<WebHomePage> {
               Expanded(
                 flex: 2,
                 child: ClipRRect(
-                  child: ImageCacheService.buildEventImage(
+                  child: WebImageCacheService.buildEventImage(
                     imageUrl: event.imageUrl,
                     height: double.infinity,
                     fit: BoxFit.cover,
@@ -693,7 +687,7 @@ class _WebHomePageState extends State<WebHomePage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${event.currentParticipants}/${event.maxParticipants} ${context.l10n.participants}',
+                            '${event.current_participants}/${event.max_participants} ${context.l10n.participants}',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 14,
                               color: AppColors.primary,

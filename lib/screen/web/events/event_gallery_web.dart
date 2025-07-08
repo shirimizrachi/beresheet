@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../config/app_config.dart';
 import '../../../services/web/web_jwt_auth_service.dart';
+import '../../../services/web_image_cache_service.dart';
 import '../../../model/event.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
@@ -330,7 +331,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '${widget.event.location} • ${_formatDateTime(widget.event.dateTime)}',
+                            '${widget.event.location} • ${_formatDateTime(widget.event.date_time)}',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
@@ -454,32 +455,25 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
                 child: Container(
                   width: double.infinity,
                   height: double.infinity,
-                  child: Image.network(
-                    photo.thumbnailUrl ?? photo.photo,
+                  child: WebImageCacheService.buildEventImage(
+                    imageUrl: photo.thumbnailUrl ?? photo.photo,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: Colors.grey[100],
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[100],
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey,
-                          size: 40,
-                        ),
-                      );
-                    },
+                    placeholder: Container(
+                      color: Colors.grey[100],
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: Container(
+                      color: Colors.grey[100],
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -549,8 +543,8 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatDateTime(DateTime date_time) {
+    return '${date_time.day}/${date_time.month}/${date_time.year} ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -603,35 +597,27 @@ class _FullSizeImageViewerState extends State<_FullSizeImageViewer> {
               final photo = widget.photos[index];
               return Center(
                 child: InteractiveViewer(
-                  child: Image.network(
-                    photo.photo,
+                  child: WebImageCacheService.buildEventImage(
+                    imageUrl: photo.photo,
                     fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                              : null,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error, color: Colors.white, size: 64),
-                            SizedBox(height: 16),
-                            Text(
-                              AppLocalizations.of(context)!.failedToLoadImage,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    placeholder: const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    ),
+                    errorWidget: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error, color: Colors.white, size: 64),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context)!.failedToLoadImage,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               );

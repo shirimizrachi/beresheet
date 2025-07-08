@@ -11,10 +11,10 @@ This implementation adds a multi-tenant home indexing system that enables users 
 #### Extended `setup_residents_database.py`
 - **File**: `api_service/deployment/admin/setup_residents_database.py`
 - **Changes**:
-  - Added `home_index_name = "home_index"`
+  - Added `home_index_schema_name = "home_index"`
   - Added `home_index_user_name = "home_index"`
   - Added `home_index_user_password = "HomeIndex2025!@#"`
-  - Added `create_home_index()` method
+  - Added `create_home_index_schema()` method
   - Added `create_home_index_user_and_permissions()` method
   - Added `create_home_index_table()` method
   - Added `test_home_index_connection()` method

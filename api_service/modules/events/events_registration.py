@@ -139,7 +139,7 @@ class EventRegistrationDatabase:
                     {"event_id": event_id}
                 ).fetchone()
                 
-                if current_registrations.count >= event_result.maxParticipants:
+                if current_registrations.count >= event_result.max_participants:
                     return False  # Event is full
                 
                 current_time = datetime.now()
@@ -193,7 +193,7 @@ class EventRegistrationDatabase:
                 conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=new_count)
+                    .values(current_participants=new_count)
                 )
                 
                 conn.commit()
@@ -257,7 +257,7 @@ class EventRegistrationDatabase:
                 conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=current_registrations.count)
+                    .values(current_participants=current_registrations.count)
                 )
                 
                 conn.commit()

@@ -30,7 +30,7 @@ def test_database_setup_factory():
         required_methods = [
             'get_connection_config', 'create_database', 'create_schema',
             'create_user_and_permissions', 'create_home_table', 'test_user_connection',
-            'display_connection_info', 'create_home_index',
+            'display_connection_info', 'create_home_index_schema',
             'create_home_index_user_and_permissions', 'create_home_index_table',
             'test_home_index_connection', 'run_setup'
         ]

@@ -325,7 +325,7 @@ class _EventRegistrationsWebState extends State<EventRegistrationsWeb> {
                               children: [
                                 const Icon(Icons.access_time, size: 14, color: Colors.grey),
                                 const SizedBox(width: 4),
-                                Text(_formatDate(event['date_time'] ?? event['dateTime'])),
+                                Text(_formatDate(event['date_time'] ?? event['date_time'])),
                               ],
                             ),
                             const SizedBox(height: 2),

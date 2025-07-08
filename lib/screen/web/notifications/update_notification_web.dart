@@ -70,7 +70,7 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
                     ),
                     const SizedBox(height: 12),
                     _buildReadOnlyField(
-                      context.l10n.dateTime,
+                      context.l10n.date_time,
                       _formatDateTime(widget.notification['send_datetime']),
                     ),
                     const SizedBox(height: 24),
@@ -162,13 +162,13 @@ class _UpdateNotificationWebState extends State<UpdateNotificationWeb> {
     );
   }
 
-  String _formatDateTime(dynamic dateTime) {
-    if (dateTime == null) return '';
+  String _formatDateTime(dynamic date_time) {
+    if (date_time == null) return '';
     try {
-      DateTime dt = DateTime.parse(dateTime.toString());
+      DateTime dt = DateTime.parse(date_time.toString());
       return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      return dateTime.toString();
+      return date_time.toString();
     }
   }
 

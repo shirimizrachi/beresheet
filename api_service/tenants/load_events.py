@@ -62,7 +62,7 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
                 processed_row = process_csv_row(row)
                 
                 # Debug: Print processed row
-                logger.info(f"Processed row for {processed_row.get('id', 'unknown')}: dateTime={processed_row.get('dateTime')}, maxParticipants={processed_row.get('maxParticipants')}")
+                logger.info(f"Processed row for {processed_row.get('id', 'unknown')}: date_time={processed_row.get('date_time')}, max_participants={processed_row.get('max_participants')}")
                 
                 events_data.append(processed_row)
         
@@ -92,9 +92,9 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
             try:
                 # Parse dates - already processed by CSV helper
                 try:
-                    event_datetime_iso = datetime.fromisoformat(event_data['dateTime'])
+                    event_datetime_iso = datetime.fromisoformat(event_data['date_time'])
                 except ValueError:
-                    logger.warning(f"Invalid dateTime format for event {event_data['id']}: {event_data['dateTime']}")
+                    logger.warning(f"Invalid date_time format for event {event_data['id']}: {event_data['date_time']}")
                     event_datetime_iso = datetime.now() + timedelta(days=1)
                 
                 recurring_end_date_iso = None
@@ -111,15 +111,15 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
                 
                 # Parse integer fields with error handling
                 try:
-                    max_participants = int(event_data['maxParticipants'].strip())
+                    max_participants = int(event_data['max_participants'].strip())
                 except (ValueError, AttributeError) as e:
-                    logger.warning(f"Invalid maxParticipants value '{event_data['maxParticipants']}' for event {event_data['id']}, using default 10")
+                    logger.warning(f"Invalid max_participants value '{event_data['max_participants']}' for event {event_data['id']}, using default 10")
                     max_participants = 10
                 
                 try:
-                    current_participants = int(event_data['currentParticipants'].strip())
+                    current_participants = int(event_data['current_participants'].strip())
                 except (ValueError, AttributeError) as e:
-                    logger.warning(f"Invalid currentParticipants value '{event_data['currentParticipants']}' for event {event_data['id']}, using default 0")
+                    logger.warning(f"Invalid current_participants value '{event_data['current_participants']}' for event {event_data['id']}, using default 0")
                     current_participants = 0
                 
                 # Prepare image file if it exists
@@ -192,10 +192,10 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
                     name=event_data['name'],
                     type=event_data['type'],
                     description=event_data['description'],
-                    dateTime=event_datetime_iso,
+                    date_time=event_datetime_iso,
                     location=location,
-                    maxParticipants=max_participants,
-                    currentParticipants=current_participants,
+                    max_participants=max_participants,
+                    current_participants=current_participants,
                     status=event_data['status'],
                     recurring=event_data['recurring'],
                     recurring_end_date=recurring_end_date_iso,

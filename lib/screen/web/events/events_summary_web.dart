@@ -200,8 +200,8 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
                       DataCell(Text(event.recurring)),
                       DataCell(
                         Text(
-                          event.dateTime != null 
-                            ? '${event.dateTime!.month.toString().padLeft(2, '0')}-${event.dateTime!.day.toString().padLeft(2, '0')} ${event.dateTime!.hour.toString().padLeft(2, '0')}:${event.dateTime!.minute.toString().padLeft(2, '0')}'
+                          event.date_time != null 
+                            ? '${event.date_time!.month.toString().padLeft(2, '0')}-${event.date_time!.day.toString().padLeft(2, '0')} ${event.date_time!.hour.toString().padLeft(2, '0')}:${event.date_time!.minute.toString().padLeft(2, '0')}'
                             : 'None'
                         ),
                       ),
@@ -272,7 +272,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
                   // Format dates
                   DateTime? displayDateTime;
                   try {
-                    displayDateTime = DateTime.parse(eventData['dateTime'].toString().replaceAll('Z', ''));
+                    displayDateTime = DateTime.parse(eventData['date_time'].toString().replaceAll('Z', ''));
                   } catch (e) {
                     // Invalid date format
                   }
@@ -286,8 +286,8 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
                   String endDateStr = 'N/A';
                   
                   if (eventData['recurring'] != 'none' && originalEvent != null) {
-                    if (originalEvent.dateTime != null) {
-                      startDateStr = '${originalEvent.dateTime!.month.toString().padLeft(2, '0')}-${originalEvent.dateTime!.day.toString().padLeft(2, '0')}';
+                    if (originalEvent.date_time != null) {
+                      startDateStr = '${originalEvent.date_time!.month.toString().padLeft(2, '0')}-${originalEvent.date_time!.day.toString().padLeft(2, '0')}';
                     }
                     if (originalEvent.recurringEndDate != null) {
                       endDateStr = '${originalEvent.recurringEndDate!.month.toString().padLeft(2, '0')}-${originalEvent.recurringEndDate!.day.toString().padLeft(2, '0')}';
@@ -296,8 +296,8 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
 
                   // Check if overridden
                   bool isOverridden = false;
-                  if (eventData['recurring'] != 'none' && originalEvent?.dateTime != null) {
-                    isOverridden = eventData['dateTime'] != originalEvent!.dateTime!.toIso8601String();
+                  if (eventData['recurring'] != 'none' && originalEvent?.date_time != null) {
+                    isOverridden = eventData['date_time'] != originalEvent!.date_time!.toIso8601String();
                   }
 
                   return DataRow(
@@ -473,8 +473,8 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
     
     for (int i = 0; i < _homeEvents.length - 1; i++) {
       try {
-        final current = DateTime.parse(_homeEvents[i]['dateTime'].toString().replaceAll('Z', ''));
-        final next = DateTime.parse(_homeEvents[i + 1]['dateTime'].toString().replaceAll('Z', ''));
+        final current = DateTime.parse(_homeEvents[i]['date_time'].toString().replaceAll('Z', ''));
+        final next = DateTime.parse(_homeEvents[i + 1]['date_time'].toString().replaceAll('Z', ''));
         if (current.isAfter(next)) {
           return false;
         }
@@ -489,7 +489,7 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
     final now = DateTime.now();
     for (final eventData in _homeEvents) {
       try {
-        final eventDateTime = DateTime.parse(eventData['dateTime'].toString().replaceAll('Z', ''));
+        final eventDateTime = DateTime.parse(eventData['date_time'].toString().replaceAll('Z', ''));
         if (eventDateTime.isBefore(now)) {
           return false;
         }
@@ -507,8 +507,8 @@ class _EventsSummaryWebState extends State<EventsSummaryWeb> {
         // Find original event
         try {
           final originalEvent = _allEvents.firstWhere((e) => e.id == eventData['id']);
-          if (originalEvent.dateTime != null) {
-            if (eventData['dateTime'] != originalEvent.dateTime!.toIso8601String()) {
+          if (originalEvent.date_time != null) {
+            if (eventData['date_time'] != originalEvent.date_time!.toIso8601String()) {
               count++;
             }
           }

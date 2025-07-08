@@ -423,12 +423,7 @@ class _NewProfilePageState extends State<NewProfilePage> {
         default: return value;
       }
     } else if (category == l10n.gender) {
-      switch (value) {
-        case 'male': return l10n.genderMale;
-        case 'female': return l10n.genderFemale;
-        case 'other': return l10n.genderOther;
-        default: return value;
-      }
+      return DisplayNameUtils.getGenderDisplayName(value, context);
     } else if (category == l10n.religious) {
       switch (value) {
         case 'secular': return l10n.religiousSecular;

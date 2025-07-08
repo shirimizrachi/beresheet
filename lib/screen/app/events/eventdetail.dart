@@ -243,8 +243,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         children: [
                           _buildDetailRow(
                             Icons.access_time,
-                            context.l10n.dateTime,
-                            '${DisplayNameUtils.getLocalizedFormattedDate(widget.event.dateTime, context)} at ${widget.event.formattedTime}',
+                            context.l10n.date_time,
+                            '${DisplayNameUtils.getLocalizedFormattedDate(widget.event.date_time, context)} at ${widget.event.formattedTime}',
                           ),
                           const Divider(),
                           _buildDetailRow(
@@ -256,7 +256,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           _buildDetailRow(
                             Icons.people,
                             context.l10n.participants,
-                            '${widget.event.currentParticipants} / ${widget.event.maxParticipants}',
+                            '${widget.event.current_participants} / ${widget.event.max_participants}',
                           ),
                         ],
                       ),

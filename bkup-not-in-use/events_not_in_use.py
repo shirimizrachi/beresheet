@@ -202,10 +202,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -237,7 +237,7 @@ class EventDatabase:
                 results = conn.execute(
                     events_table.select()
                     .where(events_table.c.status == 'approved')
-                    .order_by(events_table.c.dateTime.desc())
+                    .order_by(events_table.c.date_time.desc())
                 ).fetchall()
                 
                 for result in results:
@@ -246,10 +246,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -281,7 +281,7 @@ class EventDatabase:
             with schema_engine.connect() as conn:
                 results = conn.execute(
                     events_table.select()
-                    .order_by(events_table.c.dateTime.desc())
+                    .order_by(events_table.c.date_time.desc())
                 ).fetchall()
                 
                 for result in results:
@@ -290,10 +290,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -334,10 +334,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -373,10 +373,10 @@ class EventDatabase:
                 'name': event_data.name,
                 'type': event_data.type,
                 'description': event_data.description,
-                'dateTime': event_data.dateTime,
+                'date_time': event_data.date_time,
                 'location': event_data.location,
-                'maxParticipants': event_data.maxParticipants,
-                'currentParticipants': event_data.currentParticipants if hasattr(event_data, 'currentParticipants') else 0,
+                'max_participants': event_data.max_participants,
+                'current_participants': event_data.current_participants if hasattr(event_data, 'current_participants') else 0,
                 'image_url': event_data.image_url if hasattr(event_data, 'image_url') else None,
                 'status': event_data.status if hasattr(event_data, 'status') else "pending-approval",
                 'recurring': event_data.recurring if hasattr(event_data, 'recurring') else "none",
@@ -401,10 +401,10 @@ class EventDatabase:
                 name=event_data.name,
                 type=event_data.type,
                 description=event_data.description,
-                dateTime=event_data.dateTime,
+                date_time=event_data.date_time,
                 location=event_data.location,
-                maxParticipants=event_data.maxParticipants,
-                currentParticipants=0,
+                max_participants=event_data.max_participants,
+                current_participants=0,
                 image_url=getattr(event_data, 'image_url', "") or "",
                 status=getattr(event_data, 'status', "pending-approval"),
                 recurring=getattr(event_data, 'recurring', "none"),
@@ -462,10 +462,10 @@ class EventDatabase:
                             name=updated_result.name,
                             type=updated_result.type,
                             description=updated_result.description,
-                            dateTime=updated_result.dateTime,
+                            date_time=updated_result.date_time,
                             location=updated_result.location,
-                            maxParticipants=updated_result.maxParticipants,
-                            currentParticipants=updated_result.currentParticipants,
+                            max_participants=updated_result.max_participants,
+                            current_participants=updated_result.current_participants,
                             image_url=updated_result.image_url or "",
                             status=updated_result.status if hasattr(updated_result, 'status') else "pending-approval",
                             recurring=updated_result.recurring if hasattr(updated_result, 'recurring') else "none",
@@ -534,10 +534,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -570,7 +570,7 @@ class EventDatabase:
             with schema_engine.connect() as conn:
                 now = datetime.now()
                 results = conn.execute(
-                    events_table.select().where(events_table.c.dateTime > now)
+                    events_table.select().where(events_table.c.date_time > now)
                 ).fetchall()
                 
                 for result in results:
@@ -579,10 +579,10 @@ class EventDatabase:
                         name=result.name,
                         type=result.type,
                         description=result.description,
-                        dateTime=result.dateTime,
+                        date_time=result.date_time,
                         location=result.location,
-                        maxParticipants=result.maxParticipants,
-                        currentParticipants=result.currentParticipants,
+                        max_participants=result.max_participants,
+                        current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
@@ -622,14 +622,14 @@ class EventDatabase:
                     return False
                 
                 # Check if event is full
-                if result.currentParticipants >= result.maxParticipants:
+                if result.current_participants >= result.max_participants:
                     return False
                 
                 # Update participant count
                 update_result = conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=result.currentParticipants + 1)
+                    .values(current_participants=result.current_participants + 1)
                 )
                 conn.commit()
                 
@@ -665,11 +665,11 @@ class EventDatabase:
                     return False
                 
                 # Update participant count (don't go below 0)
-                new_count = max(0, result.currentParticipants - 1)
+                new_count = max(0, result.current_participants - 1)
                 update_result = conn.execute(
                     events_table.update()
                     .where(events_table.c.id == event_id)
-                    .values(currentParticipants=new_count)
+                    .values(current_participants=new_count)
                 )
                 conn.commit()
                 
@@ -684,15 +684,15 @@ class EventDatabase:
         Load events for home screen with specific filtering and next occurrence calculation.
         
         Database query conditions:
-        - All events that dateTime is newer than now and recurring is 'none'
+        - All events that date_time is newer than now and recurring is 'none'
         - All events that recurring_end_date is newer than now and recurring is not 'none'
         
         Response filtering:
         1. For recurring events: return only if recurring end date has not passed and next occurrence is within end date
         2. For one-time events: return all events which date is newer than now
         
-        Override dateTime with next occurrence for recurring events.
-        Order by dateTime (after override calculation).
+        Override date_time with next occurrence for recurring events.
+        Order by date_time (after override calculation).
         """
         try:
             # Get schema for home
@@ -721,7 +721,7 @@ class EventDatabase:
                 return []
             with schema_engine.connect() as conn:
                 # Query database according to requirements:
-                # 1. All events that dateTime is newer than now and recurring is 'none'
+                # 1. All events that date_time is newer than now and recurring is 'none'
                 # 2. All events that recurring_end_date is newer than now and recurring is not 'none'
                 results = conn.execute(
                     text(f"""
@@ -730,10 +730,10 @@ class EventDatabase:
                             e.name,
                             e.type,
                             e.description,
-                            e.dateTime,
+                            e.date_time,
                             e.location,
-                            e.maxParticipants,
-                            e.currentParticipants,
+                            e.max_participants,
+                            e.current_participants,
                             e.image_url,
                             e.status,
                             e.recurring,
@@ -750,7 +750,7 @@ class EventDatabase:
                             AND er.status = 'registered'
                         WHERE e.status = 'approved'
                             AND (
-                                (e.recurring = 'none' AND e.dateTime > :now)
+                                (e.recurring = 'none' AND e.date_time > :now)
                                 OR
                                 (e.recurring != 'none' AND e.recurring_end_date > :now)
                             )
@@ -760,13 +760,13 @@ class EventDatabase:
                 
                 for result in results:
                     # Determine the display datetime
-                    display_datetime = result.dateTime
+                    display_datetime = result.date_time
                     
                     # For recurring events, calculate next occurrence
                     if result.recurring and result.recurring != 'none':
                         if result.recurring_pattern and result.recurring_end_date:
                             next_occurrence = calculate_next_occurrence(
-                                result.dateTime,
+                                result.date_time,
                                 result.recurring_pattern,
                                 result.recurring_end_date
                             )
@@ -785,7 +785,7 @@ class EventDatabase:
                             continue
                     else:
                         # For one-time events, make sure the date is newer than now
-                        if result.dateTime <= now:
+                        if result.date_time <= now:
                             continue
                     
                     event_dict = {
@@ -793,10 +793,10 @@ class EventDatabase:
                         'name': result.name,
                         'type': result.type,
                         'description': result.description,
-                        'dateTime': display_datetime.isoformat() if display_datetime else None,
+                        'date_time': display_datetime.isoformat() if display_datetime else None,
                         'location': result.location,
-                        'maxParticipants': result.maxParticipants,
-                        'currentParticipants': result.currentParticipants,
+                        'max_participants': result.max_participants,
+                        'current_participants': result.current_participants,
                         'image_url': result.image_url or "",
                         'status': result.status if hasattr(result, 'status') else "pending-approval",
                         'recurring': result.recurring if hasattr(result, 'recurring') else "none",
@@ -806,8 +806,8 @@ class EventDatabase:
                     }
                     events_with_status.append(event_dict)
             
-            # Sort by dateTime (after override calculation for recurring events)
-            events_with_status.sort(key=lambda x: x['dateTime'] if x['dateTime'] else '9999-12-31T23:59:59')
+            # Sort by date_time (after override calculation for recurring events)
+            events_with_status.sort(key=lambda x: x['date_time'] if x['date_time'] else '9999-12-31T23:59:59')
             
             return events_with_status
 
@@ -880,10 +880,10 @@ async def create_event(
     name: str = Form(...),
     type: str = Form(...),
     description: str = Form(...),
-    dateTime: str = Form(...),
+    date_time: str = Form(...),
     location: str = Form(...),
-    maxParticipants: int = Form(...),
-    currentParticipants: int = Form(0),
+    max_participants: int = Form(...),
+    current_participants: int = Form(0),
     status: str = Form("pending-approval"),
     recurring: str = Form("none"),
     recurring_end_date: Optional[str] = Form(None),
@@ -898,11 +898,11 @@ async def create_event(
 ):
     """Create a new event with image upload"""
     try:
-        # Parse dateTime
+        # Parse date_time
         try:
-            event_datetime = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+            event_datetime = datetime.fromisoformat(date_time.replace('Z', '+00:00'))
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid dateTime format")
+            raise HTTPException(status_code=400, detail="Invalid date_time format")
         
         # Parse optional datetime fields
         parsed_recurring_end_date = None
@@ -917,11 +917,11 @@ async def create_event(
             name=name,
             type=type,
             description=description,
-            dateTime=event_datetime,
+            date_time=event_datetime,
             location=location,
-            maxParticipants=maxParticipants,
+            max_participants=max_participants,
             image_url="",  # Will be updated after image upload
-            currentParticipants=currentParticipants,
+            current_participants=current_participants,
             status=status,
             recurring=recurring,
             recurring_end_date=parsed_recurring_end_date,
@@ -975,10 +975,10 @@ async def update_event(
     name: Optional[str] = Form(None),
     type: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    dateTime: Optional[str] = Form(None),
+    date_time: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
-    maxParticipants: Optional[int] = Form(None),
-    currentParticipants: Optional[int] = Form(None),
+    max_participants: Optional[int] = Form(None),
+    current_participants: Optional[int] = Form(None),
     status: Optional[str] = Form(None),
     recurring: Optional[str] = Form(None),
     recurring_end_date: Optional[str] = Form(None),
@@ -1004,10 +1004,10 @@ async def update_event(
             update_data['description'] = description
         if location is not None:
             update_data['location'] = location
-        if maxParticipants is not None:
-            update_data['maxParticipants'] = maxParticipants
-        if currentParticipants is not None:
-            update_data['currentParticipants'] = currentParticipants
+        if max_participants is not None:
+            update_data['max_participants'] = max_participants
+        if current_participants is not None:
+            update_data['current_participants'] = current_participants
         if status is not None:
             update_data['status'] = status
         if recurring is not None:
@@ -1022,11 +1022,11 @@ async def update_event(
             update_data['instructor_photo'] = instructor_photo
         
         # Parse datetime fields
-        if dateTime is not None:
+        if date_time is not None:
             try:
-                update_data['dateTime'] = datetime.fromisoformat(dateTime.replace('Z', '+00:00'))
+                update_data['date_time'] = datetime.fromisoformat(date_time.replace('Z', '+00:00'))
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid dateTime format")
+                raise HTTPException(status_code=400, detail="Invalid date_time format")
         
         if recurring_end_date is not None:
             try:

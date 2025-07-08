@@ -108,7 +108,7 @@ def test_load_events_for_home():
         
         for event in all_events:
             name_short = event.name[:27] + "..." if len(event.name) > 30 else event.name
-            dt_str = event.dateTime.strftime("%m-%d %H:%M") if event.dateTime else "None"
+            dt_str = event.date_time.strftime("%m-%d %H:%M") if event.date_time else "None"
             
             # Parse recurring pattern for display
             pattern_display = ""
@@ -158,7 +158,7 @@ def test_load_events_for_home():
             original_end_date = None
             for orig_event in all_events:
                 if orig_event.id == event['id']:
-                    original_datetime = orig_event.dateTime
+                    original_datetime = orig_event.date_time
                     original_pattern = orig_event.recurring_pattern
                     original_end_date = orig_event.recurring_end_date
                     break
@@ -166,7 +166,7 @@ def test_load_events_for_home():
             name_short = event['name'][:27] + "..." if len(event['name']) > 30 else event['name']
             
             # Format next event datetime
-            display_dt = datetime.fromisoformat(event['dateTime'].replace('Z', ''))
+            display_dt = datetime.fromisoformat(event['date_time'].replace('Z', ''))
             display_dt_str = display_dt.strftime("%m-%d %H:%M")
             
             # Format start and end dates for recurring events
@@ -206,7 +206,7 @@ def test_load_events_for_home():
             # Check if overridden
             override_status = "✅ YES" if (event['recurring'] != 'none' and
                                          original_datetime and
-                                         event['dateTime'] != original_datetime.isoformat()) else "⭕ NO"
+                                         event['date_time'] != original_datetime.isoformat()) else "⭕ NO"
             
             print(f"{name_short:<30} {event['status']:<8} {display_dt_str:<12} {pattern_display:<25} {start_date_str:<12} {end_date_str:<12} {override_status:<8}")
         
@@ -240,7 +240,7 @@ def test_load_events_for_home():
             print(f"  {recurring:<26} {count:<10}")
         
         # Check ordering
-        datetimes = [datetime.fromisoformat(event['dateTime'].replace('Z', '')) for event in home_events]
+        datetimes = [datetime.fromisoformat(event['date_time'].replace('Z', '')) for event in home_events]
         is_sorted = all(datetimes[i] <= datetimes[i+1] for i in range(len(datetimes)-1))
         
         print(f"\n⚡ VALIDATION:")

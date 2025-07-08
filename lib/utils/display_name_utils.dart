@@ -6,7 +6,7 @@ import '../config/app_config.dart';
 class DisplayNameUtils {
   
   /// Get localized formatted date
-  static String getLocalizedFormattedDate(DateTime dateTime, BuildContext context) {
+  static String getLocalizedFormattedDate(DateTime date_time, BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     
     final months = [
@@ -24,7 +24,7 @@ class DisplayNameUtils {
       localizations.december,
     ];
     
-    return "${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}";
+    return "${date_time.day} ${months[date_time.month - 1]} ${date_time.year}";
   }
   
   /// Get display name for user role using localization

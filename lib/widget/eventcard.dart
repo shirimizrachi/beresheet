@@ -169,7 +169,7 @@ class _EventCardState extends State<EventCard> {
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
-                            DisplayNameUtils.getLocalizedFormattedDate(widget.event.dateTime, context),
+                            DisplayNameUtils.getLocalizedFormattedDate(widget.event.date_time, context),
                             style: TextStyle(
                               fontSize: 9,
                               color: Colors.grey[600],
@@ -210,7 +210,7 @@ class _EventCardState extends State<EventCard> {
                         Icon(Icons.people, size: 10, color: Colors.grey[600]),
                         const SizedBox(width: 2),
                         Text(
-                          '${widget.event.currentParticipants}/${widget.event.maxParticipants}',
+                          '${widget.event.current_participants}/${widget.event.max_participants}',
                           style: TextStyle(
                             fontSize: 9,
                             color: Colors.grey[600],

@@ -3,8 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../../model/web/web_jwt_user.dart';
 import '../../config/app_config.dart';
-// Import dart:html only for web platform
-import 'dart:html' as html show document;
 
 /// Web JWT Session Service - completely separate from admin session service
 /// Manages JWT tokens and session data for web users
@@ -64,26 +62,10 @@ class WebJwtSessionService {
     }
   }
 
-  /// Get JWT token from browser cookies (web only)
+  /// Get JWT token from browser cookies (web only) - Disabled for mobile compatibility
   static String? _getJwtTokenFromCookie() {
-    if (kIsWeb) {
-      try {
-        final cookies = html.document.cookie!;
-        print('All browser cookies: $cookies');
-        final cookiePairs = cookies.split(';');
-        
-        for (final cookiePair in cookiePairs) {
-          final parts = cookiePair.trim().split('=');
-          if (parts.length == 2 && parts[0] == 'web_jwt_token') {
-            print('Found web_jwt_token cookie: ${parts[1].substring(0, 20)}...');
-            return parts[1];
-          }
-        }
-        print('web_jwt_token cookie not found');
-      } catch (e) {
-        print('Error reading web_jwt_token cookie: $e');
-      }
-    }
+    // Cookie access is disabled for mobile compatibility
+    // Web-specific cookie handling should be implemented using platform channels if needed
     return null;
   }
 

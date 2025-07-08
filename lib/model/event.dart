@@ -52,11 +52,11 @@ class Event {
     required this.name,
     required this.type,
     required this.description,
-    required this.dateTime,
+    required this.date_time,
     required this.location,
-    required this.maxParticipants,
+    required this.max_participants,
     required this.imageUrl,
-    this.currentParticipants = 0,
+    this.current_participants = 0,
     this.status = AppConfig.eventStatusPendingApproval,
     this.recurring = AppConfig.eventRecurringNone,
     this.recurringEndDate,
@@ -73,11 +73,11 @@ class Event {
   final String name;
   final String type; // "event", "sport", "cultural", "art", "english", "religion"
   final String description;
-  final DateTime dateTime; // Initial occurrence date for recurring events
+  final DateTime date_time; // Initial occurrence date for recurring events
   final String location;
-  final int maxParticipants;
+  final int max_participants;
   final String imageUrl;
-  int currentParticipants;
+  int current_participants;
   final String status; // "pending-approval", "approved", "rejected", "cancelled", "done"
   final String recurring; // "none", "weekly", "monthly", "bi-weekly"
   final DateTime? recurringEndDate;
@@ -89,7 +89,7 @@ class Event {
   final List<Map<String, dynamic>> reviews; // Event reviews for completed events
   final List<Map<String, dynamic>> galleryPhotos; // Gallery photos for completed events
 
-  bool get isAvailable => currentParticipants < maxParticipants;
+  bool get isAvailable => current_participants < max_participants;
   
   /// Get parsed recurrence pattern
   RecurrencePattern? get parsedRecurrencePattern {
@@ -103,7 +103,7 @@ class Event {
   bool get isRecurring => recurring != AppConfig.eventRecurringNone;
   
   String get formattedDateTime {
-    return "${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}";
+    return "${date_time.day}/${date_time.month}/${date_time.year} at ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}";
   }
 
   String get formattedDate {
@@ -111,11 +111,11 @@ class Event {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
-    return "${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}";
+    return "${date_time.day} ${months[date_time.month - 1]} ${date_time.year}";
   }
 
   String get formattedTime {
-    return "${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}";
+    return "${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}";
   }
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -124,11 +124,11 @@ class Event {
       name: json['name'],
       type: json['type'],
       description: json['description'],
-      dateTime: DateTime.parse(json['dateTime']),
+      date_time: DateTime.parse(json['date_time']),
       location: json['location'],
-      maxParticipants: json['maxParticipants'],
+      max_participants: json['max_participants'],
       imageUrl: json['image_url'],
-      currentParticipants: json['currentParticipants'] ?? 0,
+      current_participants: json['current_participants'] ?? 0,
       status: json['status'] ?? AppConfig.eventStatusPendingApproval,
       recurring: json['recurring'] ?? AppConfig.eventRecurringNone,
       recurringEndDate: json['recurring_end_date'] != null
@@ -154,11 +154,11 @@ class Event {
       'name': name,
       'type': type,
       'description': description,
-      'dateTime': dateTime.toIso8601String(),
+      'date_time': date_time.toIso8601String(),
       'location': location,
-      'maxParticipants': maxParticipants,
+      'max_participants': max_participants,
       'image_url': imageUrl,
-      'currentParticipants': currentParticipants,
+      'current_participants': current_participants,
       'status': status,
       'recurring': recurring,
       'recurring_end_date': recurringEndDate?.toIso8601String(),
@@ -177,11 +177,11 @@ class Event {
     String? name,
     String? type,
     String? description,
-    DateTime? dateTime,
+    DateTime? date_time,
     String? location,
-    int? maxParticipants,
+    int? max_participants,
     String? imageUrl,
-    int? currentParticipants,
+    int? current_participants,
     String? status,
     String? recurring,
     DateTime? recurringEndDate,
@@ -198,11 +198,11 @@ class Event {
       name: name ?? this.name,
       type: type ?? this.type,
       description: description ?? this.description,
-      dateTime: dateTime ?? this.dateTime,
+      date_time: date_time ?? this.date_time,
       location: location ?? this.location,
-      maxParticipants: maxParticipants ?? this.maxParticipants,
+      max_participants: max_participants ?? this.max_participants,
       imageUrl: imageUrl ?? this.imageUrl,
-      currentParticipants: currentParticipants ?? this.currentParticipants,
+      current_participants: current_participants ?? this.current_participants,
       status: status ?? this.status,
       recurring: recurring ?? this.recurring,
       recurringEndDate: recurringEndDate ?? this.recurringEndDate,

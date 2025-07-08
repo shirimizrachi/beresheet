@@ -18,11 +18,11 @@ class EventBase(BaseModel):
     name: str
     type: str  # "event", "sport", "cultural", "art", "english", "religion"
     description: str
-    dateTime: datetime  # Initial occurrence date for recurring events
+    date_time: datetime  # Initial occurrence date for recurring events
     location: str
-    maxParticipants: int
+    max_participants: int
     image_url: Optional[str] = ""  # Allow None and default to empty string
-    currentParticipants: int = 0
+    current_participants: int = 0
     status: str = "pending-approval"  # "pending-approval", "approved", "rejected", "cancelled", "done"
     recurring: str = "none"  # "none", "weekly", "bi-weekly", "monthly"
     recurring_end_date: Optional[datetime] = None
@@ -40,11 +40,11 @@ class EventUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[str] = None
     description: Optional[str] = None
-    dateTime: Optional[datetime] = None
+    date_time: Optional[datetime] = None
     location: Optional[str] = None
-    maxParticipants: Optional[int] = None
+    max_participants: Optional[int] = None
     image_url: Optional[str] = None
-    currentParticipants: Optional[int] = None
+    current_participants: Optional[int] = None
     status: Optional[str] = None
     recurring: Optional[str] = None
     recurring_end_date: Optional[datetime] = None
@@ -65,10 +65,10 @@ class EventWithRegistrationStatus(BaseModel):
     name: str
     type: str
     description: str
-    dateTime: str  # ISO string
+    date_time: str  # ISO string
     location: str
-    maxParticipants: int
-    currentParticipants: int
+    max_participants: int
+    current_participants: int
     image_url: str
     status: str
     recurring: str

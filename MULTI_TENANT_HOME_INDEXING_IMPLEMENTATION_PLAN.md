@@ -32,10 +32,10 @@ This document outlines the implementation plan for a multi-tenant home indexing 
 **File**: `api_service/deployment/admin/setup_residents_database.py`
 
 **Changes**:
-- Add `home_index_name = "home_index"`
+- Add `home_index_schema_name = "home_index"`
 - Add `home_index_user_name = "home_index"`
 - Add `home_index_user_password = "home_index2025!"`
-- Add method `create_home_index()`
+- Add method `create_home_index_schema()`
 - Add method `create_home_index_user_and_permissions()`
 - Add method `create_home_index_table()`
 - Update main execution flow to include home_index setup
@@ -66,7 +66,7 @@ CREATE TABLE [home_index].[home_index] (
 **New Configuration**:
 ```python
 # Home Index Configuration
-home_index_NAME = "home_index"
+HOME_INDEX_SCHEMA_NAME = "home_index"
 HOME_INDEX_USER_NAME = "home_index"
 HOME_INDEX_USER_PASSWORD = "home_index2025!"
 
