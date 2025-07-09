@@ -5,6 +5,7 @@ import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 
 class EventsManagementScreen extends StatefulWidget {
@@ -63,12 +64,14 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
   }
 
   Future<void> deleteEvent(String eventId) async {
-    final confirmed = await showDialog<bool>(
+    // First confirmation dialog - same as web
+    final firstConfirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
+        final event = events.firstWhere((e) => e.id == eventId);
         return AlertDialog(
-          title: Text(context.l10n.deleteEvent),
-          content: Text(context.l10n.deleteEventConfirmation),
+          title: Text(context.l10n.webConfirmDelete),
+          content: Text(context.l10n.webDeleteConfirmMessage(event.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -84,23 +87,48 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
       },
     );
 
-    if (confirmed == true) {
-      final success = await EventService.deleteEvent(eventId);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.eventDeleted),
-            backgroundColor: Colors.green,
-          ),
-        );
-        loadEvents(); // Refresh the list
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.failedToDeleteEvent),
-            backgroundColor: Colors.red,
-          ),
-        );
+    if (firstConfirmed == true) {
+      // Second confirmation dialog - same as web
+      final secondConfirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(context.l10n.webFinalConfirmation),
+            content: Text(context.l10n.webFinalConfirmMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(context.l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(context.l10n.webYesRemoveFromAllUsers),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (secondConfirmed == true) {
+        final event = events.firstWhere((e) => e.id == eventId);
+        final success = await EventService.deleteEvent(eventId);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.l10n.eventDeletedSuccessfully(event.name)),
+              backgroundColor: Colors.green,
+            ),
+          );
+          loadEvents(); // Refresh the list
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.l10n.failedToDeleteEvent),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -256,7 +284,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                 children: [
                                   const SizedBox(height: 4),
                                   Text(
-                                    event.type.toUpperCase(),
+                                    DisplayNameUtils.getEventTypeDisplayName(event.type, context).toUpperCase(),
                                     style: AppTextStyles.bodySmall.copyWith(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
@@ -264,7 +292,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${event.formattedDate} at ${event.formattedTime}',
+                                    '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} ${context.l10n.at} ${event.formattedTime}',
                                     style: AppTextStyles.bodySmall,
                                   ),
                                   Text(

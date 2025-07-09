@@ -181,7 +181,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -225,7 +228,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -269,7 +275,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -313,7 +322,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     )
                 return None
 
@@ -380,7 +392,10 @@ class EventDatabase:
                 status=getattr(event_data, 'status', "pending-approval"),
                 recurring=getattr(event_data, 'recurring', "none"),
                 recurring_end_date=getattr(event_data, 'recurring_end_date', None),
-                recurring_pattern=getattr(event_data, 'recurring_pattern', None)
+                recurring_pattern=getattr(event_data, 'recurring_pattern', None),
+                instructor_name=getattr(event_data, 'instructor_name', None),
+                instructor_desc=getattr(event_data, 'instructor_desc', None),
+                instructor_photo=getattr(event_data, 'instructor_photo', None)
             )
 
         except Exception as e:
@@ -441,7 +456,10 @@ class EventDatabase:
                             status=updated_result.status if hasattr(updated_result, 'status') else "pending-approval",
                             recurring=updated_result.recurring if hasattr(updated_result, 'recurring') else "none",
                             recurring_end_date=updated_result.recurring_end_date if hasattr(updated_result, 'recurring_end_date') else None,
-                            recurring_pattern=updated_result.recurring_pattern if hasattr(updated_result, 'recurring_pattern') else None
+                            recurring_pattern=updated_result.recurring_pattern if hasattr(updated_result, 'recurring_pattern') else None,
+                            instructor_name=updated_result.instructor_name if hasattr(updated_result, 'instructor_name') else None,
+                            instructor_desc=updated_result.instructor_desc if hasattr(updated_result, 'instructor_desc') else None,
+                            instructor_photo=updated_result.instructor_photo if hasattr(updated_result, 'instructor_photo') else None
                         )
                 return None
 
@@ -513,7 +531,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -558,7 +579,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -602,7 +626,10 @@ class EventDatabase:
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
                     ))
             return events
 
@@ -697,6 +724,9 @@ class EventDatabase:
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
                         recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None,
                         reviews=reviews_data
                     )
                     events.append(event)
@@ -783,6 +813,9 @@ class EventDatabase:
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
                         recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None,
                         galleryPhotos=gallery_data
                     )
                     events.append(event)

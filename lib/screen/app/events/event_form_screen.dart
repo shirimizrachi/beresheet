@@ -33,6 +33,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   final TextEditingController _maxParticipantsController = TextEditingController();
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
+  final TextEditingController _imageSearchController = TextEditingController();
 
   String _selectedType = AppConfig.eventTypeEvent;
   String _selectedStatus = AppConfig.eventStatusPendingApproval;
@@ -55,6 +56,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   String _imageSource = 'upload'; // 'upload' or 'unsplash'
   File? _selectedImageFile;
   final ImagePicker _imagePicker = ImagePicker();
+  String _imageSearchQuery = '';
   
   // Rooms functionality
   List<Map<String, dynamic>> _rooms = [];
@@ -88,8 +90,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
     
     if (hasPermission) {
       _loadUserRole();
-      _loadRooms();
-      _loadInstructors();
+      await _loadRooms();
+      await _loadInstructors();
       if (widget.event != null) {
         _populateFields();
       }
@@ -125,10 +127,15 @@ class _EventFormScreenState extends State<EventFormScreen> {
     // This will be updated after rooms are loaded to match existing room names
     _selectedRoomName = event.location;
     
-    // Set instructor fields
+    // Set instructor fields - matching will be done after instructors are loaded
     _instructorName = event.instructorName;
     _instructorDesc = event.instructorDesc;
     _instructorPhoto = event.instructorPhoto;
+    
+    print('🔍 POPULATE DEBUG: Event has instructor data:');
+    print('🔍 POPULATE DEBUG: instructorName: "$_instructorName"');
+    print('🔍 POPULATE DEBUG: instructorDesc: "$_instructorDesc"');
+    print('🔍 POPULATE DEBUG: instructorPhoto: "$_instructorPhoto"');
     
     // Parse recurring pattern if it exists
     if (event.parsedRecurrencePattern != null) {
@@ -155,24 +162,15 @@ class _EventFormScreenState extends State<EventFormScreen> {
         _isLoadingRooms = true;
       });
 
-      final homeId = await UserSessionService.gethomeID();
-      if (homeId == null) {
-        setState(() {
-          _isLoadingRooms = false;
-        });
-        return;
-      }
-
-      final url = '${AppConfig.apiBaseUrl}/api/rooms/public';
+      final url = '${AppConfig.apiUrlWithPrefix}/api/rooms/public';
       print('🔍 DEBUG: Making HTTP GET request to: $url');
-      print('🔍 DEBUG: Headers: homeID=${homeId.toString()}');
+      
+      final headers = await UserSessionService.getApiHeaders();
+      print('🔍 DEBUG: Headers: $headers');
       
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': homeId.toString(),
-        },
+        headers: headers,
       );
 
       print('🔍 DEBUG: Response received - Status Code: ${response.statusCode}');
@@ -231,24 +229,15 @@ class _EventFormScreenState extends State<EventFormScreen> {
         _isLoadingInstructors = true;
       });
 
-      final homeId = await UserSessionService.gethomeID();
-      if (homeId == null) {
-        setState(() {
-          _isLoadingInstructors = false;
-        });
-        return;
-      }
-
-      final url = '${AppConfig.apiBaseUrl}/api/event-instructors';
+      final url = '${AppConfig.apiUrlWithPrefix}/api/event-instructors';
       print('🔍 DEBUG: Making HTTP GET request to: $url');
-      print('🔍 DEBUG: Headers: homeID=${homeId.toString()}');
+      
+      final headers = await UserSessionService.getApiHeaders();
+      print('🔍 DEBUG: Headers: $headers');
       
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'homeID': homeId.toString(),
-        },
+        headers: headers,
       );
 
       print('🔍 DEBUG: Response received - Status Code: ${response.statusCode}');
@@ -260,6 +249,38 @@ class _EventFormScreenState extends State<EventFormScreen> {
         setState(() {
           _instructors = instructorsData.cast<Map<String, dynamic>>();
           _isLoadingInstructors = false;
+          
+          // If editing an existing event, try to match the instructor
+          if (widget.event != null && _instructorName != null && _instructorName!.isNotEmpty) {
+            print('🔍 INSTRUCTOR DEBUG: Looking for instructor: $_instructorName');
+            print('🔍 INSTRUCTOR DEBUG: Available instructors: ${_instructors.map((i) => i['name']).toList()}');
+            
+            final matchingInstructor = _instructors.firstWhere(
+              (instructor) => instructor['name']?.toString().trim() == _instructorName?.trim(),
+              orElse: () => <String, dynamic>{},
+            );
+            
+            if (matchingInstructor.isNotEmpty) {
+              _selectedInstructor = matchingInstructor;
+              print('✅ INSTRUCTOR DEBUG: Instructor matched successfully: $_instructorName');
+              print('✅ INSTRUCTOR DEBUG: Selected instructor: ${_selectedInstructor?['name']}');
+            } else {
+              print('❌ INSTRUCTOR DEBUG: No matching instructor found for: $_instructorName');
+              print('❌ INSTRUCTOR DEBUG: Available names: ${_instructors.map((i) => '"${i['name']}"').toList()}');
+              print('❌ INSTRUCTOR DEBUG: Looking for: "$_instructorName"');
+              
+              // Try case-insensitive matching as a fallback
+              final caseInsensitiveMatch = _instructors.firstWhere(
+                (instructor) => instructor['name']?.toString().trim().toLowerCase() == _instructorName?.trim().toLowerCase(),
+                orElse: () => <String, dynamic>{},
+              );
+              
+              if (caseInsensitiveMatch.isNotEmpty) {
+                _selectedInstructor = caseInsensitiveMatch;
+                print('✅ INSTRUCTOR DEBUG: Instructor matched with case-insensitive: $_instructorName');
+              }
+            }
+          }
         });
       } else {
         print('❌ DEBUG: HTTP request failed with status ${response.statusCode}');
@@ -283,6 +304,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _maxParticipantsController.dispose();
     _currentParticipantsController.dispose();
     _imageUrlController.dispose();
+    _imageSearchController.dispose();
     super.dispose();
   }
 
@@ -296,21 +318,35 @@ class _EventFormScreenState extends State<EventFormScreen> {
 
     if (date != null) {
       if (mounted) {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-        );
-
-        if (time != null) {
+        // For recurring events, only set the date (user should only choose date for recurring events)
+        if (_selectedRecurring != 'none') {
           setState(() {
             _selectedDateTime = DateTime(
               date.year,
               date.month,
               date.day,
-              time.hour,
-              time.minute,
+              _selectedDateTime.hour,
+              _selectedDateTime.minute,
             );
           });
+        } else {
+          // For non-recurring events, also ask for time
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+          );
+
+          if (time != null) {
+            setState(() {
+              _selectedDateTime = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
+            });
+          }
         }
       }
     }
@@ -393,9 +429,16 @@ class _EventFormScreenState extends State<EventFormScreen> {
     }
   }
 
-  // Simplified field editability - only check if event is "done" (business rule, not role-based)
+  // Field editability - all fields are editable unless event status is "done"
   bool get _isFieldEditable {
-    return _selectedStatus != AppConfig.eventStatusDone;
+    // For new events, all fields are editable
+    if (widget.event == null) return true;
+    
+    // If event status is "done", no fields should be editable (view-only mode)
+    if (_selectedStatus == AppConfig.eventStatusDone) return false;
+    
+    // All other fields are editable for manager and staff roles
+    return true;
   }
 
 
@@ -817,21 +860,26 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           ),
                         )
                       : DropdownButtonFormField<String>(
-                          value: _rooms.any((room) => room['room_name'] == _selectedRoomName)
+                          value: _rooms.isNotEmpty && _rooms.any((room) => room['room_name'] == _selectedRoomName)
                               ? _selectedRoomName
                               : null,
                           decoration: InputDecoration(
                             labelText: l10n.location,
-                            hintText: l10n.webSelectRoom,
+                            hintText: _rooms.isEmpty ? l10n.loading : l10n.webSelectRoom,
                           ),
-                          items: _rooms.map((room) {
+                          items: _rooms.isNotEmpty ? _rooms.map((room) {
                             final roomName = room['room_name'] as String;
                             return DropdownMenuItem<String>(
                               value: roomName,
                               child: Text(roomName),
                             );
-                          }).toList(),
-                          onChanged: _isFieldEditable ? (value) {
+                          }).toList() : [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text(l10n.noEventsFound),
+                            ),
+                          ],
+                          onChanged: _isFieldEditable && _rooms.isNotEmpty ? (value) {
                             print('Room dropdown changed to: $value');
                             setState(() {
                               _selectedRoomName = value;
@@ -863,17 +911,27 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           ),
                         )
                       : DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedInstructor,
+                         value: _instructors.isNotEmpty && _selectedInstructor != null
+                             ? _instructors.firstWhere(
+                                 (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                 orElse: () => <String, dynamic>{},
+                               ).isNotEmpty
+                                 ? _instructors.firstWhere(
+                                     (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                   )
+                                 : null
+                             : null,
                           decoration: InputDecoration(
                             labelText: l10n.eventInstructorOptional,
+                            hintText: _instructors.isEmpty ? l10n.loading : null,
                           ),
                           items: [
-                            // Show "Instructor Exists" if there's existing instructor data, otherwise "No Instructor"
+                            // Only show "No Instructor" option when there's no instructor selected
                             DropdownMenuItem<Map<String, dynamic>>(
                               value: null,
                               child: Text(
-                                (_instructorName != null && _instructorName!.isNotEmpty)
-                                  ? l10n.instructorExists
+                                _instructors.isEmpty
+                                  ? l10n.noEventsFound
                                   : l10n.noInstructor
                               ),
                             ),
@@ -1060,6 +1118,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       Text(
                         l10n.recurringSettings,
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                        textDirection: AppConfig.textDirection,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       
@@ -1094,7 +1153,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Text(
-                                    '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} at ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                                    '${_selectedDateTime.day}/${_selectedDateTime.month}/${_selectedDateTime.year} ${l10n.at} ${_selectedDateTime.hour}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
                                     style: AppTextStyles.bodyMedium,
                                   ),
                                 ),
@@ -1305,6 +1364,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       Text(
                         l10n.eventImage,
                         style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                        textDirection: AppConfig.textDirection,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       
@@ -1315,7 +1375,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: Text(l10n.webUpload),
+                              title: Text(
+                                l10n.webUpload,
+                                textDirection: AppConfig.textDirection,
+                              ),
                               value: 'upload',
                               groupValue: _imageSource,
                               onChanged: _isFieldEditable ? (value) {
@@ -1329,7 +1392,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           SizedBox(
                             width: 160,
                             child: RadioListTile<String>(
-                              title: Text(l10n.unsplash),
+                              title: Text(
+                                l10n.unsplash,
+                                textDirection: AppConfig.textDirection,
+                              ),
                               value: 'unsplash',
                               groupValue: _imageSource,
                               onChanged: _isFieldEditable ? (value) {
@@ -1346,13 +1412,45 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       
                       const SizedBox(height: AppSpacing.md),
                       
-                      // Image source specific UI
+                      // Search field for image bank - only visible when unsplash is selected
                       if (_imageSource == 'unsplash') ...[
+                        const SizedBox(height: AppSpacing.md),
+                        TextFormField(
+                          controller: _imageSearchController,
+                          enabled: _isFieldEditable,
+                          textDirection: AppConfig.textDirection,
+                          decoration: InputDecoration(
+                            labelText: context.l10n.searchImages,
+                            hintText: context.l10n.enterKeywordsToSearchImages,
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _imageSearchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        _imageSearchController.clear();
+                                        _imageSearchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              if (value.length >= 2) {
+                                _imageSearchQuery = value;
+                              } else {
+                                _imageSearchQuery = '';
+                              }
+                            });
+                          },
+                        ),
                         const SizedBox(height: AppSpacing.md),
                         SizedBox(
                           height: 400,
                           child: UnsplashImagePicker(
-                            eventType: _selectedType,
+                            eventType: _imageSearchQuery.isNotEmpty ? null : _selectedType,
+                            searchQuery: _imageSearchQuery.isNotEmpty ? _imageSearchQuery : null,
                             crossAxisCount: 2,
                             onImageSelected: (imageUrl) {
                               setState(() {

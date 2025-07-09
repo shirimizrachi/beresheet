@@ -170,6 +170,24 @@ class _EventFormWebState extends State<EventFormWeb> {
         setState(() {
           _instructors = instructorsData.cast<Map<String, dynamic>>();
           _isLoadingInstructors = false;
+          
+          // If editing an existing event, try to match the instructor
+          if (widget.event != null && _instructorName != null && _instructorName!.isNotEmpty) {
+            print('Looking for instructor: $_instructorName');
+            print('Available instructors: ${_instructors.map((i) => i['name']).toList()}');
+            
+            final matchingInstructor = _instructors.firstWhere(
+              (instructor) => instructor['name'] == _instructorName,
+              orElse: () => <String, dynamic>{},
+            );
+            
+            if (matchingInstructor.isNotEmpty) {
+              _selectedInstructor = matchingInstructor;
+              print('Instructor matched: $_instructorName');
+            } else {
+              print('No matching instructor found for: $_instructorName');
+            }
+          }
         });
       } else {
         setState(() {
@@ -827,7 +845,16 @@ class _EventFormWebState extends State<EventFormWeb> {
                               ),
                             )
                           : DropdownButtonFormField<Map<String, dynamic>>(
-                              value: _selectedInstructor,
+                             value: _instructors.isNotEmpty && _selectedInstructor != null
+                                 ? _instructors.firstWhere(
+                                     (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                     orElse: () => <String, dynamic>{},
+                                   ).isNotEmpty
+                                     ? _instructors.firstWhere(
+                                         (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                       )
+                                     : null
+                                 : null,
                               decoration: InputDecoration(
                                 labelText: AppLocalizations.of(context)!.eventInstructorOptional,
                                 border: const OutlineInputBorder(),

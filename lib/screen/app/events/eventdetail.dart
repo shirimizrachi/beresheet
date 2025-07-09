@@ -258,6 +258,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             context.l10n.participants,
                             '${widget.event.current_participants} / ${widget.event.max_participants}',
                           ),
+                          // Add instructor details if available
+                          if (widget.event.instructorName != null && widget.event.instructorName!.isNotEmpty) ...[
+                            const Divider(),
+                            _buildInstructorRow(),
+                          ],
+                          // Add room details - using location as room name
+                          if (widget.event.location.isNotEmpty) ...[
+                            const Divider(),
+                            _buildDetailRow(
+                              Icons.meeting_room,
+                              context.l10n.location,
+                              widget.event.location,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -384,6 +398,90 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInstructorRow() {
+    return Row(
+      children: [
+        Icon(Icons.person, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+            children: [
+              Text(
+                context.l10n.eventInstructorOptional,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // Instructor photo
+                  if (widget.event.instructorPhoto != null && widget.event.instructorPhoto!.isNotEmpty)
+                    Container(
+                      width: 40,
+                      height: 40,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey[300]!, width: 1),
+                      ),
+                      child: ClipOval(
+                        child: ImageCacheService.buildEventImage(
+                          imageUrl: widget.event.instructorPhoto!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(20),
+                          errorWidget: Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.grey[600],
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Instructor details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+                      children: [
+                        Text(
+                          widget.event.instructorName ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (widget.event.instructorDesc != null && widget.event.instructorDesc!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.event.instructorDesc!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
