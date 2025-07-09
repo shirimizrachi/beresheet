@@ -1,5 +1,6 @@
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/screen/app/service_request_conversation_screen.dart';
@@ -114,19 +115,22 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
         child: Row(
           children: [
             // Profile Image
-            CircleAvatar(
+            ImageCacheService.buildCircularUserImage(
+              imageUrl: photo,
               radius: 30,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage: photo != null && photo.isNotEmpty 
-                  ? NetworkImage(photo) 
-                  : null,
-              child: photo == null || photo.isEmpty
-                  ? Icon(
-                      Icons.person,
-                      size: 30,
-                      color: AppColors.primary,
-                    )
-                  : null,
+              errorWidget: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 30,
+                  color: AppColors.primary,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             

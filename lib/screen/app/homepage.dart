@@ -11,6 +11,7 @@ import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
+import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -237,6 +238,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       default: return month.toString();
     }
   }
+
 
   // Helper method to get localized day name
   String _getLocalizedDay(int weekday) {
@@ -952,13 +954,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             color: AppColors.primary,
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: Text(
-                                            event.formattedDate,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                          child: LocalizedDateTimeWidget(
+                                            dateTime: event.date_time,
+                                            size: DateTimeDisplaySize.medium,
+                                            textColor: Colors.white,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],

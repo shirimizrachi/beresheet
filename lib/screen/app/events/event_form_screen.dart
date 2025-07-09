@@ -132,11 +132,6 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _instructorDesc = event.instructorDesc;
     _instructorPhoto = event.instructorPhoto;
     
-    print('🔍 POPULATE DEBUG: Event has instructor data:');
-    print('🔍 POPULATE DEBUG: instructorName: "$_instructorName"');
-    print('🔍 POPULATE DEBUG: instructorDesc: "$_instructorDesc"');
-    print('🔍 POPULATE DEBUG: instructorPhoto: "$_instructorPhoto"');
-    
     // Parse recurring pattern if it exists
     if (event.parsedRecurrencePattern != null) {
       final pattern = event.parsedRecurrencePattern!;
@@ -151,6 +146,37 @@ class _EventFormScreenState extends State<EventFormScreen> {
             hour: int.tryParse(timeParts[0]) ?? 0,
             minute: int.tryParse(timeParts[1]) ?? 0,
           );
+        }
+      }
+    }
+  }
+
+  void _matchInstructorAfterDropdownCreation() {
+    if (_selectedInstructor == null && _instructorName != null && _instructorName!.isNotEmpty && _instructors.isNotEmpty) {
+      final matchingInstructor = _instructors.firstWhere(
+        (instructor) => instructor['name']?.toString().trim() == _instructorName?.trim(),
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (matchingInstructor.isNotEmpty) {
+        final instructorIndex = _instructors.indexWhere(
+          (instructor) => instructor['name']?.toString().trim() == _instructorName?.trim(),
+        );
+        if (instructorIndex >= 0) {
+          setState(() {
+            _selectedInstructor = _instructors[instructorIndex];
+          });
+        }
+      } else {
+        // Try case-insensitive matching as a fallback
+        final instructorIndex = _instructors.indexWhere(
+          (instructor) => instructor['name']?.toString().trim().toLowerCase() == _instructorName?.trim().toLowerCase(),
+        );
+        
+        if (instructorIndex >= 0) {
+          setState(() {
+            _selectedInstructor = _instructors[instructorIndex];
+          });
         }
       }
     }
@@ -230,72 +256,32 @@ class _EventFormScreenState extends State<EventFormScreen> {
       });
 
       final url = '${AppConfig.apiUrlWithPrefix}/api/event-instructors';
-      print('🔍 DEBUG: Making HTTP GET request to: $url');
-      
       final headers = await UserSessionService.getApiHeaders();
-      print('🔍 DEBUG: Headers: $headers');
       
       final response = await http.get(
         Uri.parse(url),
         headers: headers,
       );
 
-      print('🔍 DEBUG: Response received - Status Code: ${response.statusCode}');
-      print('🔍 DEBUG: Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final List<dynamic> instructorsData = json.decode(response.body);
-        print('🔍 DEBUG: Successfully parsed ${instructorsData.length} instructors');
+        final instructors = instructorsData.cast<Map<String, dynamic>>();
+        
         setState(() {
-          _instructors = instructorsData.cast<Map<String, dynamic>>();
+          _instructors = instructors;
           _isLoadingInstructors = false;
-          
-          // If editing an existing event, try to match the instructor
-          if (widget.event != null && _instructorName != null && _instructorName!.isNotEmpty) {
-            print('🔍 INSTRUCTOR DEBUG: Looking for instructor: $_instructorName');
-            print('🔍 INSTRUCTOR DEBUG: Available instructors: ${_instructors.map((i) => i['name']).toList()}');
-            
-            final matchingInstructor = _instructors.firstWhere(
-              (instructor) => instructor['name']?.toString().trim() == _instructorName?.trim(),
-              orElse: () => <String, dynamic>{},
-            );
-            
-            if (matchingInstructor.isNotEmpty) {
-              _selectedInstructor = matchingInstructor;
-              print('✅ INSTRUCTOR DEBUG: Instructor matched successfully: $_instructorName');
-              print('✅ INSTRUCTOR DEBUG: Selected instructor: ${_selectedInstructor?['name']}');
-            } else {
-              print('❌ INSTRUCTOR DEBUG: No matching instructor found for: $_instructorName');
-              print('❌ INSTRUCTOR DEBUG: Available names: ${_instructors.map((i) => '"${i['name']}"').toList()}');
-              print('❌ INSTRUCTOR DEBUG: Looking for: "$_instructorName"');
-              
-              // Try case-insensitive matching as a fallback
-              final caseInsensitiveMatch = _instructors.firstWhere(
-                (instructor) => instructor['name']?.toString().trim().toLowerCase() == _instructorName?.trim().toLowerCase(),
-                orElse: () => <String, dynamic>{},
-              );
-              
-              if (caseInsensitiveMatch.isNotEmpty) {
-                _selectedInstructor = caseInsensitiveMatch;
-                print('✅ INSTRUCTOR DEBUG: Instructor matched with case-insensitive: $_instructorName');
-              }
-            }
-          }
         });
       } else {
-        print('❌ DEBUG: HTTP request failed with status ${response.statusCode}');
         setState(() {
           _isLoadingInstructors = false;
         });
       }
     } catch (e) {
-      print('❌ DEBUG: Exception occurred during instructors HTTP request: $e');
       setState(() {
         _isLoadingInstructors = false;
       });
     }
   }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -913,11 +899,23 @@ class _EventFormScreenState extends State<EventFormScreen> {
                       : DropdownButtonFormField<Map<String, dynamic>>(
                          value: _instructors.isNotEmpty && _selectedInstructor != null
                              ? _instructors.firstWhere(
-                                 (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                 (instructor) {
+                                   // Try multiple comparison methods for robustness
+                                   if (instructor.containsKey('id') && _selectedInstructor!.containsKey('id')) {
+                                     return instructor['id'] == _selectedInstructor!['id'];
+                                   }
+                                   // Fallback to name comparison
+                                   return instructor['name'] == _selectedInstructor!['name'];
+                                 },
                                  orElse: () => <String, dynamic>{},
                                ).isNotEmpty
                                  ? _instructors.firstWhere(
-                                     (instructor) => instructor['id'] == _selectedInstructor!['id'],
+                                     (instructor) {
+                                       if (instructor.containsKey('id') && _selectedInstructor!.containsKey('id')) {
+                                         return instructor['id'] == _selectedInstructor!['id'];
+                                       }
+                                       return instructor['name'] == _selectedInstructor!['name'];
+                                     },
                                    )
                                  : null
                              : null,
@@ -926,13 +924,15 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             hintText: _instructors.isEmpty ? l10n.loading : null,
                           ),
                           items: [
-                            // Only show "No Instructor" option when there's no instructor selected
+                            // Show appropriate "No Instructor" option
                             DropdownMenuItem<Map<String, dynamic>>(
                               value: null,
                               child: Text(
                                 _instructors.isEmpty
                                   ? l10n.noEventsFound
-                                  : l10n.noInstructor
+                                  : (_instructorName != null && _instructorName!.isNotEmpty && _selectedInstructor == null)
+                                    ? "Instructor: $_instructorName (Not in list)"
+                                    : l10n.noInstructor
                               ),
                             ),
                             ..._instructors.map((instructor) {
@@ -957,7 +957,17 @@ class _EventFormScreenState extends State<EventFormScreen> {
                             });
                           } : null,
                         ),
-                ),
+               ),
+              ),
+              
+              // Call the instructor matching function after dropdown is created
+              Builder(
+                builder: (context) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _matchInstructorAfterDropdownCreation();
+                  });
+                  return const SizedBox.shrink();
+                },
               ),
               
               // Show instructor details if selected from dropdown OR if there's existing instructor data
@@ -980,16 +990,17 @@ class _EventFormScreenState extends State<EventFormScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(color: AppColors.primary, width: 2),
                                 ),
-                                child: ClipOval(
-                                  child: Image.network(
-                                    photoUrl.toString(),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey[300],
-                                        child: const Icon(Icons.person, color: Colors.grey),
-                                      );
-                                    },
+                                child: ImageCacheService.buildCircularUserImage(
+                                  imageUrl: photoUrl.toString(),
+                                  radius: 30,
+                                  errorWidget: Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.person, color: Colors.grey, size: 30),
                                   ),
                                 ),
                               );

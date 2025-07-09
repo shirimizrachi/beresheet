@@ -5,6 +5,7 @@ import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
 import 'package:flutter/material.dart';
 
 class EventCard extends StatefulWidget {
@@ -106,7 +107,7 @@ class _EventCardState extends State<EventCard> {
                             DisplayNameUtils.getEventTypeDisplayName(widget.event.type, context).toUpperCase(),
                             style: TextStyle(
                               color: typeColor,
-                              fontSize: 8,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -136,7 +137,7 @@ class _EventCardState extends State<EventCard> {
                               'REG',
                               style: TextStyle(
                                 color: Colors.green[700],
-                                fontSize: 7,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -168,12 +169,10 @@ class _EventCardState extends State<EventCard> {
                         Icon(Icons.access_time, size: 10, color: Colors.grey[600]),
                         const SizedBox(width: 2),
                         Expanded(
-                          child: Text(
-                            DisplayNameUtils.getLocalizedFormattedDate(widget.event.date_time, context),
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Colors.grey[600],
-                            ),
+                          child: LocalizedDateTimeWidget(
+                            dateTime: widget.event.date_time,
+                            size: DateTimeDisplaySize.medium,
+                            textColor: Colors.grey[600],
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -192,7 +191,7 @@ class _EventCardState extends State<EventCard> {
                           child: Text(
                             widget.event.location,
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 12,
                               color: Colors.grey[600],
                             ),
                             maxLines: 1,
@@ -212,7 +211,7 @@ class _EventCardState extends State<EventCard> {
                         Text(
                           '${widget.event.current_participants}/${widget.event.max_participants}',
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 12,
                             color: Colors.grey[600],
                           ),
                         ),
@@ -227,7 +226,7 @@ class _EventCardState extends State<EventCard> {
                             child: Text(
                               'FULL',
                               style: TextStyle(
-                                fontSize: 7,
+                                fontSize: 12,
                                 color: Colors.red[700],
                                 fontWeight: FontWeight.bold,
                               ),

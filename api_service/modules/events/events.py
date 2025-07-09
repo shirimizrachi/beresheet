@@ -981,6 +981,9 @@ class EventDatabase:
                                 e.recurring,
                                 e.recurring_end_date,
                                 e.recurring_pattern,
+                                e.instructor_name,
+                                e.instructor_desc,
+                                e.instructor_photo,
                                 CASE
                                     WHEN er.status = 'registered' THEN 1
                                     ELSE 0

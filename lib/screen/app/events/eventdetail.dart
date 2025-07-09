@@ -5,6 +5,7 @@ import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
 import 'event_gallery_screen.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -193,33 +194,69 @@ class _EventDetailPageState extends State<EventDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Event Type Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: typeColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: typeColor, width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getTypeIcon(widget.event.type),
-                          size: 18,
-                          color: typeColor,
+                  // Event Type Badge with Instructor Photo
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Event Type Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: typeColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: typeColor, width: 1),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          DisplayNameUtils.getEventTypeDisplayName(widget.event.type, context).toUpperCase(),
-                          style: TextStyle(
-                            color: typeColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getTypeIcon(widget.event.type),
+                              size: 18,
+                              color: typeColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              DisplayNameUtils.getEventTypeDisplayName(widget.event.type, context).toUpperCase(),
+                              style: TextStyle(
+                                color: typeColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Instructor Photo (if available)
+                      if (widget.event.instructorName != null &&
+                          widget.event.instructorName!.isNotEmpty &&
+                          widget.event.instructorPhoto != null &&
+                          widget.event.instructorPhoto!.isNotEmpty)
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2),
+                          ),
+                          child: ImageCacheService.buildCircularUserImage(
+                            imageUrl: widget.event.instructorPhoto!,
+                            radius: 30,
+                            errorWidget: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.grey[600],
+                                size: 30,
+                              ),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
                   
                   const SizedBox(height: 16),
@@ -235,16 +272,57 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   
                   const SizedBox(height: 16),
                   
+                  // Description first
+                  Text(
+                    context.l10n.description,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.event.description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
                   // Event Details Cards
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          _buildDetailRow(
-                            Icons.access_time,
-                            context.l10n.date_time,
-                            '${DisplayNameUtils.getLocalizedFormattedDate(widget.event.date_time, context)} at ${widget.event.formattedTime}',
+                          Row(
+                            children: [
+                              Icon(Icons.access_time, size: 20, color: Colors.grey[600]),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      context.l10n.date_time,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    LocalizedDateTimeWidget(
+                                      dateTime: widget.event.date_time,
+                                      size: DateTimeDisplaySize.large,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           const Divider(),
                           _buildDetailRow(
@@ -261,38 +339,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           // Add instructor details if available
                           if (widget.event.instructorName != null && widget.event.instructorName!.isNotEmpty) ...[
                             const Divider(),
-                            _buildInstructorRow(),
-                          ],
-                          // Add room details - using location as room name
-                          if (widget.event.location.isNotEmpty) ...[
-                            const Divider(),
-                            _buildDetailRow(
-                              Icons.meeting_room,
-                              context.l10n.location,
-                              widget.event.location,
-                            ),
+                            _buildInstructorDetailRow(),
                           ],
                         ],
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Description
-                  Text(
-                    context.l10n.description,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.event.description,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
                     ),
                   ),
                   
@@ -406,83 +456,41 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildInstructorRow() {
+  Widget _buildInstructorDetailRow() {
     return Row(
       children: [
         Icon(Icons.person, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
-            crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.l10n.eventInstructorOptional,
+                context.l10n.eventInstructor,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  // Instructor photo
-                  if (widget.event.instructorPhoto != null && widget.event.instructorPhoto!.isNotEmpty)
-                    Container(
-                      width: 40,
-                      height: 40,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey[300]!, width: 1),
-                      ),
-                      child: ClipOval(
-                        child: ImageCacheService.buildEventImage(
-                          imageUrl: widget.event.instructorPhoto!,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          borderRadius: BorderRadius.circular(20),
-                          errorWidget: Container(
-                            color: Colors.grey[200],
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.grey[600],
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Instructor details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: DirectionUtils.crossAxisAlignmentStart,
-                      children: [
-                        Text(
-                          widget.event.instructorName ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (widget.event.instructorDesc != null && widget.event.instructorDesc!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.event.instructorDesc!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                widget.event.instructorName ?? '',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              if (widget.event.instructorDesc != null && widget.event.instructorDesc!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  widget.event.instructorDesc!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

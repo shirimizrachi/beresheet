@@ -1,5 +1,6 @@
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/screen/app/service_request_conversation_screen.dart';
@@ -291,22 +292,27 @@ class _ServiceRequestHistoryScreenState extends State<ServiceRequestHistoryScree
         title: widget.serviceProviderName != null
             ? Row(
                 children: [
-                  CircleAvatar(
+                  ImageCacheService.buildCircularUserImage(
+                    imageUrl: widget.serviceProviderPhoto,
                     radius: 16,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    backgroundImage: widget.serviceProviderPhoto != null && widget.serviceProviderPhoto!.isNotEmpty
-                        ? NetworkImage(widget.serviceProviderPhoto!)
-                        : null,
-                    child: widget.serviceProviderPhoto == null || widget.serviceProviderPhoto!.isEmpty
-                        ? Text(
-                            widget.serviceProviderName!.isNotEmpty ? widget.serviceProviderName![0].toUpperCase() : 'S',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          )
-                        : null,
+                    errorWidget: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.serviceProviderName!.isNotEmpty ? widget.serviceProviderName![0].toUpperCase() : 'S',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

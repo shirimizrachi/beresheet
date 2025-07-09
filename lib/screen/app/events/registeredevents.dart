@@ -201,7 +201,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No registered events',
+                              context.l10n.noEventsFound,
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
@@ -210,7 +210,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Register for events from the home page',
+                              context.l10n.registerEvent,
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -332,7 +332,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} at ${event.formattedTime}',
+                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} ${context.l10n.at} ${event.formattedTime}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey[600],

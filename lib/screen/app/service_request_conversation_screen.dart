@@ -1,5 +1,6 @@
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -858,22 +859,27 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
         ),
         title: Row(
           children: [
-            CircleAvatar(
+            ImageCacheService.buildCircularUserImage(
+              imageUrl: widget.serviceProviderPhoto,
               radius: 20,
-              backgroundColor: Color(0xFF25D366),
-              backgroundImage: widget.serviceProviderPhoto != null && widget.serviceProviderPhoto!.isNotEmpty
-                  ? NetworkImage(widget.serviceProviderPhoto!)
-                  : null,
-              child: widget.serviceProviderPhoto == null || widget.serviceProviderPhoto!.isEmpty
-                  ? Text(
-                      widget.serviceProviderName.isNotEmpty ? widget.serviceProviderName[0].toUpperCase() : 'S',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    )
-                  : null,
+              errorWidget: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Color(0xFF25D366),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    widget.serviceProviderName.isNotEmpty ? widget.serviceProviderName[0].toUpperCase() : 'S',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ),
             SizedBox(width: 12),
             Expanded(
