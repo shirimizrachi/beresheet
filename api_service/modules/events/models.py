@@ -149,6 +149,7 @@ class EventGalleryBase(BaseModel):
     event_id: str
     photo: str
     thumbnail_url: Optional[str] = None
+    status: str = "private"  # "private" or "public"
 
 class EventGalleryCreate(EventGalleryBase):
     pass
@@ -156,6 +157,7 @@ class EventGalleryCreate(EventGalleryBase):
 class EventGalleryUpdate(BaseModel):
     photo: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    status: Optional[str] = None
 
 class EventGallery(EventGalleryBase):
     photo_id: str

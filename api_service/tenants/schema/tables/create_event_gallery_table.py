@@ -31,6 +31,7 @@ def create_event_gallery_table(engine, schema_name: str, drop_if_exists: bool = 
             event_id = Column(String(50), nullable=False)
             photo = Column(String(500), nullable=False)
             thumbnail_url = Column(String(500))
+            status = Column(String(20), nullable=False, default='private')
             created_at = Column(DateTime, default=func.now())
             updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
             created_by = Column(String(50))

@@ -570,12 +570,16 @@ async def upload_gallery_images(
         })
     
     try:
+        # Get user role for status determination
+        user_role = await get_user_role(user_id, home_id) if user_id else "unknown"
+        
         # Upload images to gallery
         created_galleries = event_gallery_db.upload_gallery_images(
             event_id=event_id,
             home_id=home_id,
             image_files=image_files,
-            created_by=user_id
+            created_by=user_id,
+            user_role=user_role
         )
         
         if not created_galleries:
@@ -653,6 +657,39 @@ async def delete_event_gallery(
         raise HTTPException(status_code=400, detail="Failed to delete event gallery")
     
     return {"message": "Event gallery deleted successfully"}
+
+@router.put("/events/{event_id}/gallery/{photo_id}/approve")
+async def approve_gallery_photo(
+    event_id: str,
+    photo_id: str,
+    home_id: int = Depends(get_home_id),
+    current_user_id: str = Header(..., alias="currentUserId"),
+    firebase_token: Optional[str] = Header(None, alias="firebaseToken")
+):
+    """Approve a gallery photo (change status from private to public) - requires manager role"""
+    # Check if current user has manager role
+    await require_manager_role(current_user_id, home_id)
+    
+    # Check if event exists
+    event = event_db.get_event_by_id(event_id, home_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get photo to verify it exists and belongs to the event
+    photo = event_gallery_db.get_gallery_photo(photo_id, home_id)
+    if not photo or photo.event_id != event_id:
+        raise HTTPException(status_code=404, detail="Gallery photo not found for this event")
+    
+    # Check if photo is already public
+    if photo.status == "public":
+        return {"message": "Gallery photo is already public", "photo_id": photo_id}
+    
+    # Approve the photo
+    success = event_gallery_db.approve_gallery_photo(photo_id, home_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to approve gallery photo")
+    
+    return {"message": "Gallery photo approved successfully", "photo_id": photo_id}
 
 # ------------------------- Event Instructor Endpoints ------------------------- #
 @router.get("/event-instructors", response_model=List[EventInstructor])

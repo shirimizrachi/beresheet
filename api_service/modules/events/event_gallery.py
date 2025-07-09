@@ -7,7 +7,7 @@ import uuid
 import os
 from datetime import datetime
 from typing import Optional, List, Tuple
-from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text
+from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from .models import EventGallery, EventGalleryCreate, EventGalleryUpdate
@@ -66,7 +66,7 @@ class EventGalleryDatabase:
             return image_data  # Return original if thumbnail creation fails
 
     def upload_gallery_images(self, event_id: str, home_id: int, image_files: List[dict],
-                             created_by: str = None) -> List[EventGallery]:
+                              created_by: str = None, user_role: str = None) -> List[EventGallery]:
         """
         Upload multiple images to event gallery with thumbnails
         
@@ -159,12 +159,16 @@ class EventGalleryDatabase:
                         print(f"Failed to upload thumbnail {thumbnail_name}: {thumbnail_url}")
                         thumbnail_url = main_url  # Use main image as fallback
                     
+                    # Determine status based on user role
+                    status = "public" if user_role in ["manager", "staff"] else "private"
+                    
                     # Prepare gallery data
                     gallery_data = {
                         'photo_id': photo_id,
                         'event_id': event_id,
                         'photo': main_url,
                         'thumbnail_url': thumbnail_url,
+                        'status': status,
                         'created_by': created_by,
                         'created_at': current_time,
                         'updated_at': current_time
@@ -184,6 +188,7 @@ class EventGalleryDatabase:
                         event_id=event_id,
                         photo=main_url,
                         thumbnail_url=thumbnail_url,
+                        status=status,
                         created_by=created_by,
                         created_at=current_time,
                         updated_at=current_time
@@ -230,6 +235,7 @@ class EventGalleryDatabase:
                         event_id=result.event_id,
                         photo=result.photo,
                         thumbnail_url=result.thumbnail_url,
+                        status=getattr(result, 'status', 'private'),  # Default to private if not found
                         created_by=result.created_by,
                         created_at=result.created_at,
                         updated_at=result.updated_at
@@ -267,6 +273,7 @@ class EventGalleryDatabase:
                         event_id=result.event_id,
                         photo=result.photo,
                         thumbnail_url=result.thumbnail_url,
+                        status=getattr(result, 'status', 'private'),  # Default to private if not found
                         created_by=result.created_by,
                         created_at=result.created_at,
                         updated_at=result.updated_at
@@ -276,6 +283,37 @@ class EventGalleryDatabase:
         except Exception as e:
             print(f"Error getting gallery photo {photo_id}: {e}")
             return None
+
+    def approve_gallery_photo(self, photo_id: str, home_id: int) -> bool:
+        """Approve a gallery photo by changing its status from private to public"""
+        try:
+            # Get schema for home
+            schema_name = get_schema_name_by_home_id(home_id)
+            if not schema_name:
+                return False
+
+            # Get the event_gallery table
+            gallery_table = self.get_event_gallery_table(schema_name)
+            if gallery_table is None:
+                return False
+
+            # Update status to public
+            schema_engine = get_schema_engine(schema_name)
+            if not schema_engine:
+                return False
+            with schema_engine.connect() as conn:
+                result = conn.execute(
+                    gallery_table.update()
+                    .where(gallery_table.c.photo_id == photo_id)
+                    .values(status='public', updated_at=func.now())
+                )
+                conn.commit()
+                
+                return result.rowcount > 0
+
+        except Exception as e:
+            print(f"Error approving gallery photo {photo_id}: {e}")
+            return False
 
     def delete_gallery_photo(self, photo_id: str, home_id: int) -> bool:
         """Delete a gallery photo"""
