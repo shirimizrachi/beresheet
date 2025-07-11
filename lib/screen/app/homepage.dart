@@ -7,6 +7,7 @@ import 'package:beresheet_app/screen/app/events/eventdetail.dart';
 import 'package:beresheet_app/screen/app/service_request_screen.dart';
 import 'package:beresheet_app/screen/app/notifications/notifications_screen.dart';
 import 'package:beresheet_app/services/event_service.dart';
+import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/services/role_access_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
@@ -31,6 +32,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool isCardView = true; // Default to card view
   int currentCardIndex = 0;
   double _dragOffset = 0.0;
+  bool _isSwipingBackward = false; // Track swipe direction for proper card stacking
   late AnimationController _animationController;
   late AnimationController _cardAnimationController;
   late Animation<double> _animation;
@@ -83,48 +85,80 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _nextCard() {
     setState(() {
       currentCardIndex = (currentCardIndex + 1) % events.length;
-      // Heart state will automatically update based on new current card
     });
+    _preloadUpcomingImages();
   }
 
   void _previousCard() {
     setState(() {
       currentCardIndex = (currentCardIndex - 1 + events.length) % events.length;
-      // Heart state will automatically update based on new current card
     });
+    _preloadUpcomingImages();
   }
 
+  /// Get the correct card index based on swipe direction
+  int _getCardIndex(int offset) {
+    if (_isSwipingBackward) {
+      // When swiping backward, show previous cards underneath
+      return (currentCardIndex - offset + events.length) % events.length;
+    } else {
+      // Normal forward stacking
+      return (currentCardIndex + offset) % events.length;
+    }
+  }
+  
+  /// Preload upcoming images as user navigates through cards
+  Future<void> _preloadUpcomingImages() async {
+    if (events.isEmpty || !mounted) return;
+    
+    try {
+      // Preload next 2 cards from current position
+      final imagesToPreload = <String>[];
+      for (int i = 1; i <= 2; i++) {
+        final index = (currentCardIndex + i) % events.length;
+        final event = events[index];
+        if (event.imageUrl.isNotEmpty) {
+          imagesToPreload.add(event.imageUrl);
+        }
+      }
+      
+      if (imagesToPreload.isNotEmpty) {
+        ImageCacheService.precacheImages(context, imagesToPreload);
+      }
+    } catch (e) {
+      print('Error preloading upcoming images: $e');
+    }
+  }
+
+
   void _likeEvent() {
-    // Set positive drag offset for right swipe animation
     setState(() {
       _dragOffset = 300;
     });
     _cardAnimationController.forward().then((_) {
       setState(() {
         _dragOffset = 0;
+        currentCardIndex = (currentCardIndex + 1) % events.length;
       });
-      _nextCard();
       _cardAnimationController.reset();
     });
   }
 
   void _passEvent() {
-    // Set negative drag offset for left swipe animation
     setState(() {
       _dragOffset = -300;
+      _isSwipingBackward = true;
     });
     _cardAnimationController.forward().then((_) {
       setState(() {
         _dragOffset = 0;
+        currentCardIndex = (currentCardIndex - 1 + events.length) % events.length;
+        _isSwipingBackward = false;
       });
-      _nextCard();
       _cardAnimationController.reset();
     });
   }
 
-  void _superLikeEvent() {
-    _likeEvent();
-  }
 
   Future<void> loadEvents({bool forceRefresh = false}) async {
     try {
@@ -134,11 +168,39 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         events = loadedEvents;
         isLoading = false;
       });
+      
+      // Preload images for better performance
+      _preloadEventImages();
     } catch (e) {
       print('Error loading events: $e');
       setState(() {
         isLoading = false;
       });
+    }
+  }
+  
+  /// Preload the next few event images to improve card swiping performance
+  Future<void> _preloadEventImages() async {
+    if (events.isEmpty || !mounted) return;
+    
+    try {
+      // Preload current card and next 3 cards
+      final preloadCount = events.length < 4 ? events.length : 4;
+      final imagesToPreload = <String>[];
+      
+      for (int i = 0; i < preloadCount; i++) {
+        final index = (currentCardIndex + i) % events.length;
+        final event = events[index];
+        if (event.imageUrl.isNotEmpty) {
+          imagesToPreload.add(event.imageUrl);
+        }
+      }
+      
+      if (imagesToPreload.isNotEmpty) {
+        await ImageCacheService.precacheImages(context, imagesToPreload);
+      }
+    } catch (e) {
+      print('Error preloading event images: $e');
     }
   }
 
@@ -714,7 +776,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           children: [
                             // Background cards - showing 3 cards with deck effect
                             for (int offset = 2; offset >= 0; offset--)
-                              _buildEventCard((currentCardIndex + offset) % events.length, offset),
+                              _buildEventCard(_getCardIndex(offset), offset),
                           ],
                         ),
                       ),
@@ -731,18 +793,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       _buildActionButton(
                         icon: Icons.close,
                         color: Colors.grey,
-                        onTap: () {
-                          // Simulate swipe left by setting drag offset and calling onPanEnd
-                          setState(() {
-                            _dragOffset = -100; // Set to left swipe threshold
-                          });
-                          _onPanEnd(DragEndDetails(velocity: Velocity(pixelsPerSecond: Offset(-600, 0))));
-                        },
+                        onTap: _passEvent,
                       ),
                       _buildActionButton(
                         icon: Icons.star,
                         color: Colors.blue,
-                        onTap: _superLikeEvent,
+                        onTap: _likeEvent,
                         size: 35,
                       ),
                     ],
@@ -763,38 +819,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final isCurrentCard = position == 0;
     
     return AnimatedBuilder(
+      key: ValueKey('card_${index}_${position}'),
       animation: _cardAnimationController,
       builder: (context, child) {
-        // Enhanced deck effect - cards stack with visible bottom edges
-        double scale = 1.0 - (position * 0.05); // Reduced scaling for better visibility
-        double verticalOffset = position * 8.0; // Vertical stacking effect
-        double rotation = position * 0.01; // Minimal rotation for natural look
+        double scale = 1.0 - (position * 0.05);
+        double verticalOffset = position * 8.0;
+        double rotation = position * 0.01;
         
-        // Swipe animation effects - ONLY for the current card
         double swipeRotation = 0.0;
         double swipeScale = 1.0;
         double swipeOffset = 0.0;
         
         if (isCurrentCard) {
-          // Apply drag offset only to the current card
           swipeOffset = _dragOffset;
+          swipeRotation = (_dragOffset / 300) * 0.2;
           
-          // Add rotation during swipe
-          swipeRotation = (_dragOffset / 300) * 0.2; // Subtle rotation
-          
-          // Scale down slightly during swipe
           if (_dragOffset.abs() > 50) {
             swipeScale = 1.0 - (_dragOffset.abs() / 1000);
           }
           
-          // Flying effect during animation
           if (_cardAnimationController.isAnimating) {
             swipeOffset = _dragOffset * (1 + _cardAnimationController.value * 3);
             swipeRotation = (_dragOffset / 300) * 0.5 * _cardAnimationController.value;
             swipeScale = 1.0 - _cardAnimationController.value * 0.3;
           }
         }
-        // Background cards remain stationary (swipeOffset = 0.0)
 
         return Positioned(
           top: verticalOffset,
@@ -833,35 +882,39 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         height: MediaQuery.of(context).size.height * 0.52, // Increased from 0.42 to 0.52
+                        decoration: BoxDecoration(
+                          color: Colors.white, // Add solid white background
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Stack(
                           children: [
                             // Background Image
                             Container(
                               width: double.infinity,
                               height: double.infinity,
-                              child: event.imageUrl.isNotEmpty
-                                  ? Image.network(
-                                      event.imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: AppColors.primary.withOpacity(0.3),
-                                          child: Icon(
-                                            Icons.event,
-                                            size: 100,
-                                            color: Colors.white.withOpacity(0.5),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      child: Icon(
-                                        Icons.event,
-                                        size: 100,
-                                        color: Colors.white.withOpacity(0.5),
-                                      ),
+                              child: ImageCacheService.buildEventImage(
+                                imageUrl: event.imageUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                placeholder: Container(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
+                                      strokeWidth: 3,
                                     ),
+                                  ),
+                                ),
+                                errorWidget: Container(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  child: Icon(
+                                    Icons.event,
+                                    size: 100,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),
                             ),
                             
                             // Gradient Overlay
@@ -995,8 +1048,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _onPanUpdate(DragUpdateDetails details) {
     setState(() {
       _dragOffset += details.delta.dx;
-      // Limit the drag offset to prevent extreme positions
       _dragOffset = _dragOffset.clamp(-400.0, 400.0);
+      
+      // Update swipe direction based on current drag offset
+      _isSwipingBackward = _dragOffset < -10; // Left swipe threshold
     });
   }
 
@@ -1005,19 +1060,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final velocity = details.velocity.pixelsPerSecond.dx;
     
     if (_dragOffset > threshold || velocity > 500) {
-      // Swipe right - like/next
       _likeEvent();
     } else if (_dragOffset < -threshold || velocity < -500) {
-      // Swipe left - pass/previous
       _passEvent();
     } else {
-      // Return to center with smooth animation
       _cardAnimationController.duration = Duration(milliseconds: 200);
       _cardAnimationController.forward().then((_) {
         _cardAnimationController.reset();
         _cardAnimationController.duration = Duration(milliseconds: 300);
         setState(() {
           _dragOffset = 0.0;
+          _isSwipingBackward = false; // Reset swipe direction
         });
       });
     }

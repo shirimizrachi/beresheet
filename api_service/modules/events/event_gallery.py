@@ -80,27 +80,30 @@ class EventGalleryDatabase:
             List of created EventGallery objects
         """
         try:
-            print(f"Starting gallery upload for event {event_id}, home {home_id}")
-            print(f"Number of files to upload: {len(image_files)}")
+            print(f"DEBUG: Starting gallery upload for event {event_id}, home {home_id}")
+            print(f"DEBUG: Number of files to upload: {len(image_files)}")
+            print(f"DEBUG: created_by: {created_by}, user_role: {user_role}")
             
             # Get schema for home
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
+                print(f"DEBUG: No schema found for home ID {home_id}")
                 raise ValueError(f"No schema found for home ID {home_id}")
-            print(f"Using schema: {schema_name}")
+            print(f"DEBUG: Using schema: {schema_name}")
 
             # Get the event_gallery table
             gallery_table = self.get_event_gallery_table(schema_name)
             if gallery_table is None:
+                print(f"DEBUG: Event gallery table not found in schema {schema_name}")
                 raise ValueError(f"Event gallery table not found in schema {schema_name}")
-            print(f"Gallery table found: {gallery_table}")
+            print(f"DEBUG: Gallery table found: {gallery_table}")
 
             # Initialize storage service
             storage_service = StorageServiceProxy()
-            print(f"Storage service initialized: {type(storage_service.service)}")
+            print(f"DEBUG: Storage service initialized: {type(storage_service.service)}")
             # Use schema_name as tenant_name for storage operations
             tenant_name = schema_name
-            print(f"Using tenant_name: {tenant_name}")
+            print(f"DEBUG: Using tenant_name: {tenant_name}")
             created_galleries = []
             
             for i, image_file in enumerate(image_files):
@@ -175,12 +178,18 @@ class EventGalleryDatabase:
                     }
                     
                     # Insert into database
+                    print(f"DEBUG: Inserting gallery data into database for photo_id: {photo_id}")
+                    print(f"DEBUG: Gallery data: {gallery_data}")
+                    
                     schema_engine = get_schema_engine(schema_name)
                     if not schema_engine:
-                        return None
+                        print(f"DEBUG: No schema engine found for schema {schema_name}")
+                        raise ValueError(f"No schema engine found for schema {schema_name}")
+                    
                     with schema_engine.connect() as conn:
                         result = conn.execute(gallery_table.insert().values(**gallery_data))
                         conn.commit()
+                        print(f"DEBUG: Database insert successful for photo_id: {photo_id}")
                     
                     # Create EventGallery object
                     gallery_obj = EventGallery(
@@ -194,15 +203,21 @@ class EventGalleryDatabase:
                         updated_at=current_time
                     )
                     created_galleries.append(gallery_obj)
+                    print(f"DEBUG: Created gallery object for photo_id: {photo_id}")
                     
                 except Exception as e:
-                    print(f"Error uploading image {image_file.get('filename', 'unknown')}: {e}")
+                    print(f"DEBUG: Error uploading image {image_file.get('filename', 'unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     continue
             
+            print(f"DEBUG: Returning {len(created_galleries)} created galleries")
             return created_galleries
             
         except Exception as e:
-            print(f"Error uploading gallery images: {e}")
+            print(f"DEBUG: Error uploading gallery images: {e}")
+            import traceback
+            traceback.print_exc()
             raise
 
     def get_event_gallery(self, event_id: str, home_id: int) -> List[EventGallery]:

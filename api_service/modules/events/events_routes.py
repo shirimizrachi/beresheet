@@ -546,34 +546,82 @@ async def upload_gallery_images(
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
     """Upload multiple images to event gallery (max 3)"""
+    print(f"DEBUG: upload_gallery_images called with event_id={event_id}, home_id={home_id}, user_id={user_id}")
+    print(f"DEBUG: Received {len(images)} images")
+    
     # Check if event exists
-    event = event_db.get_event_by_id(event_id, home_id)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+    try:
+        print(f"DEBUG: Checking if event {event_id} exists for home {home_id}")
+        event = event_db.get_event_by_id(event_id, home_id)
+        if not event:
+            print(f"DEBUG: Event {event_id} not found for home {home_id}")
+            raise HTTPException(status_code=404, detail="Event not found")
+        print(f"DEBUG: Event found: {event.name}")
+    except Exception as e:
+        print(f"DEBUG: Error checking event existence: {e}")
+        raise HTTPException(status_code=500, detail=f"Error checking event: {str(e)}")
     
     # Limit to 3 images maximum
     if len(images) > 3:
+        print(f"DEBUG: Too many images: {len(images)}")
         raise HTTPException(status_code=400, detail="Maximum 3 images allowed per upload")
     
     # Validate all images
     image_files = []
-    for image in images:
-        if not image.content_type or not image.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail=f"File {image.filename} must be an image")
+    for i, image in enumerate(images):
+        print(f"DEBUG: Processing image {i+1}: filename={image.filename}, content_type={image.content_type}")
         
-        # Read image data
-        image_data = await image.read()
-        image_files.append({
-            'filename': image.filename or "gallery_image.jpg",
-            'content': image_data,
-            'content_type': image.content_type
-        })
+        # Read image data first
+        try:
+            image_data = await image.read()
+            print(f"DEBUG: Read {len(image_data)} bytes from image {i+1}")
+            
+            # Validate image content by trying to open it with PIL
+            from PIL import Image as PILImage
+            import io
+            try:
+                with PILImage.open(io.BytesIO(image_data)) as img:
+                    # Get the actual image format
+                    actual_format = img.format.lower()
+                    print(f"DEBUG: Detected image format: {actual_format}")
+                    
+                    # Determine proper content type based on actual format
+                    if actual_format in ['jpeg', 'jpg']:
+                        detected_content_type = 'image/jpeg'
+                    elif actual_format == 'png':
+                        detected_content_type = 'image/png'
+                    elif actual_format == 'gif':
+                        detected_content_type = 'image/gif'
+                    elif actual_format == 'webp':
+                        detected_content_type = 'image/webp'
+                    else:
+                        detected_content_type = 'image/jpeg'  # Default fallback
+                    
+                    print(f"DEBUG: Using detected content type: {detected_content_type}")
+                    
+            except Exception as pil_error:
+                print(f"DEBUG: PIL validation failed for image {i+1}: {pil_error}")
+                raise HTTPException(status_code=400, detail=f"File {image.filename} is not a valid image")
+            
+            image_files.append({
+                'filename': image.filename or f"gallery_image_{i+1}.jpg",
+                'content': image_data,
+                'content_type': detected_content_type  # Use detected content type instead of reported one
+            })
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"DEBUG: Error reading image {i+1}: {e}")
+            raise HTTPException(status_code=400, detail=f"Error reading image: {str(e)}")
     
     try:
         # Get user role for status determination
+        print(f"DEBUG: Getting user role for user_id={user_id}, home_id={home_id}")
         user_role = await get_user_role(user_id, home_id) if user_id else "unknown"
+        print(f"DEBUG: User role: {user_role}")
         
         # Upload images to gallery
+        print(f"DEBUG: Calling event_gallery_db.upload_gallery_images")
         created_galleries = event_gallery_db.upload_gallery_images(
             event_id=event_id,
             home_id=home_id,
@@ -583,11 +631,16 @@ async def upload_gallery_images(
         )
         
         if not created_galleries:
+            print(f"DEBUG: No galleries created")
             raise HTTPException(status_code=400, detail="Failed to upload images")
         
+        print(f"DEBUG: Successfully created {len(created_galleries)} gallery entries")
         return created_galleries
         
     except Exception as e:
+        print(f"DEBUG: Exception in upload_gallery_images: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Error uploading gallery images: {str(e)}")
 
 @router.get("/events/{event_id}/gallery/{photo_id}", response_model=EventGallery)

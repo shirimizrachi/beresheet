@@ -371,7 +371,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                     border: Border.all(color: theme.colorScheme.primary),
                   ),
                   child: Text(
-                    '${_galleryPhotos.length} ${_galleryPhotos.length == 1 ? 'Photo' : 'Photos'}',
+                    context.l10n.photoCount(_galleryPhotos.length),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -413,7 +413,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
               Icon(Icons.error_outline, size: 64, color: Colors.red),
               SizedBox(height: 16),
               Text(
-                'Error',
+                context.l10n.error,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
@@ -424,7 +424,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadGalleryPhotos,
-                child: Text('Retry'),
+                child: Text(context.l10n.retry),
               ),
             ],
           ),
@@ -633,7 +633,7 @@ class _FullSizeImageViewerState extends State<_FullSizeImageViewer> {
                         Icon(Icons.error, color: Colors.white, size: 64),
                         SizedBox(height: 16),
                         Text(
-                          'Failed to load image',
+                          context.l10n.failedToLoadImage,
                           style: TextStyle(color: Colors.white),
                         ),
                       ],
