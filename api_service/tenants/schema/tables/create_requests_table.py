@@ -3,7 +3,7 @@ DDL script for creating the requests table in a specific schema using SQLAlchemy
 Usage with API engine: create_requests_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, event, Unicode, UnicodeText
+from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, event, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -44,7 +44,7 @@ def create_requests_table(engine, schema_name: str, drop_if_exists: bool = True)
             service_provider_type_description = Column(Unicode(500))
             
             # Request details
-            request_message = Column(UnicodeText, nullable=False)
+            request_message = Column(Unicode(1000), nullable=False)
             request_status = Column(String(20), default='open')  # 'open', 'in_progress', 'closed', 'abandoned'
             
             # Timestamps
@@ -54,9 +54,9 @@ def create_requests_table(engine, schema_name: str, drop_if_exists: bool = True)
             request_closed_by_service_provider_at = Column(DateTime)
             
             # Communication and feedback
-            chat_messages = Column(UnicodeText)  # JSON string array of chat messages
+            chat_messages = Column(Unicode(1000))  # JSON string array of chat messages
             service_rating = Column(Integer)  # 1-5 rating
-            service_comment = Column(UnicodeText)
+            service_comment = Column(Unicode(1000))
             
             # Duration calculation (in minutes)
             request_duration_minutes = Column(Integer)

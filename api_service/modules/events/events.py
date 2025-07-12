@@ -638,7 +638,15 @@ class EventDatabase:
             return []
 
     def get_completed_events_with_reviews(self, home_id: int) -> List[Event]:
-        """Get completed events with their reviews"""
+        """
+        Get completed events with their reviews and voting data.
+        
+        Filtering logic:
+        - For one-time events: event date_time has passed
+        - For recurring events: next occurrence has passed (all occurrences completed)
+        
+        Returns all voting and review data from event registration table.
+        """
         try:
             schema_name = get_schema_name_by_home_id(home_id)
             if not schema_name:
@@ -658,57 +666,114 @@ class EventDatabase:
             registration_table = metadata.tables[f'{schema_name}.events_registration']
 
             events = []
+            now = datetime.now()
+            
             with schema_engine.connect() as conn:
-                # Query completed events with their reviews
-                results = conn.execute(
-                    text(f"""
-                        SELECT
-                            e.id,
-                            e.name,
-                            e.type,
-                            e.description,
-                            e.date_time,
-                            e.location,
-                            e.max_participants,
-                            e.current_participants,
-                            e.image_url,
-                            e.status,
-                            e.recurring,
-                            e.recurring_end_date,
-                            e.recurring_pattern,
-                            COALESCE(
-                                '[' + STRING_AGG(
-                                    '{{' +
-                                    '"user_name":"' + COALESCE(er.user_name, 'Anonymous') + '",' +
-                                    '"rating":' + COALESCE(CAST(er.vote AS VARCHAR), 'null') + ',' +
-                                    '"comment":"' + COALESCE(REPLACE(er.reviews, '"', '\\"'), '') + '",' +
-                                    '"registration_date":"' + COALESCE(FORMAT(er.registration_date, 'yyyy-MM-ddTHH:mm:ss'), '') + '"' +
-                                    '}}', ','
-                                ) + ']',
-                                '[]'
-                            ) as reviews_data
-                        FROM [{schema_name}].[events] e
-                        LEFT JOIN [{schema_name}].[events_registration] er
-                            ON e.id = er.event_id
-                            AND er.status = 'registered'
-                            AND (er.vote IS NOT NULL OR (er.reviews IS NOT NULL AND er.reviews != ''))
-                        WHERE e.status = 'done'
-                        GROUP BY e.id, e.name, e.type, e.description, e.date_time, e.location,
-                                e.max_participants, e.current_participants, e.image_url, e.status,
-                                e.recurring, e.recurring_end_date, e.recurring_pattern
-                        ORDER BY e.date_time DESC
-                    """)
-                ).fetchall()
+                # Query all approved events using SQLAlchemy
+                events_query = events_table.select().where(events_table.c.status == 'approved').order_by(events_table.c.date_time.desc())
+                event_results = conn.execute(events_query).fetchall()
                 
-                for result in results:
-                    # Parse reviews data
-                    reviews_data = []
-                    try:
-                        if result.reviews_data and result.reviews_data != '[]':
-                            reviews_data = json.loads(result.reviews_data)
-                    except (json.JSONDecodeError, Exception) as e:
-                        print(f"Error parsing reviews data for event {result.id}: {e}")
-                        reviews_data = []
+                for result in event_results:
+                    # Check if event is completed based on date/time logic
+                    is_completed = False
+                    
+                    if result.recurring and result.recurring != 'none':
+                        # For recurring events, check if next occurrence has passed
+                        if result.recurring_pattern and result.recurring_end_date:
+                            try:
+                                next_occurrence = calculate_next_occurrence(
+                                    result.date_time,
+                                    result.recurring_pattern,
+                                    result.recurring_end_date
+                                )
+                                # Event is completed if next occurrence is past the end date or in the past
+                                is_completed = (next_occurrence > result.recurring_end_date or next_occurrence <= now)
+                            except Exception as e:
+                                print(f"Error calculating next occurrence for event {result.id}: {e}")
+                                # If we can't calculate, check if original date has passed
+                                is_completed = result.date_time <= now
+                        else:
+                            # No proper recurring pattern, check original date
+                            is_completed = result.date_time <= now
+                    else:
+                        # For one-time events, check if date has passed
+                        is_completed = result.date_time <= now
+                    
+                    # Only include completed events
+                    if not is_completed:
+                        continue
+                    
+                    # Get all voting and review data for this event using SQLAlchemy
+                    from sqlalchemy import and_, or_
+                    
+                    reviews_query = registration_table.select().where(
+                        and_(
+                            registration_table.c.event_id == result.id,
+                            registration_table.c.status == 'registered',
+                            or_(
+                                registration_table.c.vote.isnot(None),
+                                and_(
+                                    registration_table.c.reviews.isnot(None),
+                                    registration_table.c.reviews != ''
+                                )
+                            )
+                        )
+                    ).order_by(registration_table.c.registration_date.desc())
+                    
+                    review_results = conn.execute(reviews_query).fetchall()
+                    
+                    # Consolidate all reviews and calculate average rating
+                    all_reviews = []
+                    all_ratings = []
+                    
+                    for review_result in review_results:
+                        user_name = review_result.user_name or "Anonymous"
+                        user_id = review_result.user_id
+                        
+                        # Add rating to the list for average calculation
+                        if review_result.vote is not None:
+                            all_ratings.append(review_result.vote)
+                        
+                        # Parse the reviews JSON field which contains multiple reviews from this user
+                        if review_result.reviews and review_result.reviews.strip():
+                            try:
+                                user_reviews = json.loads(review_result.reviews)
+                                # user_reviews is a list like [{"date": "2025-07-12T22:15:49.419809", "review": "text"}, ...]
+                                for review_item in user_reviews:
+                                    review_dict = {
+                                        "user_name": user_name,
+                                        "user_id": user_id,
+                                        "comment": review_item.get("review", ""),
+                                        "date": review_item.get("date", ""),
+                                        "registration_date": review_result.registration_date.isoformat() if review_result.registration_date else ""
+                                    }
+                                    all_reviews.append(review_dict)
+                            except (json.JSONDecodeError, TypeError, Exception) as e:
+                                print(f"Error parsing reviews JSON for event {result.id}, user {user_id}: {e}")
+                                # Fallback: treat as single review text
+                                review_dict = {
+                                    "user_name": user_name,
+                                    "user_id": user_id,
+                                    "comment": review_result.reviews,
+                                    "date": "",
+                                    "registration_date": review_result.registration_date.isoformat() if review_result.registration_date else ""
+                                }
+                                all_reviews.append(review_dict)
+                    
+                    # Sort all reviews by date (newest first)
+                    all_reviews.sort(key=lambda x: x.get("date", ""), reverse=True)
+                    
+                    # Calculate average rating
+                    average_rating = 0
+                    if all_ratings:
+                        average_rating = round(sum(all_ratings) / len(all_ratings), 1)
+                    
+                    # Format final reviews data structure
+                    reviews_data = {
+                        "average_rating": average_rating,
+                        "total_ratings": len(all_ratings),
+                        "reviews": all_reviews
+                    }
                     
                     event = Event(
                         id=result.id,
@@ -721,9 +786,9 @@ class EventDatabase:
                         current_participants=result.current_participants,
                         image_url=result.image_url or "",
                         status=result.status,
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                        recurring=result.recurring if result.recurring else "none",
+                        recurring_end_date=result.recurring_end_date,
+                        recurring_pattern=result.recurring_pattern,
                         instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
                         instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
                         instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None,
@@ -731,10 +796,13 @@ class EventDatabase:
                     )
                     events.append(event)
             
+            print(f"DEBUG: get_completed_events_with_reviews - Returning {len(events)} completed events with reviews")
             return events
 
         except Exception as e:
             print(f"Error getting completed events with reviews for home {home_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def get_events_with_gallery(self, home_id: int) -> List[Event]:

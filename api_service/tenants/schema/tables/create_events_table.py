@@ -3,7 +3,7 @@ DDL script for creating the events table in a specific schema using SQLAlchemy O
 Usage with API engine: create_events_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, Unicode, UnicodeText
+from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -30,7 +30,7 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             id = Column(String(50), primary_key=True)
             name = Column(Unicode(100), nullable=False)
             type = Column(Unicode(50), nullable=False)
-            description = Column(UnicodeText)
+            description = Column(Unicode(1000))
             date_time = Column(DateTime, nullable=False)
             location = Column(Unicode(200))
             max_participants = Column(Integer, nullable=False, default=0)
@@ -38,9 +38,9 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             image_url = Column(String(500))
             recurring = Column(String(50), default='none')
             recurring_end_date = Column(DateTime)
-            recurring_pattern = Column(UnicodeText)
+            recurring_pattern = Column(Unicode(1000))
             instructor_name = Column(Unicode(100))
-            instructor_desc = Column(UnicodeText)
+            instructor_desc = Column(Unicode(1000))
             instructor_photo = Column(String(500))
             created_at = Column(DateTime, default=func.now())
             updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

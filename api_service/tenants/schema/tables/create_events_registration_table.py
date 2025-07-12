@@ -3,7 +3,7 @@ DDL script for creating the events_registration table in a specific schema using
 Usage with API engine: create_events_registration_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, UniqueConstraint, CheckConstraint, Unicode, UnicodeText
+from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, UniqueConstraint, CheckConstraint, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -39,9 +39,9 @@ def create_events_registration_table(engine, schema_name: str, drop_if_exists: b
             registration_date = Column(DateTime, default=func.now())
             status = Column(String(20), default='registered')
             vote = Column(Integer)
-            reviews = Column(UnicodeText)
+            reviews = Column(Unicode(1000))
             instructor_name = Column(Unicode(100))
-            instructor_desc = Column(UnicodeText)
+            instructor_desc = Column(Unicode(1000))
             instructor_photo = Column(String(500))
             created_at = Column(DateTime, default=func.now())
             updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

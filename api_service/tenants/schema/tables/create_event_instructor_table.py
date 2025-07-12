@@ -3,7 +3,7 @@ DDL script for creating the event_instructor table in a specific schema using SQ
 Usage with API engine: create_event_instructor_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, Text, DateTime, func, Index, Unicode, UnicodeText
+from sqlalchemy import Column, String, Text, DateTime, func, Index, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -29,8 +29,8 @@ def create_event_instructor_table(engine, schema_name: str, drop_if_exists: bool
             
             id = Column(String(36), primary_key=True)
             name = Column(Unicode(255), nullable=False)
-            description = Column(UnicodeText)
-            photo = Column(String(1000))
+            description = Column(Unicode(1000))
+            photo = Column(Unicode(1000))
             created_at = Column(DateTime, default=func.now())
             updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
         

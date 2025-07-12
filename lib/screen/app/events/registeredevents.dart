@@ -89,9 +89,19 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     }
   }
 
-  // Check if an event has passed based on its calculated date_time
+  // Check if an event has passed based on its calculated date_time or recurring_end_date
   bool _hasEventPassed(Event event) {
     final now = DateTime.now();
+    
+    // For recurring events, check if the recurring end date has passed
+    if (event.recurring != null && event.recurring != 'none' && event.recurringEndDate != null) {
+      // If the recurring end date has passed, consider the event completed
+      if (event.recurringEndDate!.isBefore(now)) {
+        return true;
+      }
+    }
+    
+    // For all events (including non-recurring), check if the display date has passed
     return event.date_time.isBefore(now);
   }
 

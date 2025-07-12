@@ -3,7 +3,7 @@ DDL script for creating the user_notification table in a specific schema using S
 Usage with API engine: create_user_notification_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, DateTime, Text, func, Index, CheckConstraint, Unicode, UnicodeText
+from sqlalchemy import Column, String, DateTime, Text, func, Index, CheckConstraint, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -44,7 +44,7 @@ def create_user_notification_table(engine, schema_name: str, drop_if_exists: boo
             notification_sender_user_service_provider_type_name = Column(Unicode(255))
             notification_status = Column(String(20), nullable=False, default='pending')
             notification_time = Column(DateTime, nullable=False, default=func.now())
-            notification_message = Column(UnicodeText, nullable=False)
+            notification_message = Column(Unicode(1000), nullable=False)
             notification_type = Column(String(20), nullable=False, default='regular')
             created_at = Column(DateTime, default=func.now())
             updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

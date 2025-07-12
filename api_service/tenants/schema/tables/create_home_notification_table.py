@@ -3,7 +3,7 @@ DDL script for creating the home_notification table in a specific schema using S
 Usage with API engine: create_home_notification_table(engine, schema_name)
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, CheckConstraint, Unicode, UnicodeText
+from sqlalchemy import Column, String, Integer, DateTime, Text, func, Index, CheckConstraint, Unicode
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 
@@ -38,7 +38,7 @@ def create_home_notification_table(engine, schema_name: str, drop_if_exists: boo
             create_by_user_name = Column(Unicode(255), nullable=False)
             create_by_user_role_name = Column(Unicode(100), nullable=False)
             create_by_user_service_provider_type_name = Column(Unicode(255))
-            message = Column(UnicodeText, nullable=False)
+            message = Column(Unicode(1000), nullable=False)
             send_status = Column(String(50), nullable=False, default='pending-approval')
             send_approved_by_user_id = Column(String(50))
             send_floor = Column(Integer)

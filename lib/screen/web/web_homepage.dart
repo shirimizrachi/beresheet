@@ -410,72 +410,211 @@ class _WebHomePageState extends State<WebHomePage> {
                   const SizedBox(height: AppSpacing.md),
                   
                   // Reviews Section
-                  if (event.reviews.isNotEmpty) ...[
-                    Text(
-                      'Reviews:',
-                      style: AppTextStyles.heading4.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    ...event.reviews.take(3).map((review) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(AppBorderRadius.small),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  review['user_name'] ?? 'Anonymous',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Row(
-                                  children: List.generate(5, (starIndex) {
-                                    return Icon(
-                                      starIndex < (review['rating'] ?? 0)
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      size: 16,
-                                      color: Colors.amber,
-                                    );
-                                  }),
-                                ),
-                              ],
-                            ),
-                            if (review['comment'] != null) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                review['comment'],
-                                style: AppTextStyles.bodySmall,
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ] else
-                    Text(
-                      'No reviews yet',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
+                  _buildReviewsSection(event),
                 ],
               ),
             ),
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildReviewsSection(Event event) {
+    if (event.reviews == null) {
+      return Text(
+        'No reviews yet',
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: Colors.grey[600],
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    
+    // Handle new format (Map with average_rating and reviews list)
+    if (event.reviews is Map) {
+      final reviewsData = event.reviews as Map;
+      final averageRating = (reviewsData['average_rating'] ?? 0.0).toDouble();
+      final totalRatings = reviewsData['total_ratings'] ?? 0;
+      final reviewsList = reviewsData['reviews'] as List? ?? [];
+      
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Average Rating Display - at the top
+          if (totalRatings > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(AppBorderRadius.small),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                    size: 24,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    averageRating.toStringAsFixed(1),
+                    style: AppTextStyles.heading3.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    '/ 5.0',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '($totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'})',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          
+          // Reviews List - below the rating
+          if (reviewsList.isNotEmpty) ...[
+            Text(
+              'Reviews:',
+              style: AppTextStyles.heading4.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ...reviewsList.take(3).map((review) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(AppBorderRadius.small),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          review['user_name'] ?? 'Anonymous',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (review['date'] != null && review['date'].toString().isNotEmpty) ...[
+                          Text(
+                            review['date'].toString().substring(0, 10), // Show just the date part
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (review['comment'] != null && review['comment'].toString().isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        review['comment'],
+                        style: AppTextStyles.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ] else if (totalRatings == 0) ...[
+            Text(
+              'No reviews yet',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+    
+    // Handle old format (List) - fallback for backward compatibility
+    if (event.reviews is List && (event.reviews as List).isNotEmpty) {
+      final reviewsList = event.reviews as List;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reviews:',
+            style: AppTextStyles.heading4.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ...reviewsList.take(3).map((review) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(AppBorderRadius.small),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        review['user_name'] ?? 'Anonymous',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: List.generate(5, (starIndex) {
+                          return Icon(
+                            starIndex < (review['rating'] ?? 0)
+                                ? Icons.star
+                                : Icons.star_border,
+                            size: 16,
+                            color: Colors.amber,
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  if (review['comment'] != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      review['comment'],
+                      style: AppTextStyles.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      );
+    }
+    
+    return Text(
+      'No reviews yet',
+      style: AppTextStyles.bodyMedium.copyWith(
+        color: Colors.grey[600],
+        fontStyle: FontStyle.italic,
+      ),
     );
   }
 

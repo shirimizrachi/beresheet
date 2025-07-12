@@ -30,7 +30,7 @@ class EventBase(BaseModel):
     instructor_name: Optional[str] = None
     instructor_desc: Optional[str] = None
     instructor_photo: Optional[str] = None
-    reviews: Optional[list] = []  # Event reviews for completed events
+    reviews: Optional[Any] = []  # Event reviews for completed events (can be list or dict with average_rating)
     gallery_photos: Optional[list] = []  # Gallery photos for completed events
 
 class EventCreate(EventBase):

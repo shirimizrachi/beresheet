@@ -938,19 +938,29 @@ async def get_user_registrations(
                     display_datetime = event.date_time
                     now = datetime.now()
                     
-                    # For recurring events, calculate next occurrence
+                    # For recurring events, calculate next occurrence only if recurring period is still active
                     if event.recurring and event.recurring != 'none':
                         if event.recurring_pattern and event.recurring_end_date:
-                            next_occurrence = calculate_next_occurrence(
-                                event.date_time,
-                                event.recurring_pattern,
-                                event.recurring_end_date
-                            )
-                            
-                            # Use next occurrence if it's valid and in the future
-                            if next_occurrence <= event.recurring_end_date and next_occurrence > now:
-                                display_datetime = next_occurrence
-                            # If next occurrence is past, keep original date for "completed" display
+                            # If the recurring end date has passed, keep original date (show as completed)
+                            if event.recurring_end_date <= now:
+                                display_datetime = event.date_time
+                                print(f"DEBUG: Recurring end date passed for {event.name}, using original date: {display_datetime}")
+                            else:
+                                # Recurring period is still active, calculate next occurrence
+                                next_occurrence = calculate_next_occurrence(
+                                    event.date_time,
+                                    event.recurring_pattern,
+                                    event.recurring_end_date
+                                )
+                                
+                                # Use next occurrence if it's valid and in the future
+                                if next_occurrence <= event.recurring_end_date and next_occurrence > now:
+                                    display_datetime = next_occurrence
+                                    print(f"DEBUG: Using next occurrence for {event.name}: {display_datetime}")
+                                else:
+                                    # No valid future occurrence, use original date
+                                    display_datetime = event.date_time
+                                    print(f"DEBUG: No valid future occurrence for {event.name}, using original date: {display_datetime}")
                     
                     # Update the date_time with calculated display datetime
                     event_dict['date_time'] = display_datetime.isoformat()
