@@ -64,6 +64,7 @@ async def get_events(
     status: Optional[str] = Query(None, description="Filter by event status"),
     include_reviews: Optional[bool] = Query(False, description="Include reviews for completed events"),
     include_gallery: Optional[bool] = Query(False, description="Include gallery photos for completed events"),
+    gallery_view: Optional[bool] = Query(False, description="Get only events with existing gallery photos"),
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken"),
     user_id: Optional[str] = Depends(get_user_id)
@@ -72,7 +73,10 @@ async def get_events(
     # Log headers for tracking (can be expanded for analytics/auditing)
     print(f"Request from homeID: {home_id}, userID: {user_id}")
     
-    if approved_only:
+    if gallery_view:
+        # For gallery view - show only events with existing gallery photos
+        events = event_db.get_events_with_gallery(home_id)
+    elif approved_only:
         # For homepage - show only approved events
         events = event_db.get_approved_events(home_id)
     elif upcoming:
@@ -888,9 +892,83 @@ async def get_user_registrations(
     home_id: int = Depends(get_home_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
-    """Get all registrations for a specific user"""
-    registrations = events_registration_db.get_user_registrations(user_id, home_id)
-    return [reg.to_dict() for reg in registrations]
+    """Get all registered events for a specific user with calculated display datetime"""
+    try:
+        print(f"DEBUG: /registrations/user/{user_id} - Getting registered events for user {user_id}, home {home_id}")
+        
+        # Get user registrations
+        registrations = events_registration_db.get_user_registrations(user_id, home_id)
+        print(f"DEBUG: Found {len(registrations)} registrations for user {user_id}")
+        
+        registered_events = []
+        
+        for registration in registrations:
+            reg_dict = registration.to_dict()
+            event_id = reg_dict.get('event_id')
+            
+            if event_id:
+                # Get full event details
+                event = event_db.get_event_by_id(event_id, home_id)
+                if event:
+                    # Convert to dict and add calculated date_time
+                    event_dict = {
+                        'id': event.id,
+                        'name': event.name,
+                        'type': event.type,
+                        'description': event.description,
+                        'date_time': event.date_time.isoformat(),
+                        'location': event.location,
+                        'max_participants': event.max_participants,
+                        'current_participants': event.current_participants,
+                        'image_url': event.image_url,
+                        'status': event.status,
+                        'recurring': event.recurring,
+                        'recurring_end_date': event.recurring_end_date.isoformat() if event.recurring_end_date else None,
+                        'recurring_pattern': event.recurring_pattern,
+                        'instructor_name': event.instructor_name,
+                        'instructor_desc': event.instructor_desc,
+                        'instructor_photo': event.instructor_photo,
+                        'is_registered': True
+                    }
+                    
+                    # Calculate display datetime using the same logic as homepage
+                    from datetime import datetime
+                    from .events import calculate_next_occurrence
+                    
+                    display_datetime = event.date_time
+                    now = datetime.now()
+                    
+                    # For recurring events, calculate next occurrence
+                    if event.recurring and event.recurring != 'none':
+                        if event.recurring_pattern and event.recurring_end_date:
+                            next_occurrence = calculate_next_occurrence(
+                                event.date_time,
+                                event.recurring_pattern,
+                                event.recurring_end_date
+                            )
+                            
+                            # Use next occurrence if it's valid and in the future
+                            if next_occurrence <= event.recurring_end_date and next_occurrence > now:
+                                display_datetime = next_occurrence
+                            # If next occurrence is past, keep original date for "completed" display
+                    
+                    # Update the date_time with calculated display datetime
+                    event_dict['date_time'] = display_datetime.isoformat()
+                    
+                    registered_events.append(event_dict)
+                    print(f"DEBUG: Added registered event: {event.name} with display_datetime: {display_datetime}")
+        
+        # Sort by calculated date_time
+        registered_events.sort(key=lambda x: x['date_time'])
+        
+        print(f"DEBUG: Returning {len(registered_events)} registered events")
+        return registered_events
+        
+    except Exception as e:
+        print(f"ERROR: get_user_registrations - Exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/registrations/event/{event_id}")
 async def get_event_registrations(

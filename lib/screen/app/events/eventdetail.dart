@@ -83,7 +83,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${context.l10n.unregister} ${widget.event.name}'),
+                content: Text(context.l10n.unregistrationSuccessful),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -111,7 +111,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${context.l10n.registrationSuccessful} ${widget.event.name}!'),
+                content: Text(context.l10n.registrationSuccessful),
                 backgroundColor: Colors.green,
               ),
             );

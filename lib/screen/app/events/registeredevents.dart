@@ -6,6 +6,7 @@ import 'package:beresheet_app/services/event_service.dart';
 import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/utils/direction_utils.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
+import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
 import 'package:flutter/material.dart';
 
 class RegisteredEventsScreen extends StatefulWidget {
@@ -40,54 +41,58 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     _loadingCompleter = Completer<void>();
     
     try {
-      // Load events (will use cache if valid, or refresh if expired)
-      await EventService.loadEventsForHome();
+      // Use the new separate cache for registered events
+      final events = await EventService.loadRegisteredEvents();
       
       // Check if widget is still mounted and not disposed
       if (_disposed || !mounted) return;
       
-      // Get registered events from cache
-      final cachedEvents = EventService.getCachedRegisteredEvents();
-      
-      // Final check before setState
-      if (_disposed || !mounted) return;
-      
       setState(() {
-        registeredEvents = cachedEvents;
+        registeredEvents = events;
         isLoading = false;
       });
       
-      print('RegisteredEventsScreen: Loaded ${cachedEvents.length} registered events from cache');
+      print('RegisteredEventsScreen: Loaded ${events.length} registered events');
     } catch (e) {
       print('Error loading registered events: $e');
-      // Fallback to old method
-      try {
-        // Check if still mounted before fallback
-        if (_disposed || !mounted) return;
-        
-        final events = await EventService.getRegisteredEvents();
-        
-        // Check again before setState
-        if (_disposed || !mounted) return;
-        
-        setState(() {
-          registeredEvents = events;
-          isLoading = false;
-        });
-      } catch (e2) {
-        // Final check before error setState
-        if (_disposed || !mounted) return;
-        
-        setState(() {
-          isLoading = false;
-        });
-      }
+      // Final check before error setState
+      if (_disposed || !mounted) return;
+      
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   Future<void> _refreshEvents() async {
     if (_disposed || !mounted) return;
-    await loadRegisteredEvents();
+    setState(() {
+      isLoading = true;
+    });
+    // Force refresh the registered events cache
+    try {
+      final events = await EventService.loadRegisteredEvents(forceRefresh: true);
+      
+      if (_disposed || !mounted) return;
+      
+      setState(() {
+        registeredEvents = events;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error refreshing registered events: $e');
+      if (_disposed || !mounted) return;
+      
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // Check if an event has passed based on its calculated date_time
+  bool _hasEventPassed(Event event) {
+    final now = DateTime.now();
+    return event.date_time.isBefore(now);
   }
 
   Future<void> _unregisterFromEvent(Event event) async {
@@ -276,29 +281,39 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                       ),
                                     ),
                                     const Spacer(),
-                                    // Status Badge
+                                    // Status Badge - "Registered" or "Completed"
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.green[100],
+                                        color: _hasEventPassed(event)
+                                            ? Colors.blue[100]
+                                            : Colors.green[100],
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
-                                            Icons.check_circle,
+                                            _hasEventPassed(event)
+                                                ? Icons.check_circle_outline
+                                                : Icons.check_circle,
                                             size: 14,
-                                            color: Colors.green[700],
+                                            color: _hasEventPassed(event)
+                                                ? Colors.blue[700]
+                                                : Colors.green[700],
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            context.l10n.registered.toUpperCase(),
+                                            (_hasEventPassed(event)
+                                                ? context.l10n.completed
+                                                : context.l10n.registered).toUpperCase(),
                                             style: TextStyle(
-                                              color: Colors.green[700],
+                                              color: _hasEventPassed(event)
+                                                  ? Colors.blue[700]
+                                                  : Colors.green[700],
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -322,7 +337,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                 
                                 const SizedBox(height: 8),
                                 
-                                // Date and Time
+                                // Date and Time using LocalizedDateTimeWidget
                                 Row(
                                   children: [
                                     Icon(
@@ -331,12 +346,10 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                       color: Colors.grey[600],
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} ${context.l10n.at} ${event.formattedTime}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
+                                    LocalizedDateTimeWidget(
+                                      dateTime: event.date_time,
+                                      size: DateTimeDisplaySize.medium,
+                                      textColor: Colors.grey[600],
                                     ),
                                   ],
                                 ),
@@ -376,22 +389,25 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                 
                                 const SizedBox(height: 12),
                                 
-                                // Action Buttons
+                                // Action Buttons - conditional display
                                 Column(
                                   children: [
                                     Row(
                                       children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () => _unregisterFromEvent(event),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.orange[700],
-                                              side: BorderSide(color: Colors.orange[300]!),
+                                        // Show unregister button only for future events
+                                        if (!_hasEventPassed(event))
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              onPressed: () => _unregisterFromEvent(event),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.orange[700],
+                                                side: BorderSide(color: Colors.orange[300]!),
+                                              ),
+                                              child: Text(context.l10n.unregister),
                                             ),
-                                            child: Text(context.l10n.unregister),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
+                                        // Add spacing only if unregister button is shown
+                                        if (!_hasEventPassed(event)) const SizedBox(width: 12),
                                         Expanded(
                                           child: ElevatedButton(
                                             onPressed: () async {
@@ -433,50 +449,52 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 8),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: () async {
-                                          try {
-                                            // Validate event data before navigation
-                                            if (event.id.isEmpty || event.name.isEmpty) {
-                                              throw Exception('Invalid event data');
-                                            }
-                                            
-                                            print('Navigating to vote & review for: ${event.name} (ID: ${event.id})');
-                                            
-                                            if (!mounted) return;
-                                            
-                                            await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => EventVoteReviewScreen(
-                                                  eventRegistrationId: event.id, // Using event ID as placeholder
-                                                  eventId: event.id,
-                                                  eventName: event.name,
-                                                ),
-                                              ),
-                                            );
-                                          } catch (e) {
-                                            print('Error navigating to vote & review: $e');
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Text('Error opening vote & review: $e'),
-                                                  backgroundColor: Colors.red,
+                                    // Show vote & review button only for past events
+                                    if (_hasEventPassed(event))
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () async {
+                                            try {
+                                              // Validate event data before navigation
+                                              if (event.id.isEmpty || event.name.isEmpty) {
+                                                throw Exception('Invalid event data');
+                                              }
+                                              
+                                              print('Navigating to vote & review for: ${event.name} (ID: ${event.id})');
+                                              
+                                              if (!mounted) return;
+                                              
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => EventVoteReviewScreen(
+                                                    eventRegistrationId: event.id, // Using event ID as placeholder
+                                                    eventId: event.id,
+                                                    eventName: event.name,
+                                                  ),
                                                 ),
                                               );
+                                            } catch (e) {
+                                              print('Error navigating to vote & review: $e');
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error opening vote & review: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
                                             }
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          icon: const Icon(Icons.rate_review, size: 18),
+                                          label: Text(context.l10n.voteAndReview),
                                         ),
-                                        icon: const Icon(Icons.rate_review, size: 18),
-                                        label: Text(context.l10n.voteAndReview),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ],

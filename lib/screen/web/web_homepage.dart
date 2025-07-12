@@ -7,6 +7,7 @@ import 'package:beresheet_app/services/web/web_jwt_auth_service.dart';
 import 'package:beresheet_app/services/web/web_jwt_session_service.dart';
 import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
 
@@ -21,7 +22,10 @@ class _WebHomePageState extends State<WebHomePage> {
   List<Event> events = [];
   bool isLoading = true;
   final PageController _pageController = PageController();
+  final PageController _galleryPageController = PageController();
   int _currentPage = 0;
+  int _currentGalleryPage = 0;
+  Map<String, int> _galleryImageStartIndex = {}; // Track which set of 4 images to show per event
   String _displayMode = 'carousel'; // carousel, banner, reviews, gallery
 
   @override
@@ -65,6 +69,7 @@ class _WebHomePageState extends State<WebHomePage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _galleryPageController.dispose();
     super.dispose();
   }
 
@@ -86,6 +91,31 @@ class _WebHomePageState extends State<WebHomePage> {
     }
   }
 
+  void _startGalleryAutoScroll() {
+    if (events.isNotEmpty && _displayMode == 'gallery') {
+      Future.delayed(const Duration(seconds: 7), () {
+        if (mounted && _galleryPageController.hasClients) {
+          setState(() {
+            _currentGalleryPage = (_currentGalleryPage + 1) % events.length;
+            // Each time we move to the next event, rotate to next set of 6 gallery images
+            final event = events[_currentGalleryPage];
+            if (event.gallery_photos.isNotEmpty) {
+              final currentStartIndex = _galleryImageStartIndex[event.id] ?? 0;
+              final nextStartIndex = (currentStartIndex + 6) % event.gallery_photos.length;
+              _galleryImageStartIndex[event.id] = nextStartIndex;
+            }
+          });
+          _galleryPageController.animateToPage(
+            _currentGalleryPage,
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOut,
+          );
+          _startGalleryAutoScroll();
+        }
+      });
+    }
+  }
+
   Future<void> loadEvents() async {
     try {
       List<Event> loadedEvents;
@@ -99,7 +129,7 @@ class _WebHomePageState extends State<WebHomePage> {
           loadedEvents = await EventService.loadCompletedEventsWithReviews();
           break;
         case 'gallery':
-          loadedEvents = await EventService.loadCompletedEventsWithGallery();
+          loadedEvents = await EventService.loadEventsWithGallery();
           break;
         default:
           loadedEvents = await EventService.loadApprovedEvents();
@@ -108,7 +138,21 @@ class _WebHomePageState extends State<WebHomePage> {
       setState(() {
         events = loadedEvents;
         isLoading = false;
+        _currentGalleryPage = 0;
+        // Initialize gallery image indices for each event
+        for (final event in events) {
+          if (!_galleryImageStartIndex.containsKey(event.id)) {
+            _galleryImageStartIndex[event.id] = 0;
+          }
+        }
       });
+      
+      // Start gallery auto-scroll if in gallery mode
+      if (_displayMode == 'gallery' && events.isNotEmpty) {
+        Future.delayed(const Duration(seconds: 3), () {
+          _startGalleryAutoScroll();
+        });
+      }
     } catch (e) {
       print('Error loading events: $e');
       setState(() {
@@ -179,7 +223,7 @@ class _WebHomePageState extends State<WebHomePage> {
 
   Widget _buildCarouselView() {
     return SizedBox(
-      height: 400,
+      height: 700, // Reduced from 800 to 700 (100px reduction)
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (page) {
@@ -198,7 +242,7 @@ class _WebHomePageState extends State<WebHomePage> {
 
   Widget _buildBannerView() {
     return SizedBox(
-      height: 300,
+      height: 700, // Reduced from 800 to 700 (100px reduction)
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (page) {
@@ -299,11 +343,10 @@ class _WebHomePageState extends State<WebHomePage> {
                           const SizedBox(height: AppSpacing.sm),
                           
                           // Event Info
-                          Text(
-                            '${event.formattedDate} at ${event.formattedTime}',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white70,
-                            ),
+                          LocalizedDateTimeWidget(
+                            dateTime: event.date_time,
+                            size: DateTimeDisplaySize.large,
+                            textColor: Colors.white70,
                           ),
                         ],
                       ),
@@ -437,105 +480,286 @@ class _WebHomePageState extends State<WebHomePage> {
   }
 
   Widget _buildGalleryView() {
-    return Column(
-      children: events.map((event) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Event Header
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          event.name,
-                          style: AppTextStyles.heading3.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Completed',
-                          style: AppTextStyles.chipText.copyWith(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+    return SizedBox(
+      height: 700, // Reduced from 800 to 700 (100px reduction)
+      child: PageView.builder(
+        controller: _galleryPageController,
+        onPageChanged: (page) {
+          setState(() {
+            _currentGalleryPage = page;
+          });
+        },
+        itemCount: events.length,
+        itemBuilder: (context, index) {
+          final event = events[index];
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.large),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppBorderRadius.large),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white,
+                      Colors.grey[50]!,
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  
-                  // Gallery Section
-                  if (event.galleryPhotos.isNotEmpty) ...[
-                    Text(
-                      'Event Gallery:',
-                      style: AppTextStyles.heading4.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(
-                      height: 150,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: event.galleryPhotos.length,
-                        itemBuilder: (context, index) {
-                          final photo = event.galleryPhotos[index];
-                          return Container(
-                            margin: const EdgeInsets.only(right: AppSpacing.sm),
-                            width: 150,
-                            child: WebImageCacheService.buildEventImage(
-                              imageUrl: photo['image_url'] ?? '',
-                              width: 150,
-                              height: 150,
-                              fit: BoxFit.cover,
-                              borderRadius: BorderRadius.circular(AppBorderRadius.small),
-                              errorWidget: Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  size: 32,
-                                  color: Colors.grey,
+                ),
+                child: Row(
+                  children: [
+                    // Left side: Event Details
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Event Type Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: ActivityTypeHelper.getColor(event.type),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                ActivityTypeHelper.getDisplayName(event.type, context),
+                                style: AppTextStyles.chipText.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(height: AppSpacing.lg),
+                            
+                            // Event Name
+                            Text(
+                              event.name,
+                              style: AppTextStyles.heading2.copyWith(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            
+                            // Event Description
+                            Text(
+                              event.description,
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontSize: 18,
+                                color: Colors.grey[700],
+                                height: 1.5,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            
+                            // Event Info
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: LocalizedDateTimeWidget(
+                                    dateTime: event.date_time,
+                                    size: DateTimeDisplaySize.large,
+                                    textColor: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            _buildEventInfo(Icons.location_on, event.location),
+                            const SizedBox(height: AppSpacing.sm),
+                            _buildEventInfo(Icons.people, '${event.current_participants}/${event.max_participants} ${context.l10n.participants}'),
+                            const SizedBox(height: AppSpacing.lg),
+                            
+                            // Gallery Photos Count
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.photo_library, color: Colors.blue[600], size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${event.gallery_photos.length} Photos',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: Colors.blue[600],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ] else
-                    Text(
-                      'No photos available',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
+                    
+                    // Right side: 4 Gallery Images Grid
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: _buildGalleryGrid(event),
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEventInfo(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.primary,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontSize: 16,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-        );
-      }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryGrid(Event event) {
+    if (event.gallery_photos.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.photo_library_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'No Gallery Photos',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Get current set of images to display for 3x2 grid (6 images max)
+    final startIndex = _galleryImageStartIndex[event.id] ?? 0;
+    final imagesToShow = <Map<String, dynamic>>[];
+    final availableImages = event.gallery_photos.length;
+    
+    // Only show up to 6 images and don't repeat if we have fewer than 6
+    final imagesToDisplay = availableImages >= 6 ? 6 : availableImages;
+    
+    for (int i = 0; i < imagesToDisplay; i++) {
+      final imageIndex = (startIndex + i) % event.gallery_photos.length;
+      imagesToShow.add(event.gallery_photos[imageIndex]);
+    }
+
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // 3 columns for 3x2 grid
+        crossAxisSpacing: AppSpacing.sm,
+        mainAxisSpacing: AppSpacing.sm,
+        childAspectRatio: 1.0, // Square aspect ratio for thumbnails
+      ),
+      itemCount: 6, // 3x2 = 6 images
+      itemBuilder: (context, index) {
+        if (index < imagesToShow.length) {
+          final photo = imagesToShow[index];
+          return Container(
+            width: 60, // 60px width for thumbnails
+            height: 60, // 60px height for thumbnails
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+              child: WebImageCacheService.buildEventImage(
+                imageUrl: photo['thumbnail_url'] ?? '',
+                width: 60, // Explicit width constraint
+                height: 60, // Explicit height constraint
+                fit: BoxFit.cover,
+                errorWidget: Container(
+                  color: Colors.grey[300],
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    size: 20, // Reduced icon size to match smaller thumbnails
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Empty placeholder if less than 6 images
+          return Container(
+            width: 60, // Consistent size for placeholders - 60px
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(AppBorderRadius.medium),
+            ),
+            child: Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 20, // Reduced icon size to match smaller thumbnails
+              color: Colors.grey[400],
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -647,12 +871,10 @@ class _WebHomePageState extends State<WebHomePage> {
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            '${event.formattedDate} at ${event.formattedTime}',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              fontSize: 14,
-                              color: AppColors.primary,
-                            ),
+                          LocalizedDateTimeWidget(
+                            dateTime: event.date_time,
+                            size: DateTimeDisplaySize.large,
+                            textColor: AppColors.primary,
                           ),
                         ],
                       ),
@@ -766,30 +988,24 @@ class _WebHomePageState extends State<WebHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    context.l10n.featuredEvents,
-                    style: AppTextStyles.heading2.copyWith(
-                      fontSize: 28,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  
                   // Event Display based on selected mode
                   _buildEventDisplay(),
-                  // Carousel Indicators (only for carousel and banner modes)
-                  if (events.isNotEmpty && (_displayMode == 'carousel' || _displayMode == 'banner')) ...[
+                  // Carousel Indicators (for carousel, banner, and gallery modes)
+                  if (events.isNotEmpty && (_displayMode == 'carousel' || _displayMode == 'banner' || _displayMode == 'gallery')) ...[
                     const SizedBox(height: AppSpacing.lg),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: events.asMap().entries.map((entry) {
+                        final isActive = _displayMode == 'gallery'
+                            ? _currentGalleryPage == entry.key
+                            : _currentPage == entry.key;
                         return Container(
                           width: 8,
                           height: 8,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _currentPage == entry.key
+                            color: isActive
                                 ? AppColors.primary
                                 : Colors.grey[300],
                           ),
@@ -810,15 +1026,6 @@ class _WebHomePageState extends State<WebHomePage> {
               color: AppColors.primary,
               child: Column(
                 children: [
-                  Text(
-                    context.l10n.beresheetCommunity,
-                    style: AppTextStyles.heading2.copyWith(
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
                   Text(
                     context.l10n.buildingStrongerCommunity,
                     style: AppTextStyles.bodyLarge.copyWith(

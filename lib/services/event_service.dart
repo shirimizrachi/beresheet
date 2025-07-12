@@ -15,6 +15,10 @@ class EventService {
   static List<Event>? _cachedEventsForHome;
   static DateTime? _cacheTimestamp;
   static const Duration _cacheValidDuration = Duration(minutes: 5);
+  
+  // Separate cache for registered events
+  static List<Event>? _cachedRegisteredEvents;
+  static DateTime? _registeredEventsCacheTimestamp;
 
   // Load all events from API
   static Future<List<Event>> loadEvents() async {
@@ -155,11 +159,83 @@ class EventService {
     return registeredEvents;
   }
 
+  // Load registered events with separate cache (includes past events)
+  static Future<List<Event>> loadRegisteredEvents({bool forceRefresh = false}) async {
+    // Check if we have valid cached data and not forcing refresh
+    if (!forceRefresh && _cachedRegisteredEvents != null && _registeredEventsCacheTimestamp != null) {
+      final now = DateTime.now();
+      final cacheAge = now.difference(_registeredEventsCacheTimestamp!);
+      
+      if (cacheAge < _cacheValidDuration) {
+        print('EventService: Using cached registered events (${_cachedRegisteredEvents!.length} events)');
+        return List<Event>.from(_cachedRegisteredEvents!);
+      }
+    }
+
+    try {
+      print('EventService: Loading registered events from API');
+      final headers = await UserSessionService.getApiHeaders();
+      final String? userId = headers['userId'];
+      
+      if (userId == null) {
+        print('EventService: No user ID available for getting registered events');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/registrations/user/$userId'),
+        headers: headers,
+      );
+
+      print('EventService: Registered events response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> eventsData = json.decode(response.body);
+        print('EventService: Parsed ${eventsData.length} registered events from API');
+        
+        final List<Event> registeredEvents = eventsData.map((eventJson) {
+          return Event.fromJson(eventJson);
+        }).toList();
+        
+        // Cache the results
+        _cachedRegisteredEvents = registeredEvents;
+        _registeredEventsCacheTimestamp = DateTime.now();
+        
+        print('EventService: Successfully loaded and cached ${registeredEvents.length} registered events');
+        return registeredEvents;
+      } else {
+        throw Exception('Failed to load registered events: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('EventService: Error loading registered events from API: $e');
+      // Return cached data if available, even if expired
+      if (_cachedRegisteredEvents != null) {
+        print('EventService: Returning expired cached registered events due to API error');
+        return List<Event>.from(_cachedRegisteredEvents!);
+      }
+      return [];
+    }
+  }
+
   // Clear cache (useful for testing or when needed)
   static void clearCache() {
     _cachedEventsForHome = null;
     _cacheTimestamp = null;
     print('EventService: Cache cleared');
+  }
+
+  // Clear registered events cache
+  static void clearRegisteredEventsCache() {
+    _cachedRegisteredEvents = null;
+    _registeredEventsCacheTimestamp = null;
+    print('EventService: Registered events cache cleared');
+  }
+
+  // Clear all caches
+  static void clearAllCaches() {
+    clearCache();
+    clearRegisteredEventsCache();
+    print('EventService: All caches cleared');
   }
 
   // Fallback method to load from assets if API is not available
@@ -634,13 +710,13 @@ class EventService {
     }
   }
 
-  // Load completed events with gallery photos for display mode 4
-  static Future<List<Event>> loadCompletedEventsWithGallery() async {
+  // Load events with gallery photos for gallery view (any status)
+  static Future<List<Event>> loadEventsWithGallery() async {
     try {
-      print('EventService: Attempting to load completed events with gallery from $baseUrl/events');
+      print('EventService: Attempting to load events with gallery from $baseUrl/events');
       final headers = await UserSessionService.getApiHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/events?status=done&include_gallery=true'),
+        Uri.parse('$baseUrl/events?gallery_view=true'),
         headers: headers,
       );
 
@@ -648,19 +724,19 @@ class EventService {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        print('EventService: Parsed ${data.length} completed events with gallery from API');
+        print('EventService: Parsed ${data.length} events with gallery from API');
         
         final List<Event> events = data.map((eventJson) {
           return Event.fromJson(eventJson);
         }).toList();
         
-        print('EventService: Successfully loaded ${events.length} completed events with gallery');
+        print('EventService: Successfully loaded ${events.length} events with gallery');
         return events;
       } else {
-        throw Exception('Failed to load completed events with gallery: ${response.statusCode}');
+        throw Exception('Failed to load events with gallery: ${response.statusCode}');
       }
     } catch (e) {
-      print('EventService: Error loading completed events with gallery from API: $e');
+      print('EventService: Error loading events with gallery from API: $e');
       return [];
     }
   }

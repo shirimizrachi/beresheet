@@ -816,7 +816,7 @@ class EventDatabase:
                         instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
                         instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
                         instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None,
-                        galleryPhotos=gallery_data
+                        gallery_photos=gallery_data
                     )
                     events.append(event)
             

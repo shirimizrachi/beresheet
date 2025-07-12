@@ -791,7 +791,7 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${AppLocalizations.of(context)!.gallery} (${AppLocalizations.of(context)!.photoCount(event.galleryPhotos?.length ?? 0)})',
+                        '${AppLocalizations.of(context)!.gallery} (${AppLocalizations.of(context)!.photoCount(event.gallery_photos?.length ?? 0)})',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -801,17 +801,19 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                       const SizedBox(height: 16),
                       
                       Expanded(
-                        child: event.galleryPhotos != null && event.galleryPhotos!.isNotEmpty
-                            ? GridView.builder(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 1,
-                                ),
-                                itemCount: event.galleryPhotos!.length,
-                                itemBuilder: (context, photoIndex) {
-                                  final photo = event.galleryPhotos![photoIndex];
+                        child: event.gallery_photos != null && event.gallery_photos!.isNotEmpty
+                            ? Container(
+                                height: 280, // Fixed height to accommodate 2 rows with spacing
+                                child: GridView.builder(
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 1,
+                                  ),
+                                  itemCount: event.gallery_photos!.length,
+                                  itemBuilder: (context, photoIndex) {
+                                  final photo = event.gallery_photos![photoIndex];
                                   return Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
@@ -851,7 +853,8 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                                     ),
                                   );
                                 },
-                              )
+                              ),
+                            )
                             : Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,

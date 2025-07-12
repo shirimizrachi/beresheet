@@ -960,7 +960,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'REGISTERED',
+                                              context.l10n.registered.toUpperCase(),
                                               style: TextStyle(
                                                 color: Colors.green[700],
                                                 fontSize: 10,

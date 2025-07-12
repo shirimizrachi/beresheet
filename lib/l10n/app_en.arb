@@ -272,6 +272,10 @@
   "@registered": {
     "description": "Registered status"
   },
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed status"
+  },
   "eventFull": "Event Full",
   "@eventFull": {
     "description": "Event full status"

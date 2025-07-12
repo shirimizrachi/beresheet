@@ -66,7 +66,7 @@ class Event {
     this.instructorPhoto,
     this.isRegistered = false,
     this.reviews = const [],
-    this.galleryPhotos = const [],
+    this.gallery_photos = const [],
   });
 
   final String id;
@@ -87,7 +87,7 @@ class Event {
   final String? instructorPhoto;
   final bool isRegistered; // Whether the current user is registered for this event
   final List<Map<String, dynamic>> reviews; // Event reviews for completed events
-  final List<Map<String, dynamic>> galleryPhotos; // Gallery photos for completed events
+  final List<Map<String, dynamic>> gallery_photos; // Gallery photos for completed events
 
   bool get isAvailable => current_participants < max_participants;
   
@@ -142,7 +142,7 @@ class Event {
       reviews: json['reviews'] != null
           ? List<Map<String, dynamic>>.from(json['reviews'])
           : const [],
-      galleryPhotos: json['gallery_photos'] != null
+      gallery_photos: json['gallery_photos'] != null
           ? List<Map<String, dynamic>>.from(json['gallery_photos'])
           : const [],
     );
@@ -168,7 +168,7 @@ class Event {
       'instructor_photo': instructorPhoto,
       'is_registered': isRegistered,
       'reviews': reviews,
-      'gallery_photos': galleryPhotos,
+      'gallery_photos': gallery_photos,
     };
   }
 
@@ -191,7 +191,7 @@ class Event {
     String? instructorPhoto,
     bool? isRegistered,
     List<Map<String, dynamic>>? reviews,
-    List<Map<String, dynamic>>? galleryPhotos,
+    List<Map<String, dynamic>>? gallery_photos,
   }) {
     return Event(
       id: id ?? this.id,
@@ -212,7 +212,7 @@ class Event {
       instructorPhoto: instructorPhoto ?? this.instructorPhoto,
       isRegistered: isRegistered ?? this.isRegistered,
       reviews: reviews ?? this.reviews,
-      galleryPhotos: galleryPhotos ?? this.galleryPhotos,
+      gallery_photos: gallery_photos ?? this.gallery_photos,
     );
   }
 }

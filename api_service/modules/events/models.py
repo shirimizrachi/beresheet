@@ -31,7 +31,7 @@ class EventBase(BaseModel):
     instructor_desc: Optional[str] = None
     instructor_photo: Optional[str] = None
     reviews: Optional[list] = []  # Event reviews for completed events
-    galleryPhotos: Optional[list] = []  # Gallery photos for completed events
+    gallery_photos: Optional[list] = []  # Gallery photos for completed events
 
 class EventCreate(EventBase):
     pass

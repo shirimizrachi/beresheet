@@ -6,7 +6,7 @@ Handles all event registration-related database operations
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text
+from sqlalchemy import create_engine, Table, MetaData, Column, String, Integer, DateTime, text, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from tenant_config import get_schema_name_by_home_id
@@ -131,12 +131,12 @@ class EventRegistrationDatabase:
                 
                 # Check if event is full
                 current_registrations = conn.execute(
-                    text(f"""
-                        SELECT COUNT(*) as count
-                        FROM [{schema_name}].[events_registration]
-                        WHERE event_id = :event_id AND status = 'registered'
-                    """),
-                    {"event_id": event_id}
+                    registration_table.select().with_only_columns(
+                        func.count().label('count')
+                    ).where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.status == 'registered')
+                    )
                 ).fetchone()
                 
                 if current_registrations.count >= event_result.max_participants:
@@ -246,12 +246,12 @@ class EventRegistrationDatabase:
                 
                 # Update event participant count
                 current_registrations = conn.execute(
-                    text(f"""
-                        SELECT COUNT(*) as count 
-                        FROM [{schema_name}].[events_registration] 
-                        WHERE event_id = :event_id AND status = 'registered'
-                    """),
-                    {"event_id": event_id}
+                    registration_table.select().with_only_columns(
+                        func.count().label('count')
+                    ).where(
+                        (registration_table.c.event_id == event_id) &
+                        (registration_table.c.status == 'registered')
+                    )
                 ).fetchone()
                 
                 conn.execute(
