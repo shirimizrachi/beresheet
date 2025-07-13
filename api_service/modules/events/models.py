@@ -22,6 +22,7 @@ class EventBase(BaseModel):
     location: str
     max_participants: int
     image_url: Optional[str] = ""  # Allow None and default to empty string
+    duration: int = 60  # Duration in minutes, default 60 minutes
     current_participants: int = 0
     status: str = "pending-approval"  # "pending-approval", "approved", "rejected", "cancelled", "done"
     recurring: str = "none"  # "none", "weekly", "bi-weekly", "monthly"
@@ -44,6 +45,7 @@ class EventUpdate(BaseModel):
     location: Optional[str] = None
     max_participants: Optional[int] = None
     image_url: Optional[str] = None
+    duration: Optional[int] = None
     current_participants: Optional[int] = None
     status: Optional[str] = None
     recurring: Optional[str] = None
@@ -70,6 +72,7 @@ class EventWithRegistrationStatus(BaseModel):
     max_participants: int
     current_participants: int
     image_url: str
+    duration: int = 60  # Duration in minutes
     status: str
     recurring: str
     recurring_end_date: Optional[str] = None  # ISO string

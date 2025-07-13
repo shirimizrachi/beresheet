@@ -122,6 +122,13 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
                     logger.warning(f"Invalid current_participants value '{event_data['current_participants']}' for event {event_data['id']}, using default 0")
                     current_participants = 0
                 
+                # Parse duration field with default fallback
+                try:
+                    duration = int(event_data.get('duration', '60').strip()) if event_data.get('duration') else 60
+                except (ValueError, AttributeError) as e:
+                    logger.warning(f"Invalid duration value '{event_data.get('duration', 'None')}' for event {event_data['id']}, using default 60")
+                    duration = 60
+                
                 # Prepare image file if it exists
                 image_file = None
                 if event_data.get('image_url'):
@@ -196,6 +203,7 @@ def load_events(tenant_name: str, home_id: int, auto_populate: bool = True):
                     location=location,
                     max_participants=max_participants,
                     current_participants=current_participants,
+                    duration=duration,
                     status=event_data['status'],
                     recurring=event_data['recurring'],
                     recurring_end_date=recurring_end_date_iso,

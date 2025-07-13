@@ -296,6 +296,30 @@
   "@date_time": {
     "description": "Date and time label"
   },
+  "duration": "Duration",
+  "@duration": {
+    "description": "Duration label"
+  },
+  "durationMinutes": "Duration (minutes)",
+  "@durationMinutes": {
+    "description": "Duration in minutes label"
+  },
+  "enterDuration": "Enter duration in minutes",
+  "@enterDuration": {
+    "description": "Enter duration hint"
+  },
+  "pleaseEnterDuration": "Please enter duration",
+  "@pleaseEnterDuration": {
+    "description": "Please enter duration validation"
+  },
+  "durationMustBePositive": "Duration must be a positive number",
+  "@durationMustBePositive": {
+    "description": "Duration must be positive validation"
+  },
+  "minutesShort": "min",
+  "@minutesShort": {
+    "description": "Minutes abbreviation"
+  },
   "description": "Description",
   "@description": {
     "description": "Description label"
@@ -3096,5 +3120,26 @@
   "phoneNumberAlreadyExists": "A user with this phone number already exists",
   "@phoneNumberAlreadyExists": {
     "description": "Error message when trying to create user with duplicate phone number"
+  },
+  
+  "photoApprovedSuccessfully": "Photo approved successfully",
+  "@photoApprovedSuccessfully": {
+    "description": "Photo approved successfully message"
+  },
+  "privatePhotoStatus": "Private",
+  "@privatePhotoStatus": {
+    "description": "Private photo status label"
+  },
+  "approvePhoto": "Approve Photo",
+  "@approvePhoto": {
+    "description": "Approve photo tooltip"
+  },
+  "failedToApprovePhoto": "Failed to approve photo",
+  "@failedToApprovePhoto": {
+    "description": "Failed to approve photo error message"
+  },
+  "errorApprovingPhoto": "Error approving photo",
+  "@errorApprovingPhoto": {
+    "description": "Error approving photo message"
   }
 }

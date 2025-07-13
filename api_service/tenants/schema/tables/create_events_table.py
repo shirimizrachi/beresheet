@@ -36,6 +36,7 @@ def create_events_table(engine, schema_name: str, drop_if_exists: bool = True):
             max_participants = Column(Integer, nullable=False, default=0)
             current_participants = Column(Integer, nullable=False, default=0)
             image_url = Column(String(500))
+            duration = Column(Integer, default=60)  # Duration in minutes, default 60 minutes
             recurring = Column(String(50), default='none')
             recurring_end_date = Column(DateTime)
             recurring_pattern = Column(Unicode(1000))

@@ -17,6 +17,7 @@ class EventGalleryPhoto {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? createdBy;
+  final String status;
 
   EventGalleryPhoto({
     required this.photoId,
@@ -26,6 +27,7 @@ class EventGalleryPhoto {
     required this.createdAt,
     required this.updatedAt,
     this.createdBy,
+    required this.status,
   });
 
   factory EventGalleryPhoto.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class EventGalleryPhoto {
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       createdBy: json['created_by'],
+      status: json['status'] ?? 'private',
     );
   }
 }
@@ -262,6 +265,44 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
     }
   }
 
+  Future<void> _approvePhoto(EventGalleryPhoto photo) async {
+    try {
+      final authHeaders = await WebJwtAuthService.getAuthHeaders();
+      
+      final response = await http.put(
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery/${photo.photoId}/approve'),
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.photoApprovedSuccessfully),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await _loadGalleryPhotos(); // Refresh the gallery
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to approve photo: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error approving photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showFullSizeImage(int initialIndex) {
     showDialog(
       context: context,
@@ -445,7 +486,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Stack(
         children: [
-          // Main clickable area (excludes delete button area)
+          // Main clickable area (excludes action buttons area)
           Positioned.fill(
             child: InkWell(
               onTap: () => _showFullSizeImage(index),
@@ -480,28 +521,81 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
             ),
           ),
           
-          // Delete button overlay - separate from InkWell
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _deletePhoto(photo),
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    Icons.delete,
+          // Status indicator for private photos
+          if (photo.status == 'private')
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  AppLocalizations.of(context)!.privatePhotoStatus,
+                  style: TextStyle(
                     color: Colors.white,
-                    size: 20
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+            ),
+          
+          // Action buttons overlay
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Approve button (for private photos)
+                if (photo.status == 'private')
+                  Container(
+                    margin: EdgeInsets.only(bottom: 4),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _approvePhoto(photo),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                
+                // Delete button (for all images in web)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _deletePhoto(photo),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           

@@ -56,6 +56,7 @@ class Event {
     required this.location,
     required this.max_participants,
     required this.imageUrl,
+    this.duration = 60,
     this.current_participants = 0,
     this.status = AppConfig.eventStatusPendingApproval,
     this.recurring = AppConfig.eventRecurringNone,
@@ -77,6 +78,7 @@ class Event {
   final String location;
   final int max_participants;
   final String imageUrl;
+  final int duration; // Duration in minutes
   int current_participants;
   final String status; // "pending-approval", "approved", "rejected", "cancelled", "done"
   final String recurring; // "none", "weekly", "monthly", "bi-weekly"
@@ -128,6 +130,7 @@ class Event {
       location: json['location'],
       max_participants: json['max_participants'],
       imageUrl: json['image_url'],
+      duration: json['duration'] ?? 60,
       current_participants: json['current_participants'] ?? 0,
       status: json['status'] ?? AppConfig.eventStatusPendingApproval,
       recurring: json['recurring'] ?? AppConfig.eventRecurringNone,
@@ -158,6 +161,7 @@ class Event {
       'location': location,
       'max_participants': max_participants,
       'image_url': imageUrl,
+      'duration': duration,
       'current_participants': current_participants,
       'status': status,
       'recurring': recurring,
@@ -181,6 +185,7 @@ class Event {
     String? location,
     int? max_participants,
     String? imageUrl,
+    int? duration,
     int? current_participants,
     String? status,
     String? recurring,
@@ -202,6 +207,7 @@ class Event {
       location: location ?? this.location,
       max_participants: max_participants ?? this.max_participants,
       imageUrl: imageUrl ?? this.imageUrl,
+      duration: duration ?? this.duration,
       current_participants: current_participants ?? this.current_participants,
       status: status ?? this.status,
       recurring: recurring ?? this.recurring,

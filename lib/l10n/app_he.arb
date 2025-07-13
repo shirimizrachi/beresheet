@@ -75,6 +75,12 @@
   "participants": "משתתפים",
   "location": "מיקום",
   "date_time": "תאריך ושעה",
+  "duration": "משך זמן",
+  "durationMinutes": "משך זמן (דקות)",
+  "enterDuration": "הזן משך זמן בדקות",
+  "pleaseEnterDuration": "אנא הזן משך זמן",
+  "durationMustBePositive": "משך הזמן חייב להיות מספר חיובי",
+  "minutesShort": "דק'",
   "description": "תיאור",
   "eventName": "שם האירוע",
   "eventType": "סוג האירוע",
@@ -733,5 +739,11 @@
   "at": "בשעה",
   "until": "עד",
   "onDay": "ביום",
-  "phoneNumberAlreadyExists": "משתמש עם מספר טלפון זה כבר קיים"
+  "phoneNumberAlreadyExists": "משתמש עם מספר טלפון זה כבר קיים",
+  
+  "photoApprovedSuccessfully": "התמונה אושרה בהצלחה",
+  "privatePhotoStatus": "פרטי",
+  "approvePhoto": "אשר תמונה",
+  "failedToApprovePhoto": "נכשל באישור התמונה",
+  "errorApprovingPhoto": "שגיאה באישור התמונה"
 }

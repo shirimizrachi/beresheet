@@ -7,6 +7,7 @@ import '../../../config/app_config.dart';
 import '../../../services/user_session_service.dart';
 import '../../../model/event.dart';
 import '../../../services/modern_localization_service.dart';
+import '../../../widgets/localized_date_time_widget.dart';
 
 class EventGalleryPhoto {
   final String photoId;
@@ -16,6 +17,7 @@ class EventGalleryPhoto {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? createdBy;
+  final String status;
 
   EventGalleryPhoto({
     required this.photoId,
@@ -25,6 +27,7 @@ class EventGalleryPhoto {
     required this.createdAt,
     required this.updatedAt,
     this.createdBy,
+    this.status = 'private',
   });
 
   factory EventGalleryPhoto.fromJson(Map<String, dynamic> json) {
@@ -36,6 +39,7 @@ class EventGalleryPhoto {
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       createdBy: json['created_by'],
+      status: json['status'] ?? 'private',
     );
   }
 }
@@ -283,6 +287,69 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
     }
   }
 
+  Future<void> _approvePhoto(EventGalleryPhoto photo) async {
+    try {
+      final homeId = await UserSessionService.gethomeID();
+      final userId = await UserSessionService.getUserId();
+
+      if (homeId == null || userId == null) {
+        throw Exception('User session not found');
+      }
+
+      final response = await http.put(
+        Uri.parse('${AppConfig.apiUrlWithPrefix}/api/events/${widget.event.id}/gallery/${photo.photoId}/approve'),
+        headers: {
+          'Content-Type': 'application/json',
+          'homeID': homeId.toString(),
+          'currentUserId': userId,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.operationSuccessful),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await _loadGalleryPhotos(); // Refresh the gallery
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to approve photo: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error approving photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<bool> _canDeletePhoto(EventGalleryPhoto photo) async {
+    final userId = await UserSessionService.getUserId();
+    final userRole = await UserSessionService.getRole();
+    
+    if (userRole == 'manager' || userRole == 'staff') {
+      return true; // Managers and staff can delete all images
+    }
+    
+    // Regular users can only delete their own private images
+    return photo.status == 'private' && photo.createdBy == userId;
+  }
+
+  Future<bool> _canApprovePhoto(EventGalleryPhoto photo) async {
+    final userRole = await UserSessionService.getRole();
+    
+    // Only managers and staff can approve photos, and only private photos
+    return (userRole == 'manager' || userRole == 'staff') && photo.status == 'private';
+  }
+
   void _showFullSizeImage(int initialIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -353,12 +420,30 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                         ),
                       ),
                       SizedBox(height: 4),
-                      Text(
-                        '${widget.event.location} • ${_formatDateTime(widget.event.date_time)}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            widget.event.location,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            ' • ',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Expanded(
+                            child: LocalizedDateTimeWidget(
+                              dateTime: widget.event.date_time,
+                              size: DateTimeDisplaySize.large,
+                              textColor: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -385,7 +470,10 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
 
           // Gallery Grid
           Expanded(
-            child: _buildGalleryGrid(),
+            child: RefreshIndicator(
+              onRefresh: _loadGalleryPhotos,
+              child: _buildGalleryGrid(),
+            ),
           ),
         ],
       ),
@@ -404,60 +492,89 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                context.l10n.error,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      return SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    context.l10n.error,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadGalleryPhotos,
+                    child: Text(context.l10n.retry),
+                  ),
+                ],
               ),
-              SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadGalleryPhotos,
-                child: Text(context.l10n.retry),
-              ),
-            ],
+            ),
           ),
         ),
       );
     }
 
     if (_galleryPhotos.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                context.l10n.noPhotosYet,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      return SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    context.l10n.noPhotosYet,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    context.l10n.uploadSomePhotos,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 16),
+                  Center(
+                    child: SizedBox(
+                      child: ElevatedButton(
+                        onPressed: _uploadImages,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_photo_alternate),
+                            SizedBox(width: 8),
+                            Text(
+                              context.l10n.uploadImages,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 8),
-              Text(
-                context.l10n.uploadSomePhotos,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _uploadImages,
-                icon: Icon(Icons.add_photo_alternate),
-                label: Text(context.l10n.uploadImages),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -526,21 +643,82 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
               ),
             ),
             
-            // Delete button overlay
+            // Status indicator for private photos
+            if (photo.status == 'private')
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    context.l10n.privatePhotoStatus,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            
+            // Action buttons overlay
             Positioned(
               top: 8,
               right: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.white, size: 18),
-                  onPressed: () => _deletePhoto(photo),
-                  padding: EdgeInsets.all(4),
-                  constraints: BoxConstraints(minWidth: 28, minHeight: 28),
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Approve button (for managers/staff on private photos)
+                  FutureBuilder<bool>(
+                    future: _canApprovePhoto(photo),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data == true) {
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.check, color: Colors.white, size: 18),
+                            onPressed: () => _approvePhoto(photo),
+                            padding: EdgeInsets.all(4),
+                            constraints: BoxConstraints(minWidth: 28, minHeight: 28),
+                            tooltip: 'Approve photo',
+                          ),
+                        );
+                      }
+                      return SizedBox.shrink();
+                    },
+                  ),
+                  
+                  // Delete button (conditional based on user permissions)
+                  FutureBuilder<bool>(
+                    future: _canDeletePhoto(photo),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data == true) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.white, size: 18),
+                            onPressed: () => _deletePhoto(photo),
+                            padding: EdgeInsets.all(4),
+                            constraints: BoxConstraints(minWidth: 28, minHeight: 28),
+                            tooltip: 'Delete photo',
+                          ),
+                        );
+                      }
+                      return SizedBox.shrink();
+                    },
+                  ),
+                ],
               ),
             ),
           ],

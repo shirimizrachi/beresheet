@@ -168,24 +168,25 @@ class EventDatabase:
                 results = conn.execute(events_table.select()).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                        events.append(Event(
+                            id=result.id,
+                            name=result.name,
+                            type=result.type,
+                            description=result.description,
+                            date_time=result.date_time,
+                            location=result.location,
+                            max_participants=result.max_participants,
+                            current_participants=result.current_participants,
+                            image_url=result.image_url or "",
+                            duration=result.duration if hasattr(result, 'duration') else 60,
+                            status=result.status if hasattr(result, 'status') else "pending-approval",
+                            recurring=result.recurring if hasattr(result, 'recurring') else "none",
+                            recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+                            recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+                            instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+                            instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+                            instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
+                        ))
             return events
 
         except Exception as e:
@@ -225,6 +226,7 @@ class EventDatabase:
                         max_participants=result.max_participants,
                         current_participants=result.current_participants,
                         image_url=result.image_url or "",
+                        duration=result.duration if hasattr(result, 'duration') else 60,
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
@@ -319,6 +321,7 @@ class EventDatabase:
                         max_participants=result.max_participants,
                         current_participants=result.current_participants,
                         image_url=result.image_url or "",
+                        duration=result.duration if hasattr(result, 'duration') else 60,
                         status=result.status if hasattr(result, 'status') else "pending-approval",
                         recurring=result.recurring if hasattr(result, 'recurring') else "none",
                         recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
@@ -361,6 +364,7 @@ class EventDatabase:
                 'max_participants': event_data.max_participants,
                 'current_participants': event_data.current_participants if hasattr(event_data, 'current_participants') else 0,
                 'image_url': event_data.image_url if hasattr(event_data, 'image_url') else None,
+                'duration': event_data.duration if hasattr(event_data, 'duration') else 60,
                 'status': event_data.status if hasattr(event_data, 'status') else "pending-approval",
                 'recurring': event_data.recurring if hasattr(event_data, 'recurring') else "none",
                 'recurring_end_date': event_data.recurring_end_date if hasattr(event_data, 'recurring_end_date') else None,
@@ -389,6 +393,7 @@ class EventDatabase:
                 max_participants=event_data.max_participants,
                 current_participants=0,
                 image_url=getattr(event_data, 'image_url', "") or "",
+                duration=getattr(event_data, 'duration', 60),
                 status=getattr(event_data, 'status', "pending-approval"),
                 recurring=getattr(event_data, 'recurring', "none"),
                 recurring_end_date=getattr(event_data, 'recurring_end_date', None),
