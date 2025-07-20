@@ -336,6 +336,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             context.l10n.participants,
                             '${widget.event.current_participants} / ${widget.event.max_participants}',
                           ),
+                          const Divider(),
+                          _buildDetailRow(
+                            Icons.timer,
+                            context.l10n.duration,
+                            '${widget.event.duration} ${context.l10n.minutesShort}',
+                          ),
                           // Add instructor details if available
                           if (widget.event.instructorName != null && widget.event.instructorName!.isNotEmpty) ...[
                             const Divider(),

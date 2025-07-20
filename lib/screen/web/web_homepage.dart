@@ -147,6 +147,9 @@ class _WebHomePageState extends State<WebHomePage> {
         }
       });
       
+      // Preload all images for all carousel modes with enhanced memory caching
+      await _preloadAllEventImages();
+      
       // Start gallery auto-scroll if in gallery mode
       if (_displayMode == 'gallery' && events.isNotEmpty) {
         Future.delayed(const Duration(seconds: 3), () {
@@ -158,6 +161,53 @@ class _WebHomePageState extends State<WebHomePage> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  /// Preload all event images to cache them for carousel display
+  Future<void> _preloadAllEventImages() async {
+    if (!mounted || events.isEmpty) return;
+    
+    final Set<String> imagesToPreload = {};
+    
+    // Collect all image URLs from all events for all display modes
+    for (final event in events) {
+      // Main event image
+      if (event.imageUrl.isNotEmpty) {
+        imagesToPreload.add(event.imageUrl);
+      }
+      
+      // Instructor photo
+      if (event.instructorPhoto != null && event.instructorPhoto!.isNotEmpty) {
+        imagesToPreload.add(event.instructorPhoto!);
+      }
+      
+      // Gallery photos (both thumbnail and full size URLs)
+      for (final photo in event.gallery_photos) {
+        if (photo['thumbnail_url'] != null && photo['thumbnail_url'].toString().isNotEmpty) {
+          imagesToPreload.add(photo['thumbnail_url'].toString());
+        }
+        if (photo['image_url'] != null && photo['image_url'].toString().isNotEmpty) {
+          imagesToPreload.add(photo['image_url'].toString());
+        }
+      }
+    }
+    
+    // Preload all unique images with enhanced carousel optimization
+    try {
+      print('Preloading ${imagesToPreload.length} unique images for carousel...');
+      
+      if (_displayMode == 'carousel' || _displayMode == 'banner') {
+        // Use enhanced carousel preloading for carousel modes
+        await WebImageCacheService.preloadImagesForCarousel(context, imagesToPreload.toList());
+      } else {
+        // Use standard preloading for other modes
+        await WebImageCacheService.precacheImages(context, imagesToPreload.toList());
+      }
+      
+      print('Successfully preloaded all event images');
+    } catch (e) {
+      print('Error preloading images: $e');
     }
   }
 
@@ -333,7 +383,7 @@ class _WebHomePageState extends State<WebHomePage> {
                           Text(
                             event.name,
                             style: AppTextStyles.heading3.copyWith(
-                              fontSize: 24,
+                              fontSize: 64,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -383,7 +433,7 @@ class _WebHomePageState extends State<WebHomePage> {
                         child: Text(
                           event.name,
                           style: AppTextStyles.heading3.copyWith(
-                            fontSize: 20,
+                            fontSize: 52,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -686,7 +736,7 @@ class _WebHomePageState extends State<WebHomePage> {
                             Text(
                               event.name,
                               style: AppTextStyles.heading2.copyWith(
-                                fontSize: 32,
+                                fontSize: 64,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
                               ),
@@ -699,7 +749,7 @@ class _WebHomePageState extends State<WebHomePage> {
                             Text(
                               event.description,
                               style: AppTextStyles.bodyLarge.copyWith(
-                                fontSize: 18,
+                                fontSize: 36,
                                 color: Colors.grey[700],
                                 height: 1.5,
                               ),
@@ -732,6 +782,8 @@ class _WebHomePageState extends State<WebHomePage> {
                             _buildEventInfo(Icons.location_on, event.location),
                             const SizedBox(height: AppSpacing.sm),
                             _buildEventInfo(Icons.people, '${event.current_participants}/${event.max_participants} ${context.l10n.participants}'),
+                            const SizedBox(height: AppSpacing.sm),
+                            _buildEventInfo(Icons.timer, '${event.duration} ${context.l10n.minutesShort}'),
                             const SizedBox(height: AppSpacing.lg),
                             
                             // Gallery Photos Count
@@ -755,6 +807,7 @@ class _WebHomePageState extends State<WebHomePage> {
                                     style: AppTextStyles.bodyMedium.copyWith(
                                       color: Colors.blue[600],
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 32,
                                     ),
                                   ),
                                 ],
@@ -796,7 +849,7 @@ class _WebHomePageState extends State<WebHomePage> {
           child: Text(
             text,
             style: AppTextStyles.bodyMedium.copyWith(
-              fontSize: 16,
+              fontSize: 32,
               color: AppColors.primary,
               fontWeight: FontWeight.w500,
             ),
@@ -977,85 +1030,103 @@ class _WebHomePageState extends State<WebHomePage> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       
-                      // Event Name
-                      Text(
-                        event.name,
-                        style: AppTextStyles.heading3.copyWith(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      
-                      // Event Description
-                      Text(
-                        event.description,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      
-                      // Event Info Row
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.schedule,
-                            size: 16,
-                            color: AppColors.primary,
+                          // Event Name
+                          Text(
+                            event.name,
+                            style: AppTextStyles.heading3.copyWith(
+                              fontSize: 56,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 4),
-                          LocalizedDateTimeWidget(
-                            dateTime: event.date_time,
-                            size: DateTimeDisplaySize.large,
-                            textColor: AppColors.primary,
+                          const SizedBox(height: AppSpacing.sm),
+                          
+                          // Event Description
+                          Text(
+                            event.description,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontSize: 36,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.location,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontSize: 14,
+                          const SizedBox(height: AppSpacing.md),
+                          
+                          // Event Info Row
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 20,
                                 color: AppColors.primary,
                               ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const SizedBox(width: 4),
+                              LocalizedDateTimeWidget(
+                                dateTime: event.date_time,
+                                size: DateTimeDisplaySize.large,
+                                textColor: AppColors.primary,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.people,
-                            size: 16,
-                            color: AppColors.primary,
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  event.location,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontSize: 32,
+                                    color: AppColors.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${event.current_participants}/${event.max_participants} ${context.l10n.participants}',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              fontSize: 14,
-                              color: AppColors.primary,
-                            ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${event.current_participants}/${event.max_participants} ${context.l10n.participants}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontSize: 32,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${event.duration} ${context.l10n.minutesShort}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontSize: 32,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
                     ],
                   ),
                 ),

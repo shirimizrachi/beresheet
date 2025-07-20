@@ -3,11 +3,54 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// Web-optimized image cache service
-/// Uses browser's native caching for web platform and CachedNetworkImage for mobile
+/// Uses in-memory cache for web platform and CachedNetworkImage for mobile
 class WebImageCacheService {
+  // In-memory cache for web image providers to prevent repeated network requests
+  static final Map<String, NetworkImage> _webImageProviderCache = {};
+  
+  /// Get or create cached image provider for web with memory optimization
+  static ImageProvider _getCachedImageProvider(String imageUrl) {
+    if (!_webImageProviderCache.containsKey(imageUrl)) {
+      _webImageProviderCache[imageUrl] = NetworkImage(
+        imageUrl,
+        headers: const {
+          'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        },
+      );
+    }
+    return _webImageProviderCache[imageUrl]!;
+  }
+  
+
+  /// Clear the in-memory cache
+  static void clearImageProviderCache() {
+    _webImageProviderCache.clear();
+  }
+  
+  /// Preload and keep images in memory for instant carousel display
+  static Future<void> preloadImagesForCarousel(BuildContext context, List<String> imageUrls) async {
+    if (imageUrls.isEmpty) return;
+    
+    try {
+      // Preload all images using Flutter's precacheImage
+      final futures = imageUrls.map((url) async {
+        if (url.isNotEmpty) {
+          final imageProvider = _getCachedImageProvider(url);
+          await precacheImage(imageProvider, context);
+        }
+      });
+      
+      await Future.wait(futures);
+      debugPrint('Successfully preloaded ${imageUrls.length} images into memory cache');
+    } catch (e) {
+      debugPrint('Error preloading images for carousel: $e');
+    }
+  }
+
   /// Creates an optimized image widget for the current platform
   /// 
-  /// For web: Uses Image.network with proper cache headers
+  /// For web: Uses cached Image provider with proper cache headers
   /// For mobile: Uses CachedNetworkImage
   static Widget buildEventImage({
     required String? imageUrl,
@@ -55,17 +98,12 @@ class WebImageCacheService {
     Widget imageWidget;
 
     if (kIsWeb) {
-      // For web: Use Image.network with optimized caching
-      imageWidget = Image.network(
-        imageUrl,
+      // For web: Use cached Image provider to prevent repeated network requests
+      imageWidget = Image(
+        image: _getCachedImageProvider(imageUrl),
         width: width,
         height: height,
         fit: fit,
-        // Add cache headers for better browser caching
-        headers: const {
-          'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-        },
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) {
             return child;
@@ -158,16 +196,12 @@ class WebImageCacheService {
     Widget imageWidget;
 
     if (kIsWeb) {
-      // For web: Use Image.network with optimized caching
-      imageWidget = Image.network(
-        imageUrl,
+      // For web: Use cached Image provider to prevent repeated network requests
+      imageWidget = Image(
+        image: _getCachedImageProvider(imageUrl),
         width: width,
         height: height,
         fit: fit,
-        headers: const {
-          'Cache-Control': 'public, max-age=31536000',
-          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-        },
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) {
             return child;
@@ -235,14 +269,8 @@ class WebImageCacheService {
     
     try {
       if (kIsWeb) {
-        // For web: Use browser's precaching
-        await precacheImage(
-          NetworkImage(imageUrl, headers: const {
-            'Cache-Control': 'public, max-age=31536000',
-            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-          }),
-          context,
-        );
+        // For web: Use cached image provider to ensure same instance is used
+        await precacheImage(_getCachedImageProvider(imageUrl), context);
       } else {
         // For mobile: Use CachedNetworkImage precaching
         await precacheImage(CachedNetworkImageProvider(imageUrl), context);
@@ -286,3 +314,4 @@ class WebImageCacheService {
     return 40.0;
   }
 }
+

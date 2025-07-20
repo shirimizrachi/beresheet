@@ -41,6 +41,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   bool _isSaving = false;
   String _selectedRecurring = 'none';
   DateTime? _recurringEndDate;
+  int _selectedDuration = 60; // Default duration in minutes
   
   // Recurring pattern variables
   int? _selectedDayOfWeek;
@@ -122,6 +123,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _selectedDateTime = event.date_time;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
+    _selectedDuration = event.duration;
     
     // Set the selected room name from the event location
     // This will be updated after rooms are loaded to match existing room names
@@ -536,6 +538,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
         'current_participants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
+        'duration': _selectedDuration.toString(),
       });
 
       // Add instructor fields if selected
@@ -1118,6 +1121,39 @@ class _EventFormScreenState extends State<EventFormScreen> {
                   ),
                 ),
               if (widget.event != null) const SizedBox(height: AppSpacing.md),
+
+              // Duration
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedDuration,
+                    decoration: InputDecoration(
+                      labelText: l10n.durationMinutes,
+                    ),
+                    items: DisplayNameUtils.getDurationOptions(context).map((option) {
+                      return DropdownMenuItem<int>(
+                        value: option['value'] as int,
+                        child: Text(option['label'] as String),
+                      );
+                    }).toList(),
+                    onChanged: _isFieldEditable ? (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedDuration = value;
+                        });
+                      }
+                    } : null,
+                    validator: (value) {
+                      if (value == null) {
+                        return l10n.pleaseEnterDuration;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
 
               // Recurring Settings
               Card(

@@ -235,6 +235,23 @@ class _EventCardState extends State<EventCard> {
                         ],
                       ],
                     ),
+                    
+                    const SizedBox(height: 1),
+                    
+                    // Duration Row
+                    Row(
+                      children: [
+                        Icon(Icons.timer, size: 10, color: Colors.grey[600]),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${widget.event.duration} ${context.l10n.minutesShort}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

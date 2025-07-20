@@ -154,6 +154,7 @@ async def create_event(
     location: str = Form(...),
     max_participants: int = Form(...),
     current_participants: int = Form(0),
+    duration: int = Form(60),
     status: str = Form("pending-approval"),
     recurring: str = Form("none"),
     recurring_end_date: Optional[str] = Form(None),
@@ -191,6 +192,7 @@ async def create_event(
             location=location,
             max_participants=max_participants,
             image_url="",  # Will be updated after image upload
+            duration=duration,
             current_participants=current_participants,
             status=status,
             recurring=recurring,
@@ -239,6 +241,7 @@ async def update_event(
     location: Optional[str] = Form(None),
     max_participants: Optional[int] = Form(None),
     current_participants: Optional[int] = Form(None),
+    duration: Optional[int] = Form(None),
     status: Optional[str] = Form(None),
     recurring: Optional[str] = Form(None),
     recurring_end_date: Optional[str] = Form(None),
@@ -268,6 +271,8 @@ async def update_event(
             update_data['max_participants'] = max_participants
         if current_participants is not None:
             update_data['current_participants'] = current_participants
+        if duration is not None:
+            update_data['duration'] = duration
         if status is not None:
             update_data['status'] = status
         if recurring is not None:

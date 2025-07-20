@@ -33,6 +33,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   final TextEditingController _currentParticipantsController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
   final TextEditingController _imageSearchController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController();
   
   // Form variables
   String _selectedType = AppConfig.eventTypeEvent;
@@ -40,6 +41,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   String _selectedRecurring = AppConfig.eventRecurringNone;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   DateTime? _recurringEndDate;
+  int _selectedDuration = 60; // Default duration in minutes
   
   // Recurring pattern variables
   int? _selectedDayOfWeek;
@@ -61,6 +63,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   List<Map<String, dynamic>> _rooms = [];
   bool _isLoadingRooms = true;
   String? _selectedRoomName;
+
 
   // Instructor functionality
   List<Map<String, dynamic>> _instructors = [];
@@ -94,11 +97,13 @@ class _EventFormWebState extends State<EventFormWeb> {
     _maxParticipantsController.text = event.max_participants.toString();
     _currentParticipantsController.text = event.current_participants.toString();
     _imageUrlController.text = event.imageUrl;
+    _durationController.text = event.duration.toString();
     _selectedType = event.type;
     _selectedStatus = event.status;
     _selectedDateTime = event.date_time;
     _selectedRecurring = event.recurring;
     _recurringEndDate = event.recurringEndDate;
+    _selectedDuration = event.duration;
     _selectedRoomName = event.location; // For existing events, set the room from location
     
     // Set instructor fields
@@ -153,6 +158,7 @@ class _EventFormWebState extends State<EventFormWeb> {
       });
     }
   }
+
 
   Future<void> _loadInstructors() async {
     try {
@@ -381,6 +387,7 @@ class _EventFormWebState extends State<EventFormWeb> {
         'current_participants': widget.event == null ? '0' : _currentParticipantsController.text.trim(),
         'status': _selectedStatus,
         'recurring': _selectedRecurring,
+        'duration': _selectedDuration.toString(),
       });
 
       // Add instructor fields if selected
@@ -482,6 +489,7 @@ class _EventFormWebState extends State<EventFormWeb> {
     _currentParticipantsController.clear();
     _imageUrlController.clear();
     _imageSearchController.clear();
+    _durationController.clear();
     setState(() {
       _selectedType = AppConfig.eventTypeEvent;
       _selectedStatus = AppConfig.eventStatusPendingApproval;
@@ -492,6 +500,7 @@ class _EventFormWebState extends State<EventFormWeb> {
       _selectedDayOfMonth = null;
       _recurringTime = null;
       _interval = null;
+      _selectedDuration = 60;
       _imageSource = 'upload';
       _selectedImageBytes = null;
       _selectedImageName = null;
@@ -657,6 +666,17 @@ class _EventFormWebState extends State<EventFormWeb> {
   // Use AppConfig method for consistency
   String _getRecurringDisplayName(String recurring) {
     return DisplayNameUtils.getRecurringDisplayName(recurring, context);
+  }
+
+  // Generate duration options using DisplayNameUtils
+  List<DropdownMenuItem<int>> _generateDurationOptions() {
+    final durationOptions = DisplayNameUtils.getDurationOptions(context);
+    return durationOptions.map((option) {
+      return DropdownMenuItem<int>(
+        value: option['value'] as int,
+        child: Text(option['label'] as String),
+      );
+    }).toList();
   }
 
   @override
@@ -1056,6 +1076,31 @@ class _EventFormWebState extends State<EventFormWeb> {
                               ),
                             ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Duration dropdown
+                      DropdownButtonFormField<int>(
+                        value: _selectedDuration,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.durationMinutes,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: _generateDurationOptions(),
+                        onChanged: _isFieldEditable ? (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedDuration = value;
+                              _durationController.text = value.toString();
+                            });
+                          }
+                        } : null,
+                        validator: (value) {
+                          if (value == null) {
+                            return AppLocalizations.of(context)!.pleaseEnterDuration;
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),

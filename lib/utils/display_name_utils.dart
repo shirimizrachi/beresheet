@@ -206,4 +206,26 @@ class DisplayNameUtils {
         return language;
     }
   }
+  
+  /// Get duration options for event duration dropdown
+  static List<Map<String, dynamic>> getDurationOptions(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final List<Map<String, dynamic>> options = [];
+    
+    // Generate options from 15 to 180 minutes in 5-minute increments
+    for (int minutes = 15; minutes <= 180; minutes += 5) {
+      options.add({
+        'value': minutes,
+        'label': '$minutes ${localizations.minutesShort}',
+      });
+    }
+    
+    return options;
+  }
+  
+  /// Get display name for duration value
+  static String getDurationDisplayName(int duration, BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    return '$duration ${localizations.minutesShort}';
+  }
 }
