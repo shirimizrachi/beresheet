@@ -102,7 +102,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
     }
     
     // For all events (including non-recurring), check if the display date has passed
-    return event.date_time.isBefore(now);
+    return event.next_date_time.isBefore(now);
   }
 
   Future<void> _unregisterFromEvent(Event event) async {
@@ -357,7 +357,7 @@ class _RegisteredEventsScreenState extends State<RegisteredEventsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     LocalizedDateTimeWidget(
-                                      dateTime: event.date_time,
+                                      dateTime: event.next_date_time,
                                       size: DateTimeDisplaySize.medium,
                                       textColor: Colors.grey[600],
                                     ),

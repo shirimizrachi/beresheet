@@ -166,8 +166,6 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
         return _events.where((event) => event.status == AppConfig.eventStatusApproved).toList();
       case 'pending-approval':
         return _events.where((event) => event.status == AppConfig.eventStatusPendingApproval).toList();
-      case 'gallery':
-        return _galleryEvents;
       default:
         return _events;
     }
@@ -179,8 +177,8 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
 
   String _formatEventDateTime(Event event) {
     if (event.recurring == 'none' || event.recurring == null) {
-      // One-time event - show date_time as is
-      return _formatDateTime(event.date_time);
+      // One-time event - show next_date_time (which should be same as date_time for non-recurring)
+      return _formatDateTime(event.next_date_time);
     } else {
       // Recurring event - show explanation of the recurrence
       return _formatRecurringEventDescription(event);
@@ -191,31 +189,32 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
     try {
       final pattern = event.parsedRecurrencePattern;
       if (pattern == null) {
-        return _formatDateTime(event.date_time); // Fallback to regular format
+        return _formatDateTime(event.next_date_time); // Fallback to next occurrence
       }
 
       final time = pattern.time ?? '${event.date_time.hour}:${event.date_time.minute.toString().padLeft(2, '0')}';
       final startDate = '${event.date_time.day}/${event.date_time.month}/${event.date_time.year}';
       final endDate = '${event.recurringEndDate!.day}/${event.recurringEndDate!.month}/${event.recurringEndDate!.year}';
+      final nextEventDate = _formatDateTime(event.next_date_time);
 
       switch (event.recurring) {
         case 'weekly':
           final dayName = _getDayName(pattern.dayOfWeek ?? 0);
-          return '${AppLocalizations.of(context)!.everyWeek} $dayName ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+          return '${AppLocalizations.of(context)!.everyWeek} $dayName ${AppLocalizations.of(context)!.at} $time\n${AppLocalizations.of(context)!.start}: $startDate - ${AppLocalizations.of(context)!.until} $endDate\n${AppLocalizations.of(context)!.nextEvent}: $nextEventDate';
         
         case 'bi-weekly':
           final dayName = _getDayName(pattern.dayOfWeek ?? 0);
-          return '${AppLocalizations.of(context)!.everyTwoWeeks} $dayName ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+          return '${AppLocalizations.of(context)!.everyTwoWeeks} $dayName ${AppLocalizations.of(context)!.at} $time\n${AppLocalizations.of(context)!.start}: $startDate - ${AppLocalizations.of(context)!.until} $endDate\n${AppLocalizations.of(context)!.nextEvent}: $nextEventDate';
         
         case 'monthly':
           final dayOfMonth = pattern.dayOfMonth ?? 1;
-          return '${AppLocalizations.of(context)!.everyMonth} ${AppLocalizations.of(context)!.onDay} $dayOfMonth ${AppLocalizations.of(context)!.at} $time\nStarts: $startDate - ${AppLocalizations.of(context)!.until} $endDate';
+          return '${AppLocalizations.of(context)!.everyMonth} ${AppLocalizations.of(context)!.onDay} $dayOfMonth ${AppLocalizations.of(context)!.at} $time\n${AppLocalizations.of(context)!.start}: $startDate - ${AppLocalizations.of(context)!.until} $endDate\n${AppLocalizations.of(context)!.nextEvent}: $nextEventDate';
         
         default:
-          return _formatDateTime(event.date_time); // Fallback
+          return _formatDateTime(event.next_date_time); // Fallback
       }
     } catch (e) {
-      return _formatDateTime(event.date_time); // Fallback on error
+      return _formatDateTime(event.next_date_time); // Fallback on error
     }
   }
 
@@ -328,14 +327,6 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                   selected: _filterStatus == 'pending-approval',
                   onSelected: (selected) {
                     if (selected) setState(() => _filterStatus = 'pending-approval');
-                  },
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: Text(AppLocalizations.of(context)!.gallery),
-                  selected: _filterStatus == 'gallery',
-                  onSelected: (selected) {
-                    if (selected) setState(() => _filterStatus = 'gallery');
                   },
                 ),
               ],
@@ -614,33 +605,36 @@ class _EventsManagementWebState extends State<EventsManagementWeb> {
                         const SizedBox(width: 12),
                         
                         // Status Dropdown
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButton<String>(
-                            value: event.status,
-                            underline: const SizedBox(),
-                            icon: Icon(Icons.arrow_drop_down, color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : Colors.grey),
-                            items: AppConfig.userSelectableEventStatusOptions.map((status) {
-                              return DropdownMenuItem(
-                                value: status,
-                                child: Text(
-                                  DisplayNameUtils.getEventStatusDisplayName(status, context),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : null,
+                        SizedBox(
+                          height: 36, // Same height as the buttons
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButton<String>(
+                              value: event.status,
+                              underline: const SizedBox(),
+                              icon: Icon(Icons.arrow_drop_down, color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : Colors.grey),
+                              items: AppConfig.userSelectableEventStatusOptions.map((status) {
+                                return DropdownMenuItem(
+                                  value: status,
+                                  child: Text(
+                                    DisplayNameUtils.getEventStatusDisplayName(status, context),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: event.status == AppConfig.eventStatusDone ? Colors.grey.shade400 : null,
+                                    ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: event.status == AppConfig.eventStatusDone ? null : (newStatus) {
-                              if (newStatus != null && newStatus != event.status) {
-                                _updateEventStatus(event.id, newStatus);
-                              }
-                            },
+                                );
+                              }).toList(),
+                              onChanged: event.status == AppConfig.eventStatusDone ? null : (newStatus) {
+                                if (newStatus != null && newStatus != event.status) {
+                                  _updateEventStatus(event.id, newStatus);
+                                }
+                              },
+                            ),
                           ),
                         ),
                       ],

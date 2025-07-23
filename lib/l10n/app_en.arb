@@ -3141,5 +3141,13 @@
   "errorApprovingPhoto": "Error approving photo",
   "@errorApprovingPhoto": {
     "description": "Error approving photo message"
+  },
+  "start": "Start",
+  "@start": {
+    "description": "Start label for recurring events"
+  },
+  "nextEvent": "Next Event",
+  "@nextEvent": {
+    "description": "Next event label for recurring events"
   }
 }

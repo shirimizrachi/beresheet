@@ -372,7 +372,7 @@ class _EventGalleryWebState extends State<EventGalleryWeb> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '${widget.event.location} • ${_formatDateTime(widget.event.date_time)}',
+                            '${widget.event.location} • ${_formatDateTime(widget.event.next_date_time)}',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],

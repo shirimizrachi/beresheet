@@ -989,12 +989,13 @@ async def get_user_registrations(
 async def get_event_registrations(
     event_id: str,
     home_id: int = Depends(get_home_id),
-    current_user_id: str = Header(..., alias="currentUserId"),
+    user_id: Optional[str] = Depends(get_user_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
     """Get all registrations for a specific event - requires manager role"""
     # Check if current user has manager role
-    await require_manager_role(current_user_id, home_id)
+    if user_id:
+        await require_manager_role(user_id, home_id)
     
     registrations = events_registration_db.get_event_registrations(event_id, home_id)
     return [reg.to_dict() for reg in registrations]
@@ -1002,12 +1003,13 @@ async def get_event_registrations(
 @router.get("/registrations/all")
 async def get_all_registrations(
     home_id: int = Depends(get_home_id),
-    current_user_id: str = Header(..., alias="currentUserId"),
+    user_id: Optional[str] = Depends(get_user_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
     """Get all registrations - requires manager role"""
     # Check if current user has manager role
-    await require_manager_role(current_user_id, home_id)
+    if user_id:
+        await require_manager_role(user_id, home_id)
     
     registrations = events_registration_db.get_all_registrations(home_id)
     return [reg.to_dict() for reg in registrations]
@@ -1099,3 +1101,8 @@ async def delete_room(
     if not success:
         raise HTTPException(status_code=404, detail="Room not found")
     return {"message": "Room deleted successfully"}
+
+# ------------------------- Public Display Endpoints Removed ------------------------- #
+# These endpoints have been removed as requested to enforce JWT authentication.
+# The display.html page now uses the authenticated /events endpoint with appropriate
+# query parameters (approved_only=true and gallery_view=true) instead.

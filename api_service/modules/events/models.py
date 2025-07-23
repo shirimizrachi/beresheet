@@ -57,6 +57,7 @@ class EventUpdate(BaseModel):
 
 class Event(EventBase):
     id: str
+    next_date_time: datetime  # Calculated next occurrence for recurring events
 
     class Config:
         from_attributes = True
@@ -67,7 +68,8 @@ class EventWithRegistrationStatus(BaseModel):
     name: str
     type: str
     description: str
-    date_time: str  # ISO string
+    date_time: str  # ISO string - original event date
+    next_date_time: str  # ISO string - calculated next occurrence
     location: str
     max_participants: int
     current_participants: int

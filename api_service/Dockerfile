@@ -44,6 +44,7 @@ COPY storage/ ./storage/
 COPY tenants/ ./tenants/
 COPY modules/ ./modules/
 COPY *.py .
+COPY *.html .
 
 # Create a non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser

@@ -24,6 +24,12 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
   bool _isLoading = true;
   bool _isAuthenticated = false;
   String? _userRole;
+  
+  // Cache authentication state to avoid repeated checks
+  static bool? _cachedAuthState;
+  static String? _cachedUserRole;
+  static DateTime? _lastAuthCheck;
+  static const Duration _cacheTimeout = Duration(minutes: 5);
 
   @override
   void initState() {
@@ -33,36 +39,81 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
 
   Future<void> _checkAuthentication() async {
     try {
-      print('WebJwtAuthWrapper: Starting authentication check...');
+      // Check if we have cached authentication data that's still valid
+      final now = DateTime.now();
+      if (_lastAuthCheck != null &&
+          _cachedAuthState != null &&
+          now.difference(_lastAuthCheck!).compareTo(_cacheTimeout) < 0) {
+        // Use cached data
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = _cachedAuthState!;
+            _userRole = _cachedUserRole;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      // Perform fresh authentication check
       final isAuth = await WebJwtAuthService.isAuthenticated();
-      print('WebJwtAuthWrapper: isAuthenticated result: $isAuth');
       
       if (isAuth) {
         final user = await WebJwtAuthService.getCurrentUser();
-        print('WebJwtAuthWrapper: Current user: ${user?.fullName} (${user?.role})');
-        setState(() {
-          _isAuthenticated = true;
-          _userRole = user?.role;
-          _isLoading = false;
-        });
+        
+        // Cache the authentication state
+        _cachedAuthState = true;
+        _cachedUserRole = user?.role;
+        _lastAuthCheck = now;
+        
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = true;
+            _userRole = user?.role;
+            _isLoading = false;
+          });
+        }
       } else {
-        print('WebJwtAuthWrapper: User not authenticated, showing login screen');
+        // Cache the unauthenticated state
+        _cachedAuthState = false;
+        _cachedUserRole = null;
+        _lastAuthCheck = now;
+        
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = false;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      // Log error only in debug mode
+      assert(() {
+        print('WebJwtAuthWrapper: Error checking authentication: $e');
+        return true;
+      }());
+      
+      // Don't cache error states
+      if (mounted) {
         setState(() {
           _isAuthenticated = false;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      print('WebJwtAuthWrapper: Error checking authentication: $e');
-      setState(() {
-        _isAuthenticated = false;
-        _isLoading = false;
-      });
     }
   }
 
   Future<void> _handleLoginSuccess() async {
+    // Clear cache on login success to force fresh check
+    _clearAuthCache();
     await _checkAuthentication();
+  }
+
+  // Static method to clear authentication cache (call this on logout)
+  static void _clearAuthCache() {
+    _cachedAuthState = null;
+    _cachedUserRole = null;
+    _lastAuthCheck = null;
   }
 
   Future<void> _redirectToLogin() async {
@@ -123,6 +174,7 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
+                _clearAuthCache();
                 await WebJwtAuthService.logout();
                 await _redirectToLogin();
               },
@@ -152,6 +204,7 @@ class _WebJwtAuthWrapperState extends State<WebJwtAuthWrapper> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () async {
+                  _clearAuthCache();
                   await WebJwtAuthService.logout();
                   await _redirectToLogin();
                 },

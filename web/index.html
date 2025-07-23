@@ -21,7 +21,7 @@
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="beresheet_app">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -32,9 +32,100 @@
   <title>beresheet_app</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
-  <script src="flutter_bootstrap.js" defer></script>
+  <!-- Cache busting script - detects URL parameters for asset reloading -->
+  <script>
+    (function() {
+      // Check for cache busting parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const cacheBustParams = ['refresh', 'new', 'reload', 'nocache', 'clear'];
+      let shouldBustCache = false;
+      let cacheVersion = '';
+      
+      // Check if any cache busting parameter is present
+      for (const param of cacheBustParams) {
+        if (urlParams.has(param)) {
+          shouldBustCache = true;
+          const paramValue = urlParams.get(param);
+          // Use parameter value if provided, otherwise use timestamp
+          cacheVersion = paramValue || Date.now().toString();
+          console.log('Cache busting enabled with parameter:', param, 'version:', cacheVersion);
+          break;
+        }
+      }
+      
+      // Function to add cache busting to script src
+      function addCacheBusting(src) {
+        if (!shouldBustCache) return src;
+        const separator = src.includes('?') ? '&' : '?';
+        return src + separator + 'v=' + cacheVersion;
+      }
+      
+      // Store cache busting info for use by Flutter scripts
+      window.flutterCacheBust = {
+        enabled: shouldBustCache,
+        version: cacheVersion,
+        addVersion: addCacheBusting
+      };
+      
+      // If cache busting is enabled, clear browser cache
+      if (shouldBustCache) {
+        console.log('Clearing browser cache...');
+        
+        // Clear service worker cache if present
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+              console.log('Service worker unregistered');
+            }
+          });
+        }
+        
+        // Clear browser cache
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+              console.log('Cache deleted:', name);
+            }
+          });
+        }
+        
+        // Clear localStorage and sessionStorage
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          console.log('Local and session storage cleared');
+        } catch (e) {
+          console.log('Storage clear failed:', e);
+        }
+      }
+    })();
+  </script>
+
+  <!-- This script adds the flutter initialization JS code with cache busting -->
+  <script>
+    // Dynamically load Flutter scripts with cache busting if needed
+    (function() {
+      function loadScript(src, defer = true) {
+        const script = document.createElement('script');
+        script.src = window.flutterCacheBust ? window.flutterCacheBust.addVersion(src) : src;
+        if (defer) script.defer = true;
+        script.onerror = function() {
+          console.error('Failed to load script:', script.src);
+        };
+        script.onload = function() {
+          console.log('Script loaded:', script.src);
+        };
+        document.head.appendChild(script);
+        console.log('Loading script:', script.src);
+      }
+      
+      // Load Flutter scripts
+      loadScript('flutter.js');
+      loadScript('flutter_bootstrap.js');
+    })();
+  </script>
 </head>
 <body>
 </body>

@@ -292,7 +292,7 @@ class _EventsManagementScreenState extends State<EventsManagementScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${DisplayNameUtils.getLocalizedFormattedDate(event.date_time, context)} ${context.l10n.at} ${event.formattedTime}',
+                                    '${DisplayNameUtils.getLocalizedFormattedDate(event.next_date_time, context)} ${context.l10n.at} ${event.formattedTime}',
                                     style: AppTextStyles.bodySmall,
                                   ),
                                   Text(

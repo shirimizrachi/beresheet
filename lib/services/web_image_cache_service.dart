@@ -6,7 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 /// Uses in-memory cache for web platform and CachedNetworkImage for mobile
 class WebImageCacheService {
   // In-memory cache for web image providers to prevent repeated network requests
-  static final Map<String, NetworkImage> _webImageProviderCache = {};
+  static final Map<String, ImageProvider> _webImageProviderCache = {};
+  static final Set<String> _preloadedImages = {};
   
   /// Get or create cached image provider for web with memory optimization
   static ImageProvider _getCachedImageProvider(String imageUrl) {
@@ -38,6 +39,7 @@ class WebImageCacheService {
         if (url.isNotEmpty) {
           final imageProvider = _getCachedImageProvider(url);
           await precacheImage(imageProvider, context);
+          _preloadedImages.add(url); // Track preloaded images
         }
       });
       

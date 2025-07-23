@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beresheet Events Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .carousel-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .carousel-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .carousel-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .carousel-btn.active {
+            background: #764ba2;
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        .carousel-container {
+            position: relative;
+            height: 700px;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .carousel-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .carousel-slide.active {
+            opacity: 1;
+        }
+
+        /* Default Carousel Styles */
+        .event-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .event-image {
+            flex: 2;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .event-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        }
+
+        .event-details {
+            flex: 3;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .event-type {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .event-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+            line-height: 1.2;
+        }
+
+        .event-description {
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .event-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .event-info-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            color: #555;
+        }
+
+        .event-info-icon {
+            width: 24px;
+            height: 24px;
+            fill: #667eea;
+        }
+
+        /* Gallery Carousel Styles */
+        .gallery-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .gallery-details {
+            flex: 2;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .gallery-grid {
+            flex: 3;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 15px;
+            align-content: center;
+        }
+
+        .gallery-item {
+            border-radius: 15px;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            min-height: 150px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
+        .gallery-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+        }
+
+        .gallery-placeholder {
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+
+        .gallery-count {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .indicators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active {
+            background: #667eea;
+            transform: scale(1.2);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #a66;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .no-events {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .no-events h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .instructor-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 15px;
+        }
+
+        .instructor-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .instructor-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .event-card, .gallery-card {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .event-image {
+                height: 250px;
+            }
+            
+            .event-title {
+                font-size: 2rem;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
+            
+            .carousel-container {
+                height: auto;
+                min-height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Beresheet Events</h1>
+            <p>Discover upcoming events in your community</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="carousel-controls">
+            <button class="carousel-btn active" onclick="switchCarousel('default')">
+                Events Carousel
+            </button>
+            <button class="carousel-btn" onclick="switchCarousel('gallery')">
+                Gallery Carousel
+            </button>
+        </div>
+
+        <div id="loading" class="loading">
+            Loading events...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="carousel-container" class="carousel-container" style="display: none;">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+
+        <div id="indicators" class="indicators" style="display: none;">
+            <!-- Dynamic indicators will be inserted here -->
+        </div>
+
+        <div id="no-events" class="no-events" style="display: none;">
+            <h3>No Events Available</h3>
+            <p>There are currently no events to display.</p>
+        </div>
+    </div>
+
+    <script>
+        let currentTenant = '';
+        let currentMode = 'default'; // 'default' or 'gallery'
+        let events = [];
+        let currentSlide = 0;
+        let autoSlideInterval;
+        let jwtToken = null;
+        let userId = null;
+
+        // Extract tenant from URL path
+        function getTenantFromURL() {
+            const pathParts = window.location.pathname.split('/');
+            const displayIndex = pathParts.indexOf('display');
+            if (displayIndex !== -1 && displayIndex + 1 < pathParts.length) {
+                return pathParts[displayIndex + 1];
+            }
+            return null;
+        }
+
+        // Get JWT token from browser storage and cookies
+        function getJWTToken() {
+            // Try to get from cookies first (set by Flutter web homepage)
+            let token = getCookie('jwt_token');
+            if (token) {
+                return token;
+            }
+            
+            // Try alternative cookie name
+            token = getCookie('web_jwt_token');
+            if (token) {
+                return token;
+            }
+            
+            // Try to get from sessionStorage
+            token = sessionStorage.getItem('web_jwt_token');
+            if (token) {
+                return token;
+            }
+            
+            // Try to get from localStorage as fallback
+            token = localStorage.getItem('web_jwt_token');
+            if (token) {
+                return token;
+            }
+            
+            // Try Flutter secure storage keys (if they exist)
+            token = localStorage.getItem('flutter.web_jwt_token');
+            if (token) {
+                return token;
+            }
+            
+            return null;
+        }
+
+        // Helper function to get cookie value
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // Get user ID from localStorage or JWT payload
+        function getUserId() {
+            const storedUserId = localStorage.getItem('userId');
+            if (storedUserId) {
+                return storedUserId;
+            }
+            
+            // Try to extract from JWT token
+            if (jwtToken) {
+                try {
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    return payload.user_id || payload.sub;
+                } catch (e) {
+                    console.error('Error parsing JWT token:', e);
+                }
+            }
+            return null;
+        }
+
+        // Verify JWT token by making a test API call
+        async function verifyJWTToken() {
+            if (!jwtToken) {
+                throw new Error('No JWT token available');
+            }
+
+            const tenant = getTenantFromURL();
+            if (!tenant) {
+                throw new Error('No tenant specified in URL');
+            }
+
+            // Get homeID from tenant config
+            const tenantToHomeIdMap = {
+                'demo': 1,
+                'test': 1,
+                'beresheet': 1
+            };
+            const homeId = tenantToHomeIdMap[tenant] || 1;
+
+            // Test the token with a simple API call using Authorization header
+            const response = await fetch(`/${tenant}/api/events/home`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'homeID': homeId.toString(),
+                    'userId': userId || 'anonymous'
+                }
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Invalid or expired JWT token');
+            }
+
+            return response.ok;
+        }
+
+        // Fetch events from API using authenticated endpoints
+        async function fetchEvents(mode) {
+            const tenant = getTenantFromURL();
+            if (!tenant) {
+                throw new Error('No tenant specified in URL');
+            }
+
+            if (!jwtToken) {
+                throw new Error('Authentication required - no JWT token available');
+            }
+
+            // Get homeID from tenant config
+            const tenantToHomeIdMap = {
+                'demo': 1,
+                'test': 1,
+                'beresheet': 1
+            };
+            const homeId = tenantToHomeIdMap[tenant] || 1;
+
+            let endpoint;
+            let queryParams = '';
+            
+            if (mode === 'gallery') {
+                // Use events endpoint with gallery_view parameter for authenticated access
+                endpoint = `/${tenant}/api/events`;
+                queryParams = '?gallery_view=true&approved_only=true';
+            } else {
+                // Use events endpoint with approved_only parameter for authenticated access
+                endpoint = `/${tenant}/api/events`;
+                queryParams = '?approved_only=true';
+            }
+
+            const response = await fetch(endpoint + queryParams, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'homeID': homeId.toString(),
+                    'userId': userId || 'anonymous'
+                }
+            });
+            
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Authentication failed - invalid or expired JWT token');
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        // Create default event card
+        function createDefaultEventCard(event) {
+            const instructorInfo = event.instructor_name ? `
+                <div class="instructor-info">
+                    ${event.instructor_photo ? `<img src="${event.instructor_photo}" alt="${event.instructor_name}" class="instructor-photo">` : ''}
+                    <span class="instructor-name">${event.instructor_name}</span>
+                </div>
+            ` : '';
+
+            return `
+                <div class="event-card">
+                    <div class="event-image" style="background-image: url('${event.image_url || '/api/placeholder-image.jpg'}')"></div>
+                    <div class="event-details">
+                        <span class="event-type">${event.type}</span>
+                        ${instructorInfo}
+                        <h2 class="event-title">${event.name}</h2>
+                        <p class="event-description">${event.description}</p>
+                        <div class="event-info">
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                                <span>${new Date(event.date_time).toLocaleDateString()} ${new Date(event.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22S19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                                </svg>
+                                <span>${event.location}</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M16,4C16.88,4 17.67,4.5 18,5.26L19,7H20A2,2 0 0,1 22,9V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V9C2,7.89 2.89,7 4,7H5L6,5.26C6.33,4.5 7.12,4 8,4H16M16,6H8L7,7H4V19H20V9H17L16,6Z"/>
+                                </svg>
+                                <span>${event.current_participants}/${event.max_participants} participants</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                                <span>${event.duration} minutes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create gallery event card
+        function createGalleryEventCard(event) {
+            const instructorInfo = event.instructor_name ? `
+                <div class="instructor-info">
+                    ${event.instructor_photo ? `<img src="${event.instructor_photo}" alt="${event.instructor_name}" class="instructor-photo">` : ''}
+                    <span class="instructor-name">${event.instructor_name}</span>
+                </div>
+            ` : '';
+
+            // Create gallery grid with up to 6 photos
+            let galleryItems = '';
+            const photos = event.gallery_photos || [];
+            
+            for (let i = 0; i < 6; i++) {
+                if (i < photos.length) {
+                    const photo = photos[i];
+                    const imageUrl = photo.thumbnail_url || photo.image_url || '';
+                    galleryItems += `
+                        <div class="gallery-item" style="background-image: url('${imageUrl}')"></div>
+                    `;
+                } else {
+                    galleryItems += `
+                        <div class="gallery-item gallery-placeholder">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#999">
+                                <path d="M9,12C9,13.3 8.3,14.3 7.5,14.3H2.5C1.7,14.3 1,13.3 1,12C1,10.7 1.7,9.7 2.5,9.7H7.5C8.3,9.7 9,10.7 9,12M23,12C23,13.3 22.3,14.3 21.5,14.3H16.5C15.7,14.3 15,13.3 15,12C15,10.7 15.7,9.7 16.5,9.7H21.5C22.3,9.7 23,10.7 23,12M12,9C13.3,9 14.3,8.3 14.3,7.5V2.5C14.3,1.7 13.3,1 12,1C10.7,1 9.7,1.7 9.7,2.5V7.5C9.7,8.3 10.7,9 12,9M12,15C10.7,15 9.7,15.7 9.7,16.5V21.5C9.7,22.3 10.7,23 12,23C13.3,23 14.3,22.3 14.3,21.5V16.5C14.3,15.7 13.3,15 12,15Z"/>
+                            </svg>
+                        </div>
+                    `;
+                }
+            }
+
+            return `
+                <div class="gallery-card">
+                    <div class="gallery-details">
+                        <span class="event-type">${event.type}</span>
+                        ${instructorInfo}
+                        <h2 class="event-title">${event.name}</h2>
+                        <p class="event-description">${event.description}</p>
+                        <div class="event-info">
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                                <span>${new Date(event.date_time).toLocaleDateString()} ${new Date(event.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22S19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                                </svg>
+                                <span>${event.location}</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M16,4C16.88,4 17.67,4.5 18,5.26L19,7H20A2,2 0 0,1 22,9V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V9C2,7.89 2.89,7 4,7H5L6,5.26C6.33,4.5 7.12,4 8,4H16M16,6H8L7,7H4V19H20V9H17L16,6Z"/>
+                                </svg>
+                                <span>${event.current_participants}/${event.max_participants} participants</span>
+                            </div>
+                            <div class="event-info-item">
+                                <svg class="event-info-icon" viewBox="0 0 24 24">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                                <span>${event.duration} minutes</span>
+                            </div>
+                        </div>
+                        <div class="gallery-count">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
+                            </svg>
+                            ${photos.length} Photos
+                        </div>
+                    </div>
+                    <div class="gallery-grid">
+                        ${galleryItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render carousel
+        function renderCarousel() {
+            const container = document.getElementById('carousel-container');
+            const indicators = document.getElementById('indicators');
+            
+            if (events.length === 0) {
+                document.getElementById('no-events').style.display = 'block';
+                container.style.display = 'none';
+                indicators.style.display = 'none';
+                return;
+            }
+
+            document.getElementById('no-events').style.display = 'none';
+            container.style.display = 'block';
+            indicators.style.display = 'flex';
+
+            // Create slides
+            container.innerHTML = events.map((event, index) => {
+                const cardHTML = currentMode === 'gallery' 
+                    ? createGalleryEventCard(event)
+                    : createDefaultEventCard(event);
+                    
+                return `
+                    <div class="carousel-slide ${index === currentSlide ? 'active' : ''}">
+                        ${cardHTML}
+                    </div>
+                `;
+            }).join('');
+
+            // Create indicators
+            indicators.innerHTML = events.map((_, index) => 
+                `<div class="indicator ${index === currentSlide ? 'active' : ''}" onclick="goToSlide(${index})"></div>`
+            ).join('');
+
+            startAutoSlide();
+        }
+
+        // Navigate to specific slide
+        function goToSlide(index) {
+            currentSlide = index;
+            updateActiveSlide();
+            restartAutoSlide();
+        }
+
+        // Update active slide
+        function updateActiveSlide() {
+            const slides = document.querySelectorAll('.carousel-slide');
+            const indicators = document.querySelectorAll('.indicator');
+
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === currentSlide);
+            });
+
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === currentSlide);
+            });
+        }
+
+        // Auto slide functionality
+        function startAutoSlide() {
+            if (events.length <= 1) return;
+            
+            autoSlideInterval = setInterval(() => {
+                currentSlide = (currentSlide + 1) % events.length;
+                updateActiveSlide();
+            }, 5000); // 5 seconds
+        }
+
+        function restartAutoSlide() {
+            clearInterval(autoSlideInterval);
+            startAutoSlide();
+        }
+
+        // Switch between carousel modes
+        async function switchCarousel(mode) {
+            if (mode === currentMode) return;
+
+            // Check if we have valid authentication
+            if (!jwtToken) {
+                showError('Authentication required. Please provide a valid JWT token.');
+                return;
+            }
+
+            currentMode = mode;
+            currentSlide = 0;
+
+            // Update button states
+            document.querySelectorAll('.carousel-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('carousel-container').style.display = 'none';
+            document.getElementById('indicators').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            clearInterval(autoSlideInterval);
+
+            try {
+                events = await fetchEvents(mode);
+                renderCarousel();
+            } catch (error) {
+                console.error('Error switching carousel:', error);
+                if (error.message.includes('Authentication') || error.message.includes('JWT')) {
+                    showError(`Authentication failed: ${error.message}. Please log in again or provide a valid token.`);
+                } else {
+                    showError(`Failed to load ${mode} events: ${error.message}`);
+                }
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            
+            document.getElementById('carousel-container').style.display = 'none';
+            document.getElementById('indicators').style.display = 'none';
+        }
+
+        // Initialize page with JWT verification
+        async function init() {
+            currentTenant = getTenantFromURL();
+            if (!currentTenant) {
+                showError('No tenant specified in URL. Please access via /display/{tenant}');
+                return;
+            }
+
+            // Get JWT token and user ID
+            jwtToken = getJWTToken();
+            userId = getUserId();
+
+            if (!jwtToken) {
+                showError('Authentication required. Please provide a valid JWT token via URL parameter (?token=your_jwt_token) or ensure you are logged in.');
+                return;
+            }
+
+            try {
+                // Verify JWT token first
+                await verifyJWTToken();
+                
+                // If verification successful, load events
+                events = await fetchEvents(currentMode);
+                renderCarousel();
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                if (error.message.includes('Authentication') || error.message.includes('JWT')) {
+                    showError(`Authentication failed: ${error.message}. Please log in again or provide a valid token.`);
+                } else {
+                    showError(`Failed to load events: ${error.message}`);
+                }
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Make switchCarousel available globally
+        window.switchCarousel = switchCarousel;
+        window.goToSlide = goToSlide;
+    </script>
+</body>
+</html>

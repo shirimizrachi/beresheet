@@ -315,7 +315,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ),
                                     const SizedBox(height: 2),
                                     LocalizedDateTimeWidget(
-                                      dateTime: widget.event.date_time,
+                                      dateTime: widget.event.next_date_time,
                                       size: DateTimeDisplaySize.large,
                                       fontWeight: FontWeight.w600,
                                     ),

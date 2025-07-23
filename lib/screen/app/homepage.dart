@@ -322,7 +322,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final now = DateTime.now();
     
     for (final event in eventsList) {
-      final eventDate = DateTime(event.date_time.year, event.date_time.month, event.date_time.day);
+      final eventDate = DateTime(event.next_date_time.year, event.next_date_time.month, event.next_date_time.day);
       final today = DateTime(now.year, now.month, now.day);
       final tomorrow = today.add(Duration(days: 1));
       
@@ -346,7 +346,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     // Sort events within each date group by time
     groupedEvents.forEach((key, eventList) {
-      eventList.sort((a, b) => a.date_time.compareTo(b.date_time));
+      eventList.sort((a, b) => a.next_date_time.compareTo(b.next_date_time));
     });
     
     return groupedEvents;
@@ -398,7 +398,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       final eventsB = groupedEvents[b]!;
       
       if (eventsA.isNotEmpty && eventsB.isNotEmpty) {
-        return eventsA.first.date_time.compareTo(eventsB.first.date_time);
+        return eventsA.first.next_date_time.compareTo(eventsB.first.next_date_time);
       }
       
       return a.compareTo(b);
@@ -1008,7 +1008,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: LocalizedDateTimeWidget(
-                                            dateTime: event.date_time,
+                                            dateTime: event.next_date_time,
                                             size: DateTimeDisplaySize.medium,
                                             textColor: Colors.white,
                                             fontWeight: FontWeight.w600,

@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyAEZqKHv3SyuzCKxvh3k4D7F97XGIHi80s',
-    appId: '1:301880694626:web:your-web-app-id',
+    appId: '1:301880694626:web:7225f3f702fdab15a1fe3b',
     messagingSenderId: '301880694626',
     projectId: 'beresheet-app',
     authDomain: 'beresheet-app.firebaseapp.com',

@@ -53,6 +53,7 @@ class Event {
     required this.type,
     required this.description,
     required this.date_time,
+    required this.next_date_time,
     required this.location,
     required this.max_participants,
     required this.imageUrl,
@@ -75,6 +76,7 @@ class Event {
   final String type; // "event", "sport", "cultural", "art", "english", "religion"
   final String description;
   final DateTime date_time; // Initial occurrence date for recurring events
+  final DateTime next_date_time; // Calculated next occurrence for recurring events
   final String location;
   final int max_participants;
   final String imageUrl;
@@ -105,7 +107,7 @@ class Event {
   bool get isRecurring => recurring != AppConfig.eventRecurringNone;
   
   String get formattedDateTime {
-    return "${date_time.day}/${date_time.month}/${date_time.year} at ${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}";
+    return "${next_date_time.day}/${next_date_time.month}/${next_date_time.year} at ${next_date_time.hour}:${next_date_time.minute.toString().padLeft(2, '0')}";
   }
 
   String get formattedDate {
@@ -113,29 +115,58 @@ class Event {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
-    return "${date_time.day} ${months[date_time.month - 1]} ${date_time.year}";
+    return "${next_date_time.day} ${months[next_date_time.month - 1]} ${next_date_time.year}";
   }
 
   String get formattedTime {
-    return "${date_time.hour}:${date_time.minute.toString().padLeft(2, '0')}";
+    return "${next_date_time.hour}:${next_date_time.minute.toString().padLeft(2, '0')}";
   }
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    // Parse date_time with null safety
+    DateTime parsedDateTime;
+    try {
+      if (json['date_time'] == null) {
+        throw Exception('date_time is null');
+      }
+      parsedDateTime = DateTime.parse(json['date_time']);
+    } catch (e) {
+      print('Error parsing date_time for event ${json['id']}: $e');
+      // Use current time as fallback
+      parsedDateTime = DateTime.now();
+    }
+
+    // Parse next_date_time with null safety
+    DateTime parsedNextDateTime;
+    try {
+      if (json['next_date_time'] == null) {
+        // Fall back to date_time if next_date_time is missing
+        parsedNextDateTime = parsedDateTime;
+      } else {
+        parsedNextDateTime = DateTime.parse(json['next_date_time']);
+      }
+    } catch (e) {
+      print('Error parsing next_date_time for event ${json['id']}: $e');
+      // Use date_time as fallback
+      parsedNextDateTime = parsedDateTime;
+    }
+
     return Event(
-      id: json['id'],
-      name: json['name'],
-      type: json['type'],
-      description: json['description'],
-      date_time: DateTime.parse(json['date_time']),
-      location: json['location'],
-      max_participants: json['max_participants'],
-      imageUrl: json['image_url'],
-      duration: json['duration'] ?? 60,
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      type: json['type'] ?? 'event',
+      description: json['description'] ?? '',
+      date_time: parsedDateTime,
+      next_date_time: parsedNextDateTime,
+      location: json['location'] ?? '',
+      max_participants: json['max_participants'] ?? 0,
+      imageUrl: json['image_url'] ?? '',
+      duration: json['duration'],
       current_participants: json['current_participants'] ?? 0,
       status: json['status'] ?? AppConfig.eventStatusPendingApproval,
       recurring: json['recurring'] ?? AppConfig.eventRecurringNone,
       recurringEndDate: json['recurring_end_date'] != null
-          ? DateTime.parse(json['recurring_end_date'])
+          ? DateTime.tryParse(json['recurring_end_date'])
           : null,
       recurringPattern: json['recurring_pattern'],
       instructorName: json['instructor_name'],
@@ -158,6 +189,7 @@ class Event {
       'type': type,
       'description': description,
       'date_time': date_time.toIso8601String(),
+      'next_date_time': next_date_time.toIso8601String(),
       'location': location,
       'max_participants': max_participants,
       'image_url': imageUrl,
@@ -182,6 +214,7 @@ class Event {
     String? type,
     String? description,
     DateTime? date_time,
+    DateTime? next_date_time,
     String? location,
     int? max_participants,
     String? imageUrl,
@@ -204,6 +237,7 @@ class Event {
       type: type ?? this.type,
       description: description ?? this.description,
       date_time: date_time ?? this.date_time,
+      next_date_time: next_date_time ?? this.next_date_time,
       location: location ?? this.location,
       max_participants: max_participants ?? this.max_participants,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -222,3 +256,4 @@ class Event {
     );
   }
 }
+

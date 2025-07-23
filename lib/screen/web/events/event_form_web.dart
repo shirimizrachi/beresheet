@@ -41,7 +41,7 @@ class _EventFormWebState extends State<EventFormWeb> {
   String _selectedRecurring = AppConfig.eventRecurringNone;
   DateTime _selectedDateTime = DateTime.now().add(const Duration(days: 1));
   DateTime? _recurringEndDate;
-  int _selectedDuration = 60; // Default duration in minutes
+  int? _selectedDuration; // Will be set based on event or default
   
   // Recurring pattern variables
   int? _selectedDayOfWeek;
@@ -86,6 +86,9 @@ class _EventFormWebState extends State<EventFormWeb> {
     _loadInstructors();
     if (widget.event != null) {
       _populateFields();
+    } else {
+      // Set default duration for new events
+      _selectedDuration = 60;
     }
   }
 
@@ -1087,14 +1090,14 @@ class _EventFormWebState extends State<EventFormWeb> {
                           border: const OutlineInputBorder(),
                         ),
                         items: _generateDurationOptions(),
-                        onChanged: _isFieldEditable ? (value) {
+                        onChanged: (value) {
                           if (value != null) {
                             setState(() {
                               _selectedDuration = value;
                               _durationController.text = value.toString();
                             });
                           }
-                        } : null,
+                        },
                         validator: (value) {
                           if (value == null) {
                             return AppLocalizations.of(context)!.pleaseEnterDuration;

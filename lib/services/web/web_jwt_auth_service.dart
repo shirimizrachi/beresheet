@@ -126,9 +126,9 @@ class WebJwtAuthService {
           token: responseData['token'] as String,
           refreshToken: '', // Will be set by refresh endpoint if needed
           user: user,
-          expiresAt: DateTime.parse(responseData['expires_at'] as String),
-          refreshExpiresAt: DateTime.parse(responseData['expires_at'] as String).add(Duration(days: 30)), // Default 30 days
-          createdAt: DateTime.parse(responseData['created_at'] as String),
+          expiresAt: DateTime.parse((responseData['expires_at'] as String) + 'Z').toLocal(),
+          refreshExpiresAt: DateTime.parse((responseData['expires_at'] as String) + 'Z').toLocal().add(Duration(days: 30)), // Default 30 days
+          createdAt: DateTime.parse((responseData['created_at'] as String) + 'Z').toLocal(),
         );
         
         print('Parsed session - ExpiresAt: ${session.expiresAt}, RefreshExpiresAt: ${session.refreshExpiresAt}');
@@ -289,8 +289,8 @@ class WebJwtAuthService {
             token: responseData['token'] as String,
             refreshToken: responseData['refresh_token'] as String,
             user: session.user,
-            expiresAt: DateTime.parse(responseData['expires_at'] as String),
-            refreshExpiresAt: DateTime.parse(responseData['refresh_expires_at'] as String),
+            expiresAt: DateTime.parse((responseData['expires_at'] as String) + 'Z').toLocal(),
+            refreshExpiresAt: DateTime.parse((responseData['refresh_expires_at'] as String) + 'Z').toLocal(),
             createdAt: DateTime.now(),
           );
           

@@ -17,6 +17,101 @@ import json
 
 logger = logging.getLogger(__name__)
 
+def _calculate_last_occurrence(event_datetime: datetime, pattern: dict, recurring_end_date: datetime) -> datetime:
+    """
+    Calculate the last occurrence of a recurring event before the end date.
+    
+    Args:
+        event_datetime: The original event datetime
+        pattern: Parsed recurrence pattern dict
+        recurring_end_date: When the recurring series ends
+        
+    Returns:
+        The last occurrence datetime before the end date
+    """
+    try:
+        # Parse time from pattern, fallback to original event time
+        time_str = pattern.get('time')
+        if time_str:
+            hour, minute = map(int, time_str.split(':'))
+        else:
+            hour, minute = event_datetime.hour, event_datetime.minute
+        
+        end_date = recurring_end_date.date()
+        
+        # Weekly recurrence
+        if 'dayOfWeek' in pattern:
+            target_day = pattern['dayOfWeek']  # 0=Sunday, 1=Monday, etc.
+            interval = pattern.get('interval', 1)
+            
+            # Start from the original event date and find all occurrences
+            reference_date = event_datetime.date()
+            
+            if interval > 1:
+                # For bi-weekly or other intervals
+                reference_weekday = (reference_date.weekday() + 1) % 7
+                
+                # Find the first target day from reference
+                if reference_weekday == target_day:
+                    first_target = reference_date
+                elif reference_weekday < target_day:
+                    first_target = reference_date + timedelta(days=(target_day - reference_weekday))
+                else:
+                    first_target = reference_date + timedelta(days=(7 - reference_weekday + target_day))
+                
+                # Find the last occurrence before end date
+                last_occurrence = first_target
+                current_candidate = first_target
+                while current_candidate <= end_date:
+                    last_occurrence = current_candidate
+                    current_candidate = first_target + timedelta(weeks=interval * ((current_candidate - first_target).days // 7 // interval + 1))
+                
+            else:
+                # Regular weekly
+                current_candidate = reference_date
+                last_occurrence = reference_date
+                
+                while current_candidate <= end_date:
+                    current_weekday = (current_candidate.weekday() + 1) % 7
+                    if current_weekday == target_day:
+                        last_occurrence = current_candidate
+                    current_candidate += timedelta(days=1)
+            
+            return datetime.combine(last_occurrence, datetime.min.time().replace(hour=hour, minute=minute))
+            
+        # Monthly recurrence
+        elif 'dayOfMonth' in pattern:
+            target_day = pattern['dayOfMonth']
+            
+            # Start from original event and find last valid occurrence
+            current_candidate = event_datetime.date()
+            last_occurrence = event_datetime.date()
+            
+            while current_candidate <= end_date:
+                try:
+                    test_date = current_candidate.replace(day=target_day)
+                    if test_date <= end_date:
+                        last_occurrence = test_date
+                except ValueError:
+                    # Target day doesn't exist in this month
+                    pass
+                
+                # Move to next month
+                if current_candidate.month == 12:
+                    current_candidate = current_candidate.replace(year=current_candidate.year + 1, month=1, day=1)
+                else:
+                    current_candidate = current_candidate.replace(month=current_candidate.month + 1, day=1)
+            
+            return datetime.combine(last_occurrence, datetime.min.time().replace(hour=hour, minute=minute))
+        
+        else:
+            # No valid pattern, return original
+            return event_datetime
+            
+    except Exception as e:
+        print(f"Error calculating last occurrence: {e}")
+        return event_datetime
+
 def calculate_next_occurrence(event_datetime: datetime, recurring_pattern: str, recurring_end_date: datetime) -> datetime:
     """
     Calculate the next occurrence of a recurring event based on its pattern.
@@ -36,77 +131,85 @@ def calculate_next_occurrence(event_datetime: datetime, recurring_pattern: str, 
         pattern = json.loads(recurring_pattern)
         now = datetime.now()
         
-        # If we're past the recurring end date, return the original datetime
+        # If we're past the recurring end date, calculate and return the last occurrence
         if recurring_end_date and now > recurring_end_date:
-            return event_datetime
+            return _calculate_last_occurrence(event_datetime, pattern, recurring_end_date)
             
-        # Parse time from pattern
-        time_str = pattern.get('time', '14:00')  # Default to 2:00 PM
-        hour, minute = map(int, time_str.split(':'))
+        # Parse time from pattern, fallback to original event time
+        time_str = pattern.get('time')
+        if time_str:
+            hour, minute = map(int, time_str.split(':'))
+        else:
+            # Use original event time if no time specified in pattern
+            hour, minute = event_datetime.hour, event_datetime.minute
         
         # Weekly recurrence
         if 'dayOfWeek' in pattern:
             target_day = pattern['dayOfWeek']  # 0=Sunday, 1=Monday, etc.
             interval = pattern.get('interval', 1)  # Default to 1 for weekly, 2 for bi-weekly
             
-            # Find the next occurrence
-            current_date = now.date()
-            # Convert Python weekday (0=Monday) to our format (0=Sunday)
-            current_weekday = (current_date.weekday() + 1) % 7
-            days_ahead = target_day - current_weekday
-            if days_ahead <= 0:
-                days_ahead += 7  # Go to next week
-                
-            # For bi-weekly, we need to find the correct week
-            if interval == 2:
-                # Calculate weeks since reference date
-                reference_date = event_datetime.date()
+            # Start from the original event date
+            reference_date = event_datetime.date()
+            current_candidate = reference_date
+            
+            # For bi-weekly or other intervals
+            if interval > 1:
                 # Convert Python weekday (0=Monday) to our format (0=Sunday)
                 reference_weekday = (reference_date.weekday() + 1) % 7
                 
                 # Find the first target day from reference
-                if reference_weekday <= target_day:
+                if reference_weekday == target_day:
+                    first_target = reference_date
+                elif reference_weekday < target_day:
                     first_target = reference_date + timedelta(days=(target_day - reference_weekday))
                 else:
                     first_target = reference_date + timedelta(days=(7 - reference_weekday + target_day))
                 
-                # Calculate how many intervals (2 weeks) have passed
-                weeks_passed = (current_date - first_target).days // 7
-                intervals_passed = weeks_passed // interval
+                # Find next occurrence after current time
+                current_candidate = first_target
+                while current_candidate <= now.date():
+                    current_candidate = first_target + timedelta(weeks=interval * ((current_candidate - first_target).days // 7 // interval + 1))
                 
-                # Find next interval
-                next_interval_weeks = (intervals_passed + 1) * interval
-                next_date = first_target + timedelta(weeks=next_interval_weeks)
-                
-                # If this date is in the past, add another interval
-                if next_date <= current_date:
-                    next_date = first_target + timedelta(weeks=(intervals_passed + 2) * interval)
+                next_date = current_candidate
             else:
-                # Regular weekly
-                next_date = current_date + timedelta(days=days_ahead)
+                # Regular weekly - find next occurrence of target day
+                current_candidate = reference_date
+                while True:
+                    # Convert Python weekday (0=Monday) to our format (0=Sunday)
+                    current_weekday = (current_candidate.weekday() + 1) % 7
+                    
+                    if current_weekday == target_day and current_candidate > now.date():
+                        break
+                    
+                    current_candidate += timedelta(days=1)
+                
+                next_date = current_candidate
             
             next_datetime = datetime.combine(next_date, datetime.min.time().replace(hour=hour, minute=minute))
             
         # Monthly recurrence
         elif 'dayOfMonth' in pattern:
             target_day = pattern['dayOfMonth']
-            current_date = now.date()
             
-            # Try current month first
-            try:
-                next_date = current_date.replace(day=target_day)
-                if next_date <= current_date:
-                    # Move to next month
-                    if current_date.month == 12:
-                        next_date = current_date.replace(year=current_date.year + 1, month=1, day=target_day)
-                    else:
-                        next_date = current_date.replace(month=current_date.month + 1, day=target_day)
-            except ValueError:
-                # Target day doesn't exist in current month, move to next month
-                if current_date.month == 12:
-                    next_date = current_date.replace(year=current_date.year + 1, month=1, day=target_day)
+            # Start from the original event date
+            current_candidate = event_datetime.date()
+            
+            # Find next occurrence of target day that's after current time
+            while True:
+                try:
+                    test_date = current_candidate.replace(day=target_day)
+                    if test_date > now.date():
+                        next_date = test_date
+                        break
+                except ValueError:
+                    # Target day doesn't exist in this month
+                    pass
+                
+                # Move to next month
+                if current_candidate.month == 12:
+                    current_candidate = current_candidate.replace(year=current_candidate.year + 1, month=1, day=1)
                 else:
-                    next_date = current_date.replace(month=current_date.month + 1, day=target_day)
+                    current_candidate = current_candidate.replace(month=current_candidate.month + 1, day=1)
             
             next_datetime = datetime.combine(next_date, datetime.min.time().replace(hour=hour, minute=minute))
         
@@ -129,6 +232,38 @@ class EventDatabase:
         # Note: This class now uses tenant-specific connections through database_utils
         # No default engine is created as all operations use schema-specific engines
         self.metadata = MetaData()
+
+    def _create_event_from_result(self, result) -> Event:
+        """Helper function to create Event object from database result with next_date_time calculation"""
+        # Calculate next_date_time using the existing function
+        recurring_pattern = result.recurring_pattern if hasattr(result, 'recurring_pattern') else None
+        recurring_end_date = result.recurring_end_date if hasattr(result, 'recurring_end_date') else None
+        next_occurrence = calculate_next_occurrence(
+            result.date_time,
+            recurring_pattern,
+            recurring_end_date
+        )
+        
+        return Event(
+            id=result.id,
+            name=result.name,
+            type=result.type,
+            description=result.description,
+            date_time=result.date_time,
+            next_date_time=next_occurrence,
+            location=result.location,
+            max_participants=result.max_participants,
+            current_participants=result.current_participants,
+            image_url=result.image_url or "",
+            duration=result.duration,
+            status=result.status if hasattr(result, 'status') else "pending-approval",
+            recurring=result.recurring if hasattr(result, 'recurring') else "none",
+            recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
+            recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
+            instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
+            instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
+            instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
+        )
 
     def get_events_table(self, schema_name: str):
         """Get the events table for a specific schema using schema-specific connection"""
@@ -168,25 +303,7 @@ class EventDatabase:
                 results = conn.execute(events_table.select()).fetchall()
                 
                 for result in results:
-                        events.append(Event(
-                            id=result.id,
-                            name=result.name,
-                            type=result.type,
-                            description=result.description,
-                            date_time=result.date_time,
-                            location=result.location,
-                            max_participants=result.max_participants,
-                            current_participants=result.current_participants,
-                            image_url=result.image_url or "",
-                            duration=result.duration if hasattr(result, 'duration') else 60,
-                            status=result.status if hasattr(result, 'status') else "pending-approval",
-                            recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                            recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                            recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                            instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                            instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                            instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                        ))
+                        events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:
@@ -216,25 +333,7 @@ class EventDatabase:
                 ).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        duration=result.duration if hasattr(result, 'duration') else 60,
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                    events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:
@@ -264,24 +363,7 @@ class EventDatabase:
                 ).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                    events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:
@@ -311,25 +393,7 @@ class EventDatabase:
                 ).fetchone()
 
                 if result:
-                    return Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        duration=result.duration if hasattr(result, 'duration') else 60,
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    )
+                    return self._create_event_from_result(result)
                 return None
 
         except Exception as e:
@@ -382,6 +446,15 @@ class EventDatabase:
                 result = conn.execute(events_table.insert().values(**event_data_dict))
                 conn.commit()
 
+            # Calculate next_date_time for the created event
+            recurring_pattern = getattr(event_data, 'recurring_pattern', None)
+            recurring_end_date = getattr(event_data, 'recurring_end_date', None)
+            next_occurrence = calculate_next_occurrence(
+                event_data.date_time,
+                recurring_pattern,
+                recurring_end_date
+            )
+            
             # Return Event object
             return Event(
                 id=event_id,
@@ -389,6 +462,7 @@ class EventDatabase:
                 type=event_data.type,
                 description=event_data.description,
                 date_time=event_data.date_time,
+                next_date_time=next_occurrence,
                 location=event_data.location,
                 max_participants=event_data.max_participants,
                 current_participants=0,
@@ -448,24 +522,7 @@ class EventDatabase:
                     ).fetchone()
 
                     if updated_result:
-                        return Event(
-                            id=updated_result.id,
-                            name=updated_result.name,
-                            type=updated_result.type,
-                            description=updated_result.description,
-                            date_time=updated_result.date_time,
-                            location=updated_result.location,
-                            max_participants=updated_result.max_participants,
-                            current_participants=updated_result.current_participants,
-                            image_url=updated_result.image_url or "",
-                            status=updated_result.status if hasattr(updated_result, 'status') else "pending-approval",
-                            recurring=updated_result.recurring if hasattr(updated_result, 'recurring') else "none",
-                            recurring_end_date=updated_result.recurring_end_date if hasattr(updated_result, 'recurring_end_date') else None,
-                            recurring_pattern=updated_result.recurring_pattern if hasattr(updated_result, 'recurring_pattern') else None,
-                            instructor_name=updated_result.instructor_name if hasattr(updated_result, 'instructor_name') else None,
-                            instructor_desc=updated_result.instructor_desc if hasattr(updated_result, 'instructor_desc') else None,
-                            instructor_photo=updated_result.instructor_photo if hasattr(updated_result, 'instructor_photo') else None
-                        )
+                        return self._create_event_from_result(updated_result)
                 return None
 
         except Exception as e:
@@ -523,24 +580,7 @@ class EventDatabase:
                 ).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                    events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:
@@ -571,24 +611,7 @@ class EventDatabase:
                 ).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                    events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:
@@ -618,24 +641,7 @@ class EventDatabase:
                 ).fetchall()
                 
                 for result in results:
-                    events.append(Event(
-                        id=result.id,
-                        name=result.name,
-                        type=result.type,
-                        description=result.description,
-                        date_time=result.date_time,
-                        location=result.location,
-                        max_participants=result.max_participants,
-                        current_participants=result.current_participants,
-                        image_url=result.image_url or "",
-                        status=result.status if hasattr(result, 'status') else "pending-approval",
-                        recurring=result.recurring if hasattr(result, 'recurring') else "none",
-                        recurring_end_date=result.recurring_end_date if hasattr(result, 'recurring_end_date') else None,
-                        recurring_pattern=result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        instructor_name=result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        instructor_desc=result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        instructor_photo=result.instructor_photo if hasattr(result, 'instructor_photo') else None
-                    ))
+                    events.append(self._create_event_from_result(result))
             return events
 
         except Exception as e:

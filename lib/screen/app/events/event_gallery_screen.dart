@@ -438,7 +438,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                           ),
                           Expanded(
                             child: LocalizedDateTimeWidget(
-                              dateTime: widget.event.date_time,
+                              dateTime: widget.event.next_date_time,
                               size: DateTimeDisplaySize.large,
                               textColor: Colors.grey[600],
                             ),

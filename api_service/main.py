@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Header, Depends, Form
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Header, Depends, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -170,6 +170,58 @@ async def debug_routes():
                 "name": getattr(route, 'name', None)
             })
     return {"total_routes": len(routes), "routes": routes}
+
+@app.get("/display/{tenant}")
+async def serve_display_page(
+    request: Request,
+    tenant: str,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    firebase_token: Optional[str] = Header(None, alias="firebaseToken"),
+    home_id: Optional[str] = Header(None, alias="homeID")
+):
+    """Serve the display HTML page for a specific tenant - requires authentication"""
+    import os
+    
+    # Extract JWT token from multiple sources
+    jwt_token = None
+    
+    # 1. Try Authorization header (Bearer token)
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization[7:]  # Remove "Bearer " prefix
+    
+    # 2. Try firebaseToken header
+    elif firebase_token:
+        jwt_token = firebase_token
+    
+    # 3. Try to get from cookies
+    elif "jwt_token" in request.cookies:
+        jwt_token = request.cookies["jwt_token"]
+    
+    # 4. Try different cookie names that might be used by Flutter web
+    elif "web_jwt_token" in request.cookies:
+        jwt_token = request.cookies["web_jwt_token"]
+    
+    if not jwt_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Please log in to access this page."
+        )
+    
+    # Basic JWT token validation (check if it's not empty and has proper format)
+    if not jwt_token or len(jwt_token) < 10 or jwt_token.count('.') != 2:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid JWT token format."
+        )
+    
+    # Additional validation could be added here to verify the JWT signature
+    # For now, we're doing basic format validation
+    
+    html_path = os.path.join(os.path.dirname(__file__), "display.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path, media_type="text/html")
+    else:
+        raise HTTPException(status_code=404, detail="Display page not found")
 
 @api_router.get("/")
 async def api_root():

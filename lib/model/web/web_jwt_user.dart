@@ -1,16 +1,11 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'web_jwt_user.g.dart';
-
 /// Helper function to parse UTC timestamp to local DateTime
 DateTime _parseUtcToLocal(String utcString) {
   // Add 'Z' suffix if not present to ensure UTC parsing
-  final utcStringWithZ = utcString.endsWith('Z') ? utcString : utcString + 'Z';
+  final utcStringWithZ = utcString.endsWith('Z') ? utcString : '${utcString}Z';
   return DateTime.parse(utcStringWithZ).toLocal();
 }
 
 /// Web JWT User model - completely separate from admin user
-@JsonSerializable()
 class WebJwtUser {
   final String id;
   final String phoneNumber;
@@ -42,7 +37,7 @@ class WebJwtUser {
       phoneNumber: json['phoneNumber'] as String,
       fullName: json['fullName'] as String,
       role: json['role'] as String,
-      homeId: json['homeId'] as int,
+      homeId: (json['homeId'] as num).toInt(),
       homeName: json['homeName'] as String?,
       photo: json['photo'] as String?,
       apartmentNumber: json['apartmentNumber'] as String?,
@@ -50,14 +45,27 @@ class WebJwtUser {
       updatedAt: _parseUtcToLocal(json['updatedAt'] as String),
     );
   }
-  Map<String, dynamic> toJson() => _$WebJwtUserToJson(this);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'phoneNumber': phoneNumber,
+      'fullName': fullName,
+      'role': role,
+      'homeId': homeId,
+      'homeName': homeName,
+      'photo': photo,
+      'apartmentNumber': apartmentNumber,
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
+    };
+  }
 
   @override
   String toString() => 'WebJwtUser(id: $id, phoneNumber: $phoneNumber, fullName: $fullName, role: $role, homeId: $homeId, homeName: $homeName)';
 }
 
 /// Web JWT Session model
-@JsonSerializable()
 class WebJwtSession {
   final String token;
   final String refreshToken;
@@ -85,17 +93,22 @@ class WebJwtSession {
       createdAt: _parseUtcToLocal(json['createdAt'] as String),
     );
   }
-  Map<String, dynamic> toJson() => _$WebJwtSessionToJson(this);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'token': token,
+      'refreshToken': refreshToken,
+      'user': user.toJson(),
+      'expiresAt': expiresAt.toUtc().toIso8601String(),
+      'refreshExpiresAt': refreshExpiresAt.toUtc().toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+    };
+  }
 
   /// Check if the main token is still valid
   bool get isValid {
     final now = DateTime.now();
-    print('Session validation - Local now: $now, ExpiresAt (converted to local): $expiresAt');
-    
-    // Both times are now in local timezone after UTC conversion in fromJson
-    final isValidLocal = now.isBefore(expiresAt);
-    print('Token validity check: $isValidLocal');
-    return isValidLocal;
+    return now.isBefore(expiresAt);
   }
 
   /// Check if the refresh token is still valid
@@ -112,7 +125,6 @@ class WebJwtSession {
 }
 
 /// Web JWT Credentials for login
-@JsonSerializable()
 class WebJwtCredentials {
   final String phoneNumber;
   final String password;
@@ -124,12 +136,24 @@ class WebJwtCredentials {
     required this.homeId,
   });
 
-  factory WebJwtCredentials.fromJson(Map<String, dynamic> json) => _$WebJwtCredentialsFromJson(json);
-  Map<String, dynamic> toJson() => _$WebJwtCredentialsToJson(this);
+  factory WebJwtCredentials.fromJson(Map<String, dynamic> json) {
+    return WebJwtCredentials(
+      phoneNumber: json['phoneNumber'] as String,
+      password: json['password'] as String,
+      homeId: (json['homeId'] as num).toInt(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'phoneNumber': phoneNumber,
+      'password': password,
+      'homeId': homeId,
+    };
+  }
 }
 
 /// Web JWT Login Result
-@JsonSerializable()
 class WebJwtLoginResult {
   final bool success;
   final String message;
@@ -143,6 +167,23 @@ class WebJwtLoginResult {
     this.error,
   });
 
-  factory WebJwtLoginResult.fromJson(Map<String, dynamic> json) => _$WebJwtLoginResultFromJson(json);
-  Map<String, dynamic> toJson() => _$WebJwtLoginResultToJson(this);
+  factory WebJwtLoginResult.fromJson(Map<String, dynamic> json) {
+    return WebJwtLoginResult(
+      success: json['success'] as bool,
+      message: json['message'] as String,
+      session: json['session'] == null
+          ? null
+          : WebJwtSession.fromJson(json['session'] as Map<String, dynamic>),
+      error: json['error'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'message': message,
+      'session': session?.toJson(),
+      'error': error,
+    };
+  }
 }
