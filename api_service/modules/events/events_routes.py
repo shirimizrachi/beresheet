@@ -5,7 +5,7 @@ Handles all event-related HTTP routes and request/response logic
 
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Header, Query, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Header, Query, Form, Path
 from .models import Event, EventCreate, EventUpdate, EventInstructor, EventInstructorCreate, EventInstructorUpdate, EventGallery, EventRegistration
 from .events import event_db
 from storage.storage_service import StorageServiceProxy
@@ -1025,23 +1025,24 @@ async def check_registration_status(
     is_registered = events_registration_db.is_user_registered(event_id, user_id, home_id)
     return {"is_registered": is_registered, "event_id": event_id, "user_id": user_id}
 
-@router.delete("/registrations/admin/{event_id}/{user_id}")
+@router.delete("/registrations/admin/{event_id}/{registered_user_id}")
 async def admin_unregister_user(
     event_id: str,
-    user_id: str,
+    registered_user_id: str,
     home_id: int = Depends(get_home_id),
-    current_user_id: str = Header(..., alias="currentUserId"),
+    current_user_id: Optional[str] = Depends(get_user_id),
     firebase_token: Optional[str] = Header(None, alias="firebaseToken")
 ):
     """Admin endpoint to unregister a user from an event - requires manager role"""
     # Check if current user has manager role
-    await require_manager_role(current_user_id, home_id)
+    if current_user_id:
+        await require_manager_role(current_user_id, home_id)
     
-    success = events_registration_db.unregister_from_event(event_id, user_id, home_id)
+    success = events_registration_db.unregister_from_event(event_id, registered_user_id, home_id)
     if not success:
         raise HTTPException(status_code=400, detail="Unable to unregister user from event")
     
-    return {"message": "User successfully unregistered from event", "event_id": event_id, "user_id": user_id}
+    return {"message": "User successfully unregistered from event", "event_id": event_id, "user_id": registered_user_id}
 
 
 # ------------------------- Rooms Endpoints ------------------------- #

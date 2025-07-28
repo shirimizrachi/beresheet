@@ -1056,6 +1056,7 @@ class EventDatabase:
                                 e.max_participants,
                                 e.current_participants,
                                 e.image_url,
+                                e.duration,
                                 e.status,
                                 e.recurring,
                                 e.recurring_end_date,
@@ -1088,59 +1089,40 @@ class EventDatabase:
                 
                 for result in results:
                     print(f"DEBUG: load_events_for_home - Processing event: {result.id} - {result.name}")
-                    # Determine the display datetime
-                    display_datetime = result.date_time
                     
-                    # For recurring events, calculate next occurrence
+                    # Use the existing _create_event_from_result function to get proper Event object
+                    event_obj = self._create_event_from_result(result)
+                    
+                    # For recurring events, make sure the next iteration hasn't passed the recurring end time
                     if result.recurring and result.recurring != 'none':
                         if result.recurring_pattern and result.recurring_end_date:
-                            next_occurrence = calculate_next_occurrence(
-                                result.date_time,
-                                result.recurring_pattern,
-                                result.recurring_end_date
-                            )
-                            
                             # Additional filtering: make sure the next iteration hasn't passed the recurring end time
-                            if next_occurrence > result.recurring_end_date:
+                            if event_obj.next_date_time > result.recurring_end_date:
                                 continue  # Skip this event - no more valid occurrences
                             
                             # Also check if next occurrence is in the future
-                            if next_occurrence <= now:
+                            if event_obj.next_date_time <= now:
                                 continue  # Skip this event - next occurrence has already passed
-                                
-                            display_datetime = next_occurrence
                         else:
                             # Recurring event without proper pattern - skip
                             continue
                     else:
                         # For one-time events, make sure the date is newer than now
-                        if result.date_time <= now:
+                        if event_obj.next_date_time <= now:
                             continue
                     
-                    # Use the EventWithRegistrationStatus model structure
-                    event_dict = {
-                        'id': result.id,
-                        'name': result.name,
-                        'type': result.type,
-                        'description': result.description,
-                        'date_time': display_datetime.isoformat() if display_datetime else None,  # Note: using date_time to match model
-                        'location': result.location,
-                        'max_participants': result.max_participants,  # Note: using max_participants to match model
-                        'current_participants': result.current_participants,  # Note: using current_participants to match model
-                        'image_url': result.image_url or "",
-                        'status': result.status if hasattr(result, 'status') else "pending-approval",
-                        'recurring': result.recurring if hasattr(result, 'recurring') else "none",
-                        'recurring_end_date': result.recurring_end_date.isoformat() if hasattr(result, 'recurring_end_date') and result.recurring_end_date else None,
-                        'recurring_pattern': result.recurring_pattern if hasattr(result, 'recurring_pattern') else None,
-                        'instructor_name': result.instructor_name if hasattr(result, 'instructor_name') else None,
-                        'instructor_desc': result.instructor_desc if hasattr(result, 'instructor_desc') else None,
-                        'instructor_photo': result.instructor_photo if hasattr(result, 'instructor_photo') else None,
-                        'is_registered': bool(result.is_registered)
-                    }
+                    # Convert Event object to dict and append is_registered field
+                    event_dict = event_obj.model_dump()
+                    # Convert datetime objects to ISO strings
+                    event_dict['date_time'] = event_obj.date_time.isoformat() if event_obj.date_time else None
+                    event_dict['next_date_time'] = event_obj.next_date_time.isoformat() if event_obj.next_date_time else None
+                    event_dict['recurring_end_date'] = event_obj.recurring_end_date.isoformat() if event_obj.recurring_end_date else None
+                    # Add the registration status
+                    event_dict['is_registered'] = bool(result.is_registered)
                     events_with_status.append(event_dict)
             
-            # Sort by date_time (after override calculation for recurring events)
-            events_with_status.sort(key=lambda x: x['date_time'] if x['date_time'] else '9999-12-31T23:59:59')
+            # Sort by next_date_time (the calculated next occurrence that the mobile app uses)
+            events_with_status.sort(key=lambda x: x['next_date_time'] if x['next_date_time'] else '9999-12-31T23:59:59')
             
             print(f"DEBUG: load_events_for_home - Returning {len(events_with_status)} events")
             # Debug: Print first event to see structure
