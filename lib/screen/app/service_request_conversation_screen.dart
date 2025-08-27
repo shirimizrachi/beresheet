@@ -3,6 +3,7 @@ import 'package:beresheet_app/services/user_session_service.dart';
 import 'package:beresheet_app/services/image_cache_service.dart';
 import 'package:beresheet_app/config/app_config.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
+import 'package:beresheet_app/widgets/chat_input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -37,29 +38,18 @@ class ServiceRequestConversationScreen extends StatefulWidget {
 }
 
 class _ServiceRequestConversationScreenState extends State<ServiceRequestConversationScreen> {
-  final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final ImagePicker _imagePicker = ImagePicker();
-  final AudioRecorder _audioRecorder = AudioRecorder();
-  final AudioPlayer _audioPlayer = AudioPlayer();
   
   List<Map<String, dynamic>> messages = [];
   bool isLoading = true;
-  bool isSending = false;
-  bool isRecording = false;
-  bool isUploadingMedia = false;
   String? requestId;
   String? errorMessage;
   bool showAutoResponse = false;
-  bool hasText = false;
-  bool showAttachmentMenu = false;
-  bool showEmojiPanel = false;
 
   @override
   void initState() {
     super.initState();
     requestId = widget.existingRequestId;
-    _messageController.addListener(_onTextChanged);
     if (requestId != null) {
       _loadExistingConversation();
     } else {
@@ -71,18 +61,10 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
 
   @override
   void dispose() {
-    _messageController.dispose();
     _scrollController.dispose();
-    _audioRecorder.dispose();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _onTextChanged() {
-    setState(() {
-      hasText = _messageController.text.trim().isNotEmpty;
-    });
-  }
 
   Future<void> _loadExistingConversation() async {
     setState(() {
@@ -137,15 +119,6 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
       throw Exception('Message cannot be empty');
     }
 
-    if (isSending || isUploadingMedia) return null;
-
-    setState(() {
-      if (mediaPath != null) {
-        isUploadingMedia = true;
-      } else {
-        isSending = true;
-      }
-    });
 
     try {
       final homeId = await UserSessionService.gethomeID();
@@ -294,25 +267,11 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
         });
       }
 
-      // Clear input and update state
-      setState(() {
-        if (textMessage != null) {
-          _messageController.clear();
-          isSending = false;
-        }
-        if (mediaPath != null) {
-          isUploadingMedia = false;
-        }
-      });
 
       _scrollToBottom();
       return requestId;
 
     } catch (e) {
-      setState(() {
-        isSending = false;
-        isUploadingMedia = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error sending message: $e'),
@@ -323,184 +282,6 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
     }
   }
 
-  /// Send text message
-  Future<void> _sendMessage() async {
-    final messageText = _messageController.text.trim();
-    if (messageText.isEmpty) return;
-    
-    await sendRequestMessage(textMessage: messageText);
-  }
-
-  /// Send media (audio, video, image)
-  Future<void> _sendMediaMessage(String mediaPath, String mediaType) async {
-    await sendRequestMessage(mediaPath: mediaPath, mediaType: mediaType);
-  }
-
-  Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1080,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-      
-      if (image != null) {
-        await _sendMediaMessage(image.path, 'image');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1080,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-      
-      if (image != null) {
-        await _sendMediaMessage(image.path, 'image');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error taking photo: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    try {
-      final XFile? video = await _imagePicker.pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(seconds: 30), // Max 30 seconds
-      );
-      
-      if (video != null) {
-        await _sendMediaMessage(video.path, 'video');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking video: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _recordVideo() async {
-    try {
-      final XFile? video = await _imagePicker.pickVideo(
-        source: ImageSource.camera,
-        maxDuration: const Duration(seconds: 15), // Max 15 seconds
-      );
-      
-      if (video != null) {
-        await _sendMediaMessage(video.path, 'video');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error recording video: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _startRecording() async {
-    try {
-      if (await _audioRecorder.hasPermission()) {
-        setState(() {
-          isRecording = true;
-          showAttachmentMenu = false;
-          showEmojiPanel = false;
-        });
-        
-        final String path = '${(await getTemporaryDirectory()).path}/audio_${DateTime.now().millisecondsSinceEpoch}.aac';
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
-          path: path,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Microphone permission required'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        isRecording = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error starting recording: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    try {
-      final path = await _audioRecorder.stop();
-      setState(() {
-        isRecording = false;
-      });
-      
-      if (path != null) {
-        await _sendMediaMessage(path, 'audio');
-      }
-    } catch (e) {
-      setState(() {
-        isRecording = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error stopping recording: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showMediaOptions() {
-    setState(() {
-      showAttachmentMenu = !showAttachmentMenu;
-      showEmojiPanel = false;
-    });
-  }
-
-  void _showEmojiOptions() {
-    setState(() {
-      showEmojiPanel = !showEmojiPanel;
-      showAttachmentMenu = false;
-    });
-  }
-
-  void _insertEmoji(String emoji) {
-    final currentPosition = _messageController.selection.base.offset;
-    final text = _messageController.text;
-    final newText = text.substring(0, currentPosition) + emoji + text.substring(currentPosition);
-    _messageController.text = newText;
-    _messageController.selection = TextSelection.fromPosition(
-      TextPosition(offset: currentPosition + emoji.length),
-    );
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -635,196 +416,6 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
     );
   }
 
-  Widget _buildAttachmentMenu() {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          showAttachmentMenu = false;
-        });
-      },
-      child: Container(
-        color: Colors.black.withOpacity(0.3),
-        child: Column(
-          children: [
-            Expanded(child: Container()),
-            Container(
-              margin: EdgeInsets.only(bottom: 80),
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildAttachmentOption(
-                        icon: Icons.photo,
-                        label: context.l10n.gallery,
-                        color: Color(0xFF2196F3),
-                        onTap: () {
-                          setState(() {
-                            showAttachmentMenu = false;
-                          });
-                          _pickImage();
-                        },
-                      ),
-                      _buildAttachmentOption(
-                        icon: Icons.camera_alt,
-                        label: context.l10n.camera,
-                        color: Color(0xFF424242),
-                        onTap: () {
-                          setState(() {
-                            showAttachmentMenu = false;
-                          });
-                          _takePhoto();
-                        },
-                      ),
-                      _buildAttachmentOption(
-                        icon: Icons.video_library,
-                        label: context.l10n.videoGallery,
-                        color: Color(0xFF4CAF50),
-                        onTap: () {
-                          setState(() {
-                            showAttachmentMenu = false;
-                          });
-                          _pickVideo();
-                        },
-                      ),
-                      _buildAttachmentOption(
-                        icon: Icons.videocam,
-                        label: context.l10n.recordVideo,
-                        color: Color(0xFF757575),
-                        onTap: () {
-                          setState(() {
-                            showAttachmentMenu = false;
-                          });
-                          _recordVideo();
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAttachmentOption({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmojiPanel() {
-    final List<String> emojis = [
-      '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
-      '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
-      '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
-      '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
-      '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-      '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠',
-      '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
-      '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥',
-      '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧',
-      '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
-      '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑',
-      '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻',
-      '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸',
-    ];
-
-    return Container(
-      height: 350,
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 8,
-                  childAspectRatio: 1.0,
-                  crossAxisSpacing: 4,
-                  mainAxisSpacing: 4,
-                ),
-                itemCount: emojis.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      _insertEmoji(emojis[index]);
-                    },
-                    child: Container(
-                      margin: EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          emojis[index],
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   String _formatTimestamp(String timestamp) {
     try {
@@ -948,9 +539,7 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
                         // Messages Area
                         Expanded(
                           child: Container(
-                            color: showAttachmentMenu || showEmojiPanel
-                                ? Color(0xFFE5DDD5).withOpacity(0.7)
-                                : Color(0xFFE5DDD5),
+                            color: Color(0xFFE5DDD5),
                             child: messages.isEmpty
                                 ? Center(
                                     child: Padding(
@@ -987,157 +576,21 @@ class _ServiceRequestConversationScreenState extends State<ServiceRequestConvers
                           ),
                         ),
 
-                        // Media Upload Progress
-                        if (isUploadingMedia)
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            color: Colors.grey.shade100,
-                            child: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(context.l10n.uploadingMedia),
-                              ],
-                            ),
-                          ),
-
-                        // Input Area
-                        SafeArea(
-                          child: Container(
-                            color: Colors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.add, color: Colors.grey[600], size: 28),
-                                  onPressed: isUploadingMedia ? null : _showMediaOptions,
-                                ),
-                                // Voice recording indication when recording
-                                if (isRecording) ...[
-                                  Expanded(
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(25),
-                                        border: Border.all(color: Colors.red.withOpacity(0.3)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Recording...',
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          Spacer(),
-                                          Icon(Icons.graphic_eq, color: Colors.red),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  CircleAvatar(
-                                    backgroundColor: Colors.red,
-                                    radius: 25,
-                                    child: IconButton(
-                                      icon: Icon(Icons.stop, color: Colors.white, size: 22),
-                                      onPressed: _stopRecording,
-                                    ),
-                                  ),
-                                ]
-                                // Normal input field when not recording
-                                else ...[
-                                  Expanded(
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(25),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextField(
-                                              controller: _messageController,
-                                              textAlign: TextAlign.right,
-                                              textDirection: TextDirection.rtl,
-                                              decoration: InputDecoration(
-                                                hintText: 'הודעה',
-                                                hintStyle: TextStyle(
-                                                  color: Colors.grey[500],
-                                                  fontSize: 16,
-                                                ),
-                                                border: InputBorder.none,
-                                                contentPadding: EdgeInsets.zero,
-                                              ),
-                                              style: TextStyle(fontSize: 16),
-                                              maxLines: null,
-                                              textInputAction: TextInputAction.send,
-                                              onSubmitted: (_) => _sendMessage(),
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 24,
-                                            height: 24,
-                                            child: IconButton(
-                                              icon: Icon(
-                                                showEmojiPanel ? Icons.keyboard : Icons.description,
-                                                color: Colors.grey[600],
-                                                size: 20,
-                                              ),
-                                              onPressed: _showEmojiOptions,
-                                              padding: EdgeInsets.zero,
-                                              constraints: BoxConstraints(),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  CircleAvatar(
-                                    backgroundColor: hasText ? Color(0xFF25D366) : Color(0xFF25D366),
-                                    radius: 25,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        hasText ? Icons.send : Icons.mic,
-                                        color: Colors.white,
-                                        size: 22,
-                                      ),
-                                      onPressed: hasText
-                                          ? (isSending || isUploadingMedia ? null : _sendMessage)
-                                          : (isUploadingMedia || isRecording ? null : _startRecording),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                        // Chat Input Widget
+                        ChatInputWidget(
+                          inputType: ChatInputType.serviceRequest,
+                          requestId: requestId,
+                          serviceProviderId: widget.serviceProviderId,
+                          isExpandable: false, // Service request conversations don't expand
+                          initialMessages: messages,
+                          onMessageSent: (message) {
+                            setState(() {
+                              messages.add(message);
+                            });
+                          },
                         ),
-                        if (showEmojiPanel)
-                          SafeArea(
-                            top: false,
-                            child: _buildEmojiPanel(),
-                          ),
                       ],
                     ),
-                    if (showAttachmentMenu) _buildAttachmentMenu(),
                   ],
                 ),
     );

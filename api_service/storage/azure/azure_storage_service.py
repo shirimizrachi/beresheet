@@ -380,6 +380,90 @@ class AzureStorageService:
             return False, f"Azure Storage error: {str(e)}"
         except Exception as e:
             return False, f"Unexpected error: {str(e)}"
+    
+    def upload_chat_media(self, home_id: int, user_id: str, media_data: bytes,
+                         original_filename: str, content_type: Optional[str] = None,
+                         tenant_name: str = None) -> Tuple[bool, str]:
+        """
+        Upload media (image, video, or audio) for chat messages
+        
+        Args:
+            home_id: The home ID for organizing files
+            user_id: The user ID who is uploading
+            media_data: The media data as bytes
+            original_filename: Original filename (for extension detection)
+            content_type: MIME content type of the media
+            tenant_name: Name of the tenant (used for container naming)
+        
+        Returns:
+            Tuple of (success: bool, url_or_error_message: str)
+        """
+        try:
+            # Get container name for tenant
+            container_name = self.get_container_name(tenant_name)
+            
+            # Ensure container exists
+            self._ensure_container_exists(container_name)
+            
+            # Get file extension from original filename
+            file_extension = os.path.splitext(original_filename)[1].lower()
+            if not file_extension:
+                # Determine extension from content type
+                if content_type:
+                    if content_type.startswith('image/'):
+                        file_extension = '.jpg'
+                    elif content_type.startswith('video/'):
+                        file_extension = '.mp4'
+                    elif content_type.startswith('audio/'):
+                        file_extension = '.m4a'
+                    else:
+                        file_extension = '.bin'
+                else:
+                    file_extension = '.bin'
+            
+            # Create unique filename with timestamp and user_id
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = str(uuid.uuid4())[:8]
+            file_name = f"chat_{timestamp}_{unique_id}{file_extension}"
+            
+            # Create blob path: /[homeId]/chat/[user_id]/[filename]
+            blob_path = f"{home_id}/chat/{user_id}/{file_name}"
+            
+            # Determine content type if not provided
+            if not content_type:
+                content_type, _ = mimetypes.guess_type(original_filename)
+                if not content_type:
+                    content_type = 'application/octet-stream'
+            
+            # For images, validate using existing method
+            if content_type.startswith('image/'):
+                if not self._validate_image(content_type, len(media_data)):
+                    return False, "Invalid image file or file too large (max 10MB)"
+            
+            # For videos and audio, we trust the client-side validation
+            # (duration and size should be validated on the client)
+            
+            # Upload to Azure Storage
+            blob_client = self.blob_service_client.get_blob_client(
+                container=container_name,
+                blob=blob_path
+            )
+            
+            blob_client.upload_blob(
+                media_data,
+                content_type=content_type,
+                overwrite=True
+            )
+            
+            # Generate SAS URL with 1 year expiration
+            sas_url = self._generate_sas_url(blob_path, container_name)
+            
+            return True, sas_url
+            
+        except AzureError as e:
+            return False, f"Azure Storage error: {str(e)}"
+        except Exception as e:
+            return False, f"Unexpected error: {str(e)}"
 
 # Global instance factory function
 def get_azure_storage_service(tenant_name: str = None) -> AzureStorageService:

@@ -13,6 +13,7 @@ import 'package:beresheet_app/services/modern_localization_service.dart';
 import 'package:beresheet_app/theme/app_theme.dart';
 import 'package:beresheet_app/widget/eventcard.dart';
 import 'package:beresheet_app/widgets/localized_date_time_widget.dart';
+import 'package:beresheet_app/widgets/chat_input_widget.dart';
 import 'package:beresheet_app/utils/display_name_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,7 +29,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Event> events = [];
   bool isLoading = true;
-  bool isMenuExpanded = false;
   bool isCardView = true; // Default to card view
   int currentCardIndex = 0;
   double _dragOffset = 0.0;
@@ -38,6 +38,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _animation;
   Set<String> selectedEventTypeFilters = {}; // Multiple filters for event types
   bool canEditEvents = false; // Role-based access for event editing
+  
 
   @override
   void initState() {
@@ -65,16 +66,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void toggleMenu() {
-    setState(() {
-      isMenuExpanded = !isMenuExpanded;
-      if (isMenuExpanded) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    });
-  }
 
   void toggleViewMode() {
     setState(() {
@@ -214,6 +205,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       canEditEvents = hasPermission;
     });
   }
+
 
 
   // Get unique event types from the current events list
@@ -418,22 +410,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             SliverToBoxAdapter(
               child: _buildDateSeparator(dateKey),
             ),
-            // Events for this date in a grid
+            // Events for this date in a list (one per row)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
+              sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final eventsForDate = groupedEvents[dateKey]!;
-                    return EventCard(
-                      event: eventsForDate[index],
-                      isRegistered: eventsForDate[index].isRegistered,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: EventCard(
+                        event: eventsForDate[index],
+                        isRegistered: eventsForDate[index].isRegistered,
+                        isHorizontalLayout: true, // New parameter for horizontal layout
+                      ),
                     );
                   },
                   childCount: groupedEvents[dateKey]!.length,
@@ -481,6 +471,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       backgroundColor: Colors.white,
       extendBody: true,
       drawer: Drawer(
+        width: MediaQuery.of(context).size.width,
         backgroundColor: AppColors.surface,
         child: Column(
           children: [
@@ -493,6 +484,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: SafeArea(
                 child: Column(
                   children: [
+                    // Close button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 40), // Spacer for centering
+                        // Logo will be centered
+                        Expanded(child: Container()),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
                     Container(
                       height: 60,
                       width: 60,
@@ -527,44 +531,114 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Expanded(
-              child: ListView(
+            // Circle buttons section - removed Expanded wrapper to fix constraint issues
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
                 children: [
-                  ListTile(
-                    title: Text(context.l10n.profile, style: AppTextStyles.bodyMedium),
-                    leading: const Icon(Icons.person, color: AppColors.primary),
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const NewProfilePage(),
-                      ));
-                    },
+                  // First row of circle buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSideMenuCircleButton(
+                        isCardView ? Icons.grid_view : Icons.view_carousel,
+                        isCardView ? context.l10n.galleryView : context.l10n.cardView,
+                        onTap: () {
+                          toggleViewMode();
+                          Navigator.of(context).pop(); // Close the drawer
+                        },
+                      ),
+                      const SizedBox(width: 40),
+                      _buildSideMenuCircleButton(
+                        Icons.event_available,
+                        context.l10n.myRegisteredEvents,
+                        onTap: () {
+                          Navigator.of(context).pop(); // Close the drawer first
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const RegisteredEventsScreen(),
+                          ));
+                        },
+                      ),
+                      const SizedBox(width: 40),
+                      _buildSideMenuCircleButton(
+                        Icons.build_circle_outlined,
+                        context.l10n.serviceRequest,
+                        onTap: () {
+                          Navigator.of(context).pop(); // Close the drawer first
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const ServiceRequestScreen(),
+                          ));
+                        },
+                      ),
+                    ],
                   ),
-                  ListTile(
-                    title: Text(context.l10n.myRegisteredEvents, style: AppTextStyles.bodyMedium),
-                    leading: const Icon(Icons.event_available, color: AppColors.primary),
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisteredEventsScreen()));
-                    },
+                  const SizedBox(height: 30),
+                  
+                  // Second row of circle buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSideMenuCircleButton(
+                        Icons.settings,
+                        'Settings',
+                      ),
+                      const SizedBox(width: 40),
+                      _buildSideMenuCircleButton(
+                        Icons.person,
+                        context.l10n.profile,
+                        onTap: () {
+                          Navigator.of(context).pop(); // Close the drawer first
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const NewProfilePage(),
+                          ));
+                        },
+                      ),
+                      const SizedBox(width: 40),
+                      _buildSideMenuCircleButton(
+                        Icons.info,
+                        'About',
+                      ),
+                    ],
                   ),
-                  // Only show Manage Events for managers and staff
-                  if (canEditEvents)
-                    ListTile(
-                      title: Text(context.l10n.manageEvents, style: AppTextStyles.bodyMedium),
-                      leading: const Icon(Icons.event_note, color: AppColors.primary),
-                      onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => const EventsManagementScreen(),
-                        )).then((result) {
-                          if (result == true) {
-                            _refreshEvents();
-                          }
-                        });
-                      },
-                    ),
-                  // Logout option removed - users need to delete app to logout
+                  const SizedBox(height: 30),
+                  
+                  // Third row of circle buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSideMenuCircleButton(
+                        Icons.notification_important,
+                        'Notifications',
+                      ),
+                      const SizedBox(width: 40),
+                      // Only show Manage Events for managers and staff (instead of privacy)
+                      if (canEditEvents)
+                        _buildSideMenuCircleButton(
+                          Icons.event_note,
+                          context.l10n.manageEvents,
+                          onTap: () {
+                            Navigator.of(context).pop(); // Close the drawer first
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => const EventsManagementScreen(),
+                            )).then((result) {
+                              if (result == true) {
+                                _refreshEvents();
+                              }
+                            });
+                          },
+                        ),
+                      const SizedBox(width: 40),
+                      _buildSideMenuCircleButton(
+                        Icons.feedback,
+                        'Feedback',
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+            // Add flexible spacer to fill remaining space without causing constraint issues
+            const Expanded(child: SizedBox()),
           ],
         ),
       ),
@@ -604,8 +678,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           // Main content
           Padding(
             padding: EdgeInsets.only(
-              bottom: 160 + MediaQuery.of(context).padding.bottom,
-            ), // Added bottom padding for expandable menu + system navigation bar
+              bottom: 144 + MediaQuery.of(context).padding.bottom,
+            ), // Reduced padding to fix overflow
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : events.isNotEmpty
@@ -615,130 +689,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     : _buildNoEventsView(),
           ),
           
-          // Expandable Bottom Menu
+          // Chat Footer using the reusable widget
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
-                final bottomPadding = MediaQuery.of(context).padding.bottom;
-                return Container(
-                  height: isMenuExpanded ? 400 + bottomPadding : 160 + bottomPadding,
-                  padding: EdgeInsets.only(bottom: bottomPadding),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: Offset(0, -5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Toggle button
-                      GestureDetector(
-                        onTap: toggleMenu,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: AnimatedRotation(
-                            turns: isMenuExpanded ? 0.5 : 0,
-                            duration: Duration(milliseconds: 300),
-                            child: Icon(
-                              Icons.keyboard_arrow_up,
-                              size: 24,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      // Always visible bottom buttons - increased height when collapsed
-                      if (!isMenuExpanded)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildBottomMenuItem(isCardView ? Icons.grid_view : Icons.view_carousel,
-                                  isCardView ? context.l10n.galleryView : context.l10n.cardView,
-                                  onTap: toggleViewMode),
-                                SizedBox(width: 40),
-                                _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents),
-                                SizedBox(width: 40),
-                                _buildBottomMenuItem(Icons.build_circle_outlined, context.l10n.serviceRequest),
-                              ],
-                            ),
-                          ),
-                        ),
-                      
-                      // Expanded menu content
-                      if (isMenuExpanded)
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // First row
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildBottomMenuItem(isCardView ? Icons.grid_view : Icons.view_carousel,
-                                        isCardView ? context.l10n.galleryView : context.l10n.cardView,
-                                        onTap: toggleViewMode),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.event_available, context.l10n.myRegisteredEvents),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.build_circle_outlined, context.l10n.serviceRequest),
-                                    ],
-                                  ),
-                                  SizedBox(height: 24),
-                                  
-                                  // Second row - Additional features
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildBottomMenuItem(Icons.settings, 'Settings'),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.help, 'Help', onTap: toggleViewMode),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.info, 'About'),
-                                    ],
-                                  ),
-                                  SizedBox(height: 24),
-                                  
-                                  // Third row - More options
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildBottomMenuItem(Icons.notification_important, 'Notifications'),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.security, 'Privacy'),
-                                      SizedBox(width: 40),
-                                      _buildBottomMenuItem(Icons.feedback, 'Feedback'),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
+            child: ChatInputWidget(
+              inputType: ChatInputType.community,
+              isExpandable: true,
+              onMessageSent: (message) {
+                // Handle message sent callback if needed
+                print('Message sent: ${message['message']}');
               },
             ),
           ),
@@ -753,59 +714,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       child: ListView(
         physics: AlwaysScrollableScrollPhysics(),
         children: [
-          Container(
-            height: MediaQuery.of(context).size.height -
-                    kToolbarHeight -
-                    MediaQuery.of(context).padding.top -
-                    160 -
-                    MediaQuery.of(context).padding.bottom,
-            child: Column(
-              children: [
-                // Add top margin from header
-                SizedBox(height: 40),
-                
-                // Card Stack - centered vertically
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 25),
-                    child: Center(
-                      child: Container(
-                        height: MediaQuery.of(context).size.height * 0.55, // Increased from 0.45 to 0.55
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Background cards - showing 3 cards with deck effect
-                            for (int offset = 2; offset >= 0; offset--)
-                              _buildEventCard(_getCardIndex(offset), offset),
-                          ],
-                        ),
-                      ),
-                    ),
+          // Removed fixed height container to prevent overflow - use flexible layout
+          Column(
+            children: [
+              // Very minimal top margin
+              SizedBox(height: 5),
+              
+              // Greeting text
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                child: Text(
+                  "Good morning Ran",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                
-                // Action Buttons
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              ),
+              
+              // Card Stack - slightly reduced height to accommodate greeting text
+              Container(
+                height: MediaQuery.of(context).size.height * 0.68, // Reduced from 72% to 68% to fit greeting
+                padding: EdgeInsets.symmetric(horizontal: 25),
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      _buildActionButton(
-                        icon: Icons.close,
-                        color: Colors.grey,
-                        onTap: _passEvent,
-                      ),
-                      _buildActionButton(
-                        icon: Icons.star,
-                        color: Colors.blue,
-                        onTap: _likeEvent,
-                        size: 35,
-                      ),
+                      // Background cards - showing 3 cards with deck effect
+                      for (int offset = 2; offset >= 0; offset--)
+                        _buildEventCard(_getCardIndex(offset), offset),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              
+              // Very small bottom spacing - just minimal gap to footer
+              SizedBox(height: 5),
+            ],
           ),
         ],
       ),
@@ -888,30 +835,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         child: Stack(
                           children: [
-                            // Background Image
-                            Container(
-                              width: double.infinity,
-                              height: double.infinity,
-                              child: ImageCacheService.buildEventImage(
-                                imageUrl: event.imageUrl,
+                            // Background Image - clipped to match card corners
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
                                 width: double.infinity,
                                 height: double.infinity,
-                                fit: BoxFit.cover,
-                                placeholder: Container(
-                                  color: AppColors.primary.withOpacity(0.3),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
-                                      strokeWidth: 3,
+                                child: ImageCacheService.buildEventImage(
+                                  imageUrl: event.imageUrl,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                  placeholder: Container(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
+                                        strokeWidth: 3,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                errorWidget: Container(
-                                  color: AppColors.primary.withOpacity(0.3),
-                                  child: Icon(
-                                    Icons.event,
-                                    size: 100,
-                                    color: Colors.white.withOpacity(0.5),
+                                  errorWidget: Container(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    child: Icon(
+                                      Icons.event,
+                                      size: 100,
+                                      color: Colors.white.withOpacity(0.5),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1107,6 +1057,50 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+
+  Widget _buildSideMenuCircleButton(IconData icon, String title, {VoidCallback? onTap}) {
+    return Container(
+      width: 90,
+      constraints: const BoxConstraints(minHeight: 80),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 80,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.black87,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildBottomMenuItem(IconData icon, String title, {bool hasNotification = false, int notificationCount = 0, VoidCallback? onTap}) {
     return SizedBox(

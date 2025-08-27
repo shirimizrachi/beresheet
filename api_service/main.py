@@ -8,6 +8,7 @@ from modules.events import event_db, router as events_router, events_registratio
 from modules.notification import router as home_notification_router
 from modules.users import user_db, service_provider_type_db, router as users_router
 from modules.service_requests import request_db, router as service_requests_router
+from modules.chat import router as chat_router
 from storage.storage_service import azure_storage_service
 import uvicorn
 import os
@@ -294,6 +295,9 @@ tenant_users_router = create_tenant_api_router(users_router)
 # Create tenant-aware service requests router
 tenant_service_requests_router = create_tenant_api_router(service_requests_router)
 
+# Create tenant-aware chat router
+tenant_chat_router = create_tenant_api_router(chat_router)
+
 # Create tenant-aware web JWT auth router
 tenant_web_jwt_router = create_tenant_api_router(web_jwt_router)
 
@@ -364,7 +368,10 @@ app.include_router(tenant_users_router)
 # 6. Tenant service requests routes (/{tenant_name}/api/requests/*)
 app.include_router(tenant_service_requests_router)
 
-# 7. Tenant web JWT auth routes (/{tenant_name}/api/web-auth/*)
+# 7. Tenant chat routes (/{tenant_name}/api/chat/*)
+app.include_router(tenant_chat_router)
+
+# 8. Tenant web JWT auth routes (/{tenant_name}/api/web-auth/*)
 app.include_router(tenant_web_jwt_router)
 
 # Note: ALL endpoints are now tenant-specific:

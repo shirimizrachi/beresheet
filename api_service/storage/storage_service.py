@@ -69,6 +69,11 @@ class StorageServiceProxy:
                            content_type: Optional[str] = None, tenant_name: str = None) -> Tuple[bool, str]:
         return self.service.upload_request_media(home_id, request_id, message_id, media_data, original_filename, content_type, tenant_name)
     
+    def upload_chat_media(self, home_id: int, user_id: str, media_data: bytes,
+                         original_filename: str, content_type: Optional[str] = None,
+                         tenant_name: str = None) -> Tuple[bool, str]:
+        return self.service.upload_chat_media(home_id, user_id, media_data, original_filename, content_type, tenant_name)
+    
     def delete_image(self, blob_path: str, tenant_name: str = None) -> bool:
         return self.service.delete_image(blob_path, tenant_name)
     
